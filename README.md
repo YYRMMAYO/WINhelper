@@ -1,9 +1,6 @@
 # 司南工具箱 (WINHELP)
 
-<!-- 将下方 OWNER/REPO 替换为你自己的 GitHub 仓库路径（例如 YYRMMMAYO/WINhelper） -->
-![Build](https://github.com/OWNER/REPO/actions/workflows/build.yml/badge.svg)
-![License](https://img.shields.io/badge/license-免费非商业-blue.svg)
-![Platform](https://img.shields.io/badge/platform-Windows%20x64-lightgrey.svg)
+
 
 > 一款完全免费、非盈利的 Windows 电脑辅助工具，专注于系统检测、清理优化、网络诊断与故障排查。
 > 本地运行、操作安全，绝不自动删除你的个人文件。
