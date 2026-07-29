@@ -1,6 +1,5 @@
 # 司南工具箱 (WINHELP)
 先前公示：本软件使用AI技术进行开发，人工进行维护
-![Build](https://github.com/OWNER/REPO/actions/workflows/build.yml/badge.svg)
 ![License](https://img.shields.io/badge/license-免费非商业-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%20x64-lightgrey.svg)
 
