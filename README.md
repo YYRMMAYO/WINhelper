@@ -1,6 +1,5 @@
 # 司南工具箱 (WINHELP)
-
-<!-- 将下方 OWNER/REPO 替换为你自己的 GitHub 仓库路径（例如 YYRMMMAYO/WINhelper） -->
+先前公示：本软件使用AI技术进行开发，人工进行维护
 ![Build](https://github.com/OWNER/REPO/actions/workflows/build.yml/badge.svg)
 ![License](https://img.shields.io/badge/license-免费非商业-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%20x64-lightgrey.svg)
@@ -89,7 +88,7 @@ WINHELP/
 
 本软件为 **完全免费、非盈利** 的工具，仅供个人学习与交流使用，请勿用于商业用途。
 详见 [LICENSE](LICENSE)。在不违反许可协议的前提下，你可自由复制、传播本软件，
-但不得对其进行反向工程、破解或用于商业牟利。
+但不得用于商业牟利。
 
 ---
 
