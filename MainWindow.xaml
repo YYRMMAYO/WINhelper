@@ -1,0 +1,460 @@
+﻿<Window x:Class="WINHELP.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:WINHELP"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        xmlns:sc="clr-namespace:System.Windows;assembly=PresentationCore"
+        mc:Ignorable="d"
+        Title="司南工具箱" Height="820" Width="1100"
+        MinHeight="760" MinWidth="960"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None"
+        Background="#F0F2F5">
+
+    <!-- WindowChrome：保留系统阴影 + 拖拽 + 任务栏缩略图 -->
+    <WindowChrome.WindowChrome>
+        <shell:WindowChrome CaptionHeight="56"
+                             GlassFrameThickness="1"
+                             ResizeBorderThickness="6"
+                             CornerRadius="0"
+                             UseAeroCaptionButtons="False"/>
+    </WindowChrome.WindowChrome>
+
+    <Window.Resources>
+        <!-- 卡片外阴影（玻璃感加强：更轻、仅大卡用） -->
+        <DropShadowEffect x:Key="CardShadow" BlurRadius="24" ShadowDepth="1" Direction="270" Opacity="0.10"/>
+        <DropShadowEffect x:Key="HeroShadow" BlurRadius="28" ShadowDepth="2" Direction="270" Opacity="0.12"/>
+
+        <!-- 导航项基础样式：含左侧激活指示条（玻璃感） -->
+        <Style x:Key="NavItemStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Height" Value="44"/>
+            <Setter Property="Margin" Value="12,4"/>
+            <Setter Property="Padding" Value="14,0"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid>
+                            <Border Background="{TemplateBinding Background}"
+                                    CornerRadius="10"
+                                    Padding="{TemplateBinding Padding}">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock x:Name="NavIcon" Text="{TemplateBinding Tag}"
+                                               FontSize="16" VerticalAlignment="Center"
+                                               Foreground="{TemplateBinding Foreground}" Margin="0,0,12,0"/>
+                                    <ContentPresenter VerticalAlignment="Center"
+                                                      HorizontalAlignment="Left"/>
+                                </StackPanel>
+                            </Border>
+                            <!-- 左侧激活指示条 -->
+                            <Border x:Name="ActiveIndicator" Width="3" Height="18"
+                                    CornerRadius="2" HorizontalAlignment="Left" VerticalAlignment="Center"
+                                    Background="#4A90D9" Margin="2,0,0,0"
+                                    Opacity="0"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource GlassNavHoverBrush}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                            </Trigger>
+                            <!-- 激活态：显示左侧指示条 -->
+                            <Trigger Property="local:NavProps.IsActive" Value="True">
+                                <Setter TargetName="ActiveIndicator" Property="Opacity" Value="1"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 导航项选中样式：玻璃感（共享画刷，自动随主题色变化） -->
+        <Style x:Key="NavItemActiveStyle" TargetType="Button" BasedOn="{StaticResource NavItemStyle}">
+            <Setter Property="Background" Value="{DynamicResource GlassNavActiveBrush}"/>
+            <Setter Property="Foreground" Value="#2E86C1"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+
+        <!-- 主页功能卡片样式（玻璃感） -->
+        <Style x:Key="HomeCardStyle" TargetType="Border">
+            <Setter Property="Width" Value="220"/>
+            <Setter Property="Height" Value="160"/>
+            <Setter Property="Background" Value="{DynamicResource GlassCardBrush}"/>
+            <Setter Property="BorderBrush" Value="#80FFFFFF"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="14"/>
+            <Setter Property="Margin" Value="0,0,14,14"/>
+            <Setter Property="Effect" Value="{StaticResource CardShadow}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="RenderTransform">
+                <Setter.Value>
+                    <TranslateTransform Y="0"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 状态指标卡片（玻璃药丸） -->
+        <Style x:Key="StatusPill" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource GlassPillBrush}"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="Margin" Value="0,0,10,0"/>
+        </Style>
+
+        <!-- 搜索框（带前置图标，玻璃感） -->
+        <Style x:Key="SearchBox" TargetType="TextBox">
+            <Setter Property="Height" Value="36"/>
+            <Setter Property="Padding" Value="10,0,12,0"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Background" Value="{DynamicResource GlassSearchBrush}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="#2C3E50"/>
+            <Setter Property="CaretBrush" Value="#2E86C1"/>
+            <Setter Property="SelectionBrush" Value="#2E86C1"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Name="RootGrid">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="56"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- ===== QQ 风格顶部标题栏（全宽，覆盖到右上角关闭按钮区） ===== -->
+        <Border Grid.Row="0" Name="CaptionBar" Background="{StaticResource QQCaptionBrush}"
+                BorderBrush="{StaticResource QQCaptionBorder}" BorderThickness="0,0,0,1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="220"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- 左 220 占位：与侧栏对齐，保留品牌 -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="20,0,0,0" VerticalAlignment="Center">
+                    <TextBlock Text="🛠️" FontSize="18" VerticalAlignment="Center"/>
+                    <TextBlock Text="司南工具箱" FontSize="14" FontWeight="Bold" Foreground="White"
+                               VerticalAlignment="Center" Margin="8,0,0,0"/>
+                </StackPanel>
+
+                <!-- 中：当前页标题（白字居中） -->
+                <TextBlock Grid.Column="1" x:Name="TxtPageTitle" Text="主界面"
+                           FontSize="14" FontWeight="SemiBold" Foreground="White"
+                           VerticalAlignment="Center" HorizontalAlignment="Center"/>
+
+                <!-- 右：搜索 + 一键优化 + 三按钮 -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,0">
+
+                    <!-- 搜索框：半透明白底胶囊 -->
+                    <Border Background="#22FFFFFF" CornerRadius="6" Margin="0,0,8,0" Height="32"
+                            VerticalAlignment="Center">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="🔍" FontSize="12" VerticalAlignment="Center"
+                                       Margin="8,0,0,0" Foreground="#E0FFFFFF"/>
+                            <TextBox Grid.Column="1" x:Name="TxtSearch" Width="180" Height="30" Margin="4,0,4,0"
+                                     Background="Transparent" BorderThickness="0"
+                                     Foreground="White" CaretBrush="White" SelectionBrush="#80FFFFFF"
+                                     FontSize="12" VerticalContentAlignment="Center"
+                                     TextChanged="TxtSearch_TextChanged"
+                                     PreviewKeyDown="TxtSearch_PreviewKeyDown"
+                                     ToolTip="搜索首页功能模块"
+                                     shell:WindowChrome.IsHitTestVisibleInChrome="True"/>
+                        </Grid>
+                    </Border>
+
+                    <!-- 一键优化 -->
+                    <Button x:Name="BtnOptimize" Height="32" Margin="0,0,14,0"
+                            FontSize="12.5" FontWeight="SemiBold" Foreground="White"
+                            Background="#1AFFFFFF" BorderThickness="0" Cursor="Hand"
+                            Content="✨ 一键优化" Padding="14,0"
+                            Click="BtnOptimize_Click"
+                            shell:WindowChrome.IsHitTestVisibleInChrome="True"/>
+
+                    <!-- 最小化 / 最大化 / 关闭 -->
+                    <Button x:Name="BtnMin" Style="{StaticResource QQCaptionButton}"
+                            Click="BtnMin_Click" ToolTip="最小化"
+                            shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                        <Path Data="M0,5 H10" Stroke="White" StrokeThickness="1"
+                              Stretch="None" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Button>
+                    <Button x:Name="BtnMax" Style="{StaticResource QQCaptionButton}"
+                            Click="BtnMax_Click" ToolTip="最大化 / 还原"
+                            shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                        <Grid>
+                            <Path x:Name="BtnMaxRestore" Data="M0,0 H10 V10 H0 Z"
+                                  Stroke="White" StrokeThickness="1"
+                                  Stretch="None" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Grid>
+                    </Button>
+                    <Button x:Name="BtnClose" Style="{StaticResource QQCloseButton}"
+                            Click="BtnClose_Click" ToolTip="关闭"
+                            shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                        <Path Data="M0,0 L10,10 M10,0 L0,10" Stroke="White" StrokeThickness="1.2"
+                              Stretch="None" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ===== 内容区（嵌套 2 列 Grid） ===== -->
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="220"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- ===== 玻璃模糊背景层 (Acrylic 模式可见) =====
+                 Translucent 模式: 隐藏（RootGrid.Background 已展示清晰壁纸）
+                 Acrylic 模式: 显示，承载 BlurEffect，对同一张壁纸做模糊 -->
+            <Image x:Name="BackdropImage" Grid.ColumnSpan="2"
+                   Stretch="UniformToFill" Visibility="Collapsed"
+                   Effect="{StaticResource GlassBlur}"
+                   CacheMode="BitmapCache"
+                   HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+
+            <!-- ===== 星空主题装饰层 =====
+                 仅在 IsStarryActive=true 时显示：在 BackdropImage 之上覆盖 100 颗随机分布的
+                 星点（Ellipse），模拟夜空的微光闪烁。IsHitTestVisible=False 不影响鼠标交互。 -->
+            <Canvas x:Name="StarryLayer" Grid.ColumnSpan="2" IsHitTestVisible="False"
+                    Background="Transparent" Visibility="Collapsed"
+                    HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+
+            <!-- ===== 左侧边栏（玻璃感） ===== -->
+            <Border Grid.Column="0" Style="{StaticResource GlassSidebar}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Logo -->
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="20,22,20,18">
+                        <Border Width="38" Height="38" CornerRadius="10" Background="#EBF3FC" VerticalAlignment="Center">
+                            <TextBlock Text="🛠️" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-1,0,0"/>
+                        </Border>
+                        <StackPanel VerticalAlignment="Center" Margin="12,0,0,0">
+                            <TextBlock Text="司南工具箱" FontSize="17" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                            <TextBlock Text="优雅工具 · 一键直达" FontSize="11" Foreground="{DynamicResource TextMutedBrush}"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- 导航（主界面 + 快捷启动 + 设置分组） -->
+                    <StackPanel Grid.Row="1" Margin="0,8,0,0">
+                        <Button x:Name="NavHome" Style="{StaticResource NavItemActiveStyle}" Tag="🏠"
+                                Content="主界面" Click="NavHome_Click"/>
+
+                        <Border Background="#E8ECF0" Height="1" Margin="20,14"/>
+
+                        <!-- 快捷启动：常用功能一键直达 -->
+                        <TextBlock x:Name="TxtGroupQuick" Text="快捷启动" FontSize="11" Foreground="{DynamicResource TextMutedBrush}"
+                                   Margin="24,4,0,2"/>
+                        <Button x:Name="NavTroubleshoot" Style="{StaticResource NavItemStyle}" Tag="🔧"
+                                Content="故障排查" Click="NavTroubleshoot_Click"/>
+                        <Button x:Name="NavNovice" Style="{StaticResource NavItemStyle}" Tag="📘"
+                                Content="新手导览" Click="NavNovice_Click"/>
+                        <Button x:Name="NavSetup" Style="{StaticResource NavItemStyle}" Tag="💿"
+                                Content="装机助手" Click="NavSetup_Click"/>
+
+                        <Border Background="#E8ECF0" Height="1" Margin="20,14"/>
+
+                        <TextBlock x:Name="TxtGroupSettings" Text="设置" FontSize="11" Foreground="{DynamicResource TextMutedBrush}"
+                                   Margin="24,4,0,2"/>
+                        <Button x:Name="NavSettings" Style="{StaticResource NavItemStyle}" Tag="⚙️"
+                                Content="设置" Click="NavSettings_Click"/>
+                        <Button x:Name="NavTheme" Style="{StaticResource NavItemStyle}" Tag="🎨"
+                                Content="主题" Click="NavTheme_Click"/>
+                        <Button x:Name="NavCompanion" Style="{StaticResource NavItemStyle}" Tag="💛"
+                                Content="陪伴运行" Click="NavCompanion_Click"/>
+                    </StackPanel>
+
+                    <!-- 底部每日贴士（玻璃卡）+ 关闭按钮 -->
+                    <Border Grid.Row="2" Style="{StaticResource GlassCard}" Margin="14,0,14,16" x:Name="DailyTipCard">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Margin="14,12,4,12">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,8">
+                                    <TextBlock Text="💡" FontSize="14" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                    <TextBlock x:Name="TxtDailyTipTitle" Text="每日使用贴士" FontSize="12" FontWeight="SemiBold" Foreground="#2C3E50"/>
+                                </StackPanel>
+                                <TextBlock x:Name="TxtDailyTip" FontSize="12" Foreground="#7F8C8D"
+                                           TextWrapping="Wrap" LineHeight="18"
+                                           Text="按 Win+D 可快速显示桌面，再次按可恢复窗口。"/>
+                                <Button x:Name="BtnNextTip" Content="换一个" FontSize="11"
+                                    Foreground="#4A90D9" Background="Transparent"
+                                    BorderThickness="0" Cursor="Hand"
+                                    HorizontalAlignment="Left" Margin="0,8,0,0"
+                                    Click="BtnNextTip_Click"/>
+                            </StackPanel>
+                            <Button Grid.Column="1" x:Name="BtnCloseTip" Content="✕" FontSize="11"
+                                    Foreground="#BDC3C7" Background="Transparent"
+                                    BorderThickness="0" Cursor="Hand" Width="24" Height="24"
+                                    HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,6,0,0"
+                                    ToolTip="关闭贴士" Click="BtnCloseTip_Click"/>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- ===== 右侧内容区 ===== -->
+            <Grid Grid.Column="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- 状态指标栏（玻璃面板） -->
+                <Border Grid.Row="0" Style="{StaticResource GlassPanel}" Padding="24,14">
+                    <StackPanel Orientation="Horizontal">
+                        <Border Style="{StaticResource StatusPill}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="⚙️" FontSize="13" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="TxtCpu" Text="CPU --%" FontSize="12.5" Foreground="#34495E"
+                                           VerticalAlignment="Center" Margin="6,0,0,0" FontWeight="SemiBold"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource StatusPill}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="💾" FontSize="13" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="TxtMem" Text="内存 --%" FontSize="12.5" Foreground="#34495E"
+                                           VerticalAlignment="Center" Margin="6,0,0,0" FontWeight="SemiBold"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource StatusPill}">
+                            <StackPanel Orientation="Horizontal">
+                                <Ellipse x:Name="NetDot" Width="9" Height="9" Fill="#BDC3C7" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="TxtNet" Text="网络 --" FontSize="12.5" Foreground="#34495E"
+                                           VerticalAlignment="Center" Margin="6,0,0,0" FontWeight="SemiBold"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Background="#E8F5E9" CornerRadius="10" Padding="12,8" Margin="0,0,0,0"
+                                Visibility="Collapsed" x:Name="OptResultPill">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="✅" FontSize="13" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="TxtOptResult" Text="已优化" FontSize="12.5" Foreground="#27AE60"
+                                           VerticalAlignment="Center" Margin="6,0,0,0" FontWeight="SemiBold"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Border>
+
+                <!-- 今日概览英雄横幅（玻璃卡） -->
+                <Border Grid.Row="1" Margin="24,16,24,4">
+                    <Border Style="{StaticResource GlassCard}" Padding="20,16"
+                            Effect="{StaticResource HeroShadow}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- 左：日期块 -->
+                            <Border Grid.Column="0" Name="HeroDateBlock" Width="58" Height="58" CornerRadius="14"
+                                    Background="#EBF3FC" VerticalAlignment="Center">
+                                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                    <TextBlock x:Name="TxtHeroDay" Text="--" FontSize="20" FontWeight="Bold"
+                                               Foreground="#2E86C1" HorizontalAlignment="Center"/>
+                                    <TextBlock x:Name="TxtHeroMonth" Text="--月" FontSize="10"
+                                               Foreground="#7F8C8D" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- 中：欢迎语 + 系统摘要 + 扩展信息（O8） -->
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="18,0,0,0">
+                                <TextBlock x:Name="TxtHeroGreeting" Text="你好，欢迎回来" FontSize="16"
+                                           FontWeight="Bold" Foreground="#2C3E50"/>
+                                <TextBlock x:Name="TxtHeroSummary" Text="系统运行正常 · 网络在线"
+                                           FontSize="12" Foreground="#7F8C8D" Margin="0,4,0,0"/>
+                                <TextBlock x:Name="TxtHeroExtra" Text="上次优化：— · 可清理：—"
+                                           FontSize="11.5" Foreground="#95A5A6" Margin="0,4,0,0"/>
+                            </StackPanel>
+
+                            <!-- 右：快捷状态点 -->
+                            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Border Background="#F2F3F5" CornerRadius="8" Padding="10,6" Margin="0,0,8,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Ellipse x:Name="HeroDotCpu" Width="8" Height="8" Fill="#27AE60" VerticalAlignment="Center"/>
+                                        <TextBlock x:Name="HeroLabelCpu" Text="CPU" FontSize="11" Foreground="#7F8C8D" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Background="#F2F3F5" CornerRadius="8" Padding="10,6" Margin="0,0,8,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Ellipse x:Name="HeroDotMem" Width="8" Height="8" Fill="#27AE60" VerticalAlignment="Center"/>
+                                        <TextBlock x:Name="HeroLabelMem" Text="内存" FontSize="11" Foreground="#7F8C8D" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Background="#F2F3F5" CornerRadius="8" Padding="10,6">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Ellipse x:Name="HeroDotNet" Width="8" Height="8" Fill="#27AE60" VerticalAlignment="Center"/>
+                                        <TextBlock x:Name="HeroLabelNet" Text="网络" FontSize="11" Foreground="#7F8C8D" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </Border>
+
+                <!-- 主内容滚动区 -->
+                <ScrollViewer Grid.Row="2" Margin="24,12" VerticalScrollBarVisibility="Auto"
+                              x:Name="MainScroll">
+                    <ContentControl x:Name="PageHost" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+                </ScrollViewer>
+            </Grid>
+        </Grid>
+
+        <!-- ===== 更新提示栏（紧贴标题栏下方的独立行，不遮挡 caption 按钮，出现时把内容区整体下推） ===== -->
+        <Border Name="UpdateBar" Grid.Row="1" Visibility="Collapsed"
+                Background="#FFF3E0" BorderBrush="#FF9800" BorderThickness="0,0,0,1"
+                Padding="16,10" Margin="0,0,0,0" Panel.ZIndex="10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="🔔" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock Name="UpdateTitle" FontSize="13" FontWeight="SemiBold"
+                               Foreground="#E65100" TextWrapping="Wrap"/>
+                    <TextBlock Name="UpdateNotes" FontSize="12" Foreground="#BF360C"
+                               TextWrapping="Wrap" Margin="0,2,0,0"/>
+                </StackPanel>
+                <!-- 这两个按钮位于 WindowChrome 的标题栏命中区（CaptionHeight=56）内，
+                     必须声明 IsHitTestVisibleInChrome，否则点击会被当作窗口拖拽而吞掉，
+                     导致“立即下载 / 忽略”无法点击。 -->
+                <Button Grid.Column="2" Name="BtnDownload" Height="30" Width="80"
+                        FontSize="12" FontWeight="SemiBold"
+                        Background="#FF9800" Foreground="White"
+                        BorderThickness="0" Cursor="Hand"
+                        Content="立即下载" Margin="16,0,8,0"
+                        shell:WindowChrome.IsHitTestVisibleInChrome="True"
+                        Click="BtnDownload_Click"/>
+                <Button Grid.Column="3" Name="BtnDismiss" Height="30" Width="60"
+                        FontSize="12" Foreground="#BF360C"
+                        Background="Transparent" BorderThickness="0" Cursor="Hand"
+                        Content="忽略"
+                        shell:WindowChrome.IsHitTestVisibleInChrome="True"
+                        Click="BtnDismiss_Click"/>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

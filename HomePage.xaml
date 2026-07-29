@@ -1,0 +1,263 @@
+<UserControl x:Class="WINHELP.HomePage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:WINHELP"
+             Background="Transparent">
+    <UserControl.Resources>
+        <!-- 次级卡片：常规大小 -->
+        <Style x:Key="HomeCard" TargetType="Border">
+            <Setter Property="Width" Value="222"/>
+            <Setter Property="Height" Value="120"/>
+            <Setter Property="Background" Value="{DynamicResource GlassCardBrush}"/>
+            <Setter Property="BorderBrush" Value="#80FFFFFF"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="14"/>
+            <Setter Property="Margin" Value="0,0,14,14"/>
+            <Setter Property="Padding" Value="14,12"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="local:ClickAnim.IsEnabled" Value="True"/>
+            <Setter Property="local:ClickAnim.HoverScale" Value="1.03"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect BlurRadius="24" ShadowDepth="1" Direction="270" Opacity="0.10"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 主级卡片：更大、带强调色图标底，体现主次层级 -->
+        <Style x:Key="HomeCardPrimary" TargetType="Border" BasedOn="{StaticResource HomeCard}">
+            <Setter Property="Width" Value="300"/>
+            <Setter Property="Height" Value="142"/>
+            <Setter Property="Padding" Value="16,14"/>
+        </Style>
+
+        <!-- 一键优化卡片：与普通主级卡片同尺寸，强调色底 + 白字（不再独占整行，降低占比） -->
+        <Style x:Key="HomeCardOptimize" TargetType="Border">
+            <Setter Property="Width" Value="300"/>
+            <Setter Property="Height" Value="142"/>
+            <Setter Property="CornerRadius" Value="14"/>
+            <Setter Property="Margin" Value="0,0,14,14"/>
+            <Setter Property="Padding" Value="16,14"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="local:ClickAnim.IsEnabled" Value="True"/>
+            <Setter Property="local:ClickAnim.HoverScale" Value="1.03"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect BlurRadius="24" ShadowDepth="1" Direction="270" Opacity="0.12" Color="#2E86C1"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 图标底（主级卡片用，强调色淡底） -->
+        <Style x:Key="IconChip" TargetType="Border">
+            <Setter Property="Width" Value="42"/>
+            <Setter Property="Height" Value="42"/>
+            <Setter Property="CornerRadius" Value="11"/>
+            <Setter Property="Background" Value="#1A4A90D9"/>
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+            <Setter Property="VerticalAlignment" Value="Top"/>
+        </Style>
+
+        <!-- 分组标题样式 -->
+        <Style x:Key="SectionHeader" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="Margin" Value="4,4,0,10"/>
+        </Style>
+    </UserControl.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="4">
+        <StackPanel>
+            <!-- ===== 系统工具分组 ===== -->
+            <TextBlock x:Name="SecSystem" Text="🖥️ 系统工具" Style="{StaticResource SectionHeader}"/>
+            <WrapPanel x:Name="CardsWrapSystem" Orientation="Horizontal">
+
+                <!-- 一键优化：与普通卡片同尺寸，不再独占整行（需求 #4） -->
+                <Border Style="{StaticResource HomeCardOptimize}" Name="CardOptimize" Tag="optimize" MouseLeftButtonDown="Card_Click">
+                    <Grid>
+                        <StackPanel VerticalAlignment="Center" Margin="4,0,86,0">
+                            <TextBlock Text="✨ 一键优化" FontSize="18" FontWeight="Bold" Foreground="White"/>
+                            <TextBlock Text="清理临时文件 · 释放空间" FontSize="12.5" Foreground="#E8F1FB" Margin="0,8,0,0" TextWrapping="Wrap"/>
+                            <TextBlock Text="点此立即优化" FontSize="11.5" Foreground="#CFE3F7" Margin="0,4,0,0"/>
+                        </StackPanel>
+                        <Border Width="64" Height="64" CornerRadius="18" Background="#26FFFFFF"
+                                HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <TextBlock Text="🚀" FontSize="34" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <Border Style="{StaticResource HomeCardPrimary}" Tag="clean" MouseLeftButtonDown="Card_Click">
+                    <StackPanel>
+                        <Border Style="{StaticResource IconChip}"><TextBlock Text="🧹" FontSize="22" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                        <TextBlock Text="系统清理" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,10,0,2"/>
+                        <TextBlock Text="垃圾 / 大文件 / 磁盘可视化" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource HomeCardPrimary}" Tag="startup" MouseLeftButtonDown="Card_Click">
+                    <StackPanel>
+                        <Border Style="{StaticResource IconChip}"><TextBlock Text="🚀" FontSize="22" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                        <TextBlock Text="启动项" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,10,0,2"/>
+                        <TextBlock Text="禁用开机自启 · 影响评估" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource HomeCardPrimary}" Tag="system" MouseLeftButtonDown="Card_Click">
+                    <StackPanel>
+                        <Border Style="{StaticResource IconChip}"><TextBlock Text="💻" FontSize="22" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                        <TextBlock Text="系统状况" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,10,0,2"/>
+                        <TextBlock Text="设备检测 · 进程 · 诊断" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource HomeCardPrimary}" Tag="net" MouseLeftButtonDown="Card_Click">
+                    <StackPanel>
+                        <Border Style="{StaticResource IconChip}"><TextBlock Text="📡" FontSize="22" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                        <TextBlock Text="网络诊断" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,10,0,2"/>
+                        <TextBlock Text="连通性检测与测速" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                    </StackPanel>
+                </Border>
+            </WrapPanel>
+
+            <!-- ===== 效率工具分组 ===== -->
+            <TextBlock x:Name="SecTools" Text="⚡ 效率工具" Style="{StaticResource SectionHeader}" Margin="4,18,0,10"/>
+            <WrapPanel x:Name="CardsWrapTools" Orientation="Horizontal">
+
+                <Border Style="{StaticResource HomeCard}" Tag="wizard" MouseLeftButtonDown="Card_Click">
+                    <StackPanel>
+                        <TextBlock Text="🔧" FontSize="22" Margin="0,0,0,8"/>
+                        <TextBlock Text="故障向导" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                        <TextBlock Text="向导式排查常见问题" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource HomeCard}" Tag="shred" MouseLeftButtonDown="Card_Click">
+                    <StackPanel>
+                        <TextBlock Text="🗜️" FontSize="22" Margin="0,0,0,8"/>
+                        <TextBlock Text="文件粉碎" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                        <TextBlock Text="安全彻底删除敏感文件" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource HomeCard}" Tag="snapshot" MouseLeftButtonDown="Card_Click">
+                    <StackPanel>
+                        <TextBlock Text="📷" FontSize="22" Margin="0,0,0,8"/>
+                        <TextBlock Text="截图标注" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                        <TextBlock Text="截图并标注编辑" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource HomeCard}" Tag="uninstall" MouseLeftButtonDown="Card_Click">
+                    <StackPanel>
+                        <TextBlock Text="🧨" FontSize="22" Margin="0,0,0,8"/>
+                        <TextBlock Text="卸载残留" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                        <TextBlock Text="清理软件卸载后的残留" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource HomeCard}" Tag="notes" MouseLeftButtonDown="Card_Click">
+                    <StackPanel>
+                        <TextBlock Text="📝" FontSize="22" Margin="0,0,0,8"/>
+                        <TextBlock Text="便签" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                        <TextBlock Text="桌面便签快速记录" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource HomeCard}" Tag="recorder" MouseLeftButtonDown="Card_Click">
+                    <StackPanel>
+                        <TextBlock Text="🎙️" FontSize="22" Margin="0,0,0,8"/>
+                        <TextBlock Text="录音录像" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                        <TextBlock Text="麦克风录音与屏幕录像" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                    </StackPanel>
+                </Border>
+            </WrapPanel>
+
+            <!-- ===== 助手与信息分组 ===== -->
+            <TextBlock x:Name="SecAssist" Text="🤖 助手与信息" Style="{StaticResource SectionHeader}" Margin="4,18,0,10"/>
+            <WrapPanel x:Name="CardsWrapAssist" Orientation="Horizontal">
+
+                <Border Style="{StaticResource HomeCard}" Tag="agent" MouseLeftButtonDown="Card_Click">
+                    <StackPanel>
+                        <TextBlock Text="🤖" FontSize="22" Margin="0,0,0,8"/>
+                        <TextBlock Text="Agent 助手" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                        <TextBlock Text="接入 API 获取 AI 帮助" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource HomeCard}" Tag="site" MouseLeftButtonDown="Card_Click">
+                    <StackPanel>
+                        <TextBlock Text="🌐" FontSize="22" Margin="0,0,0,8"/>
+                        <TextBlock Text="网站检索助手" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                        <TextBlock Text="常用网站一键直达" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource HomeCard}" Tag="tool" MouseLeftButtonDown="Card_Click">
+                    <StackPanel>
+                        <TextBlock Text="🛠️" FontSize="22" Margin="0,0,0,8"/>
+                        <TextBlock Text="WIN 助手" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                        <TextBlock Text="实用软件官方下载" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource HomeCard}" Tag="nav" MouseLeftButtonDown="Card_Click">
+                    <StackPanel>
+                        <TextBlock Text="🔗" FontSize="22" Margin="0,0,0,8"/>
+                        <TextBlock Text="官网导航" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                        <TextBlock Text="常用软件官方直达" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource HomeCard}" Tag="help" MouseLeftButtonDown="Card_Click">
+                    <StackPanel>
+                        <TextBlock Text="💻" FontSize="22" Margin="0,0,0,8"/>
+                        <TextBlock Text="电脑帮助" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                        <TextBlock Text="系统工具与使用技巧" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource HomeCard}" Tag="report" MouseLeftButtonDown="Card_Click">
+                    <StackPanel>
+                        <TextBlock Text="📊" FontSize="22" Margin="0,0,0,8"/>
+                        <TextBlock Text="月度报告" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                        <TextBlock Text="使用统计与成就" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource HomeCard}" Tag="novice" MouseLeftButtonDown="Card_Click">
+                    <StackPanel>
+                        <TextBlock Text="📘" FontSize="22" Margin="0,0,0,8"/>
+                        <TextBlock Text="新手导览" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                        <TextBlock Text="小白也能懂的功能" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource HomeCard}" Tag="tutorial" MouseLeftButtonDown="Card_Click">
+                    <StackPanel>
+                        <TextBlock Text="🔑" FontSize="22" Margin="0,0,0,8"/>
+                        <TextBlock Text="AI 密钥教程" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                        <TextBlock Text="申请并填入 AI 密钥" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource HomeCard}" Tag="bug" MouseLeftButtonDown="Card_Click">
+                    <StackPanel>
+                        <TextBlock Text="🐞" FontSize="22" Margin="0,0,0,8"/>
+                        <TextBlock Text="BUG 反馈" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                        <TextBlock Text="问题反馈与建议提交" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource HomeCard}" Tag="setup" MouseLeftButtonDown="Card_Click">
+                    <StackPanel>
+                        <TextBlock Text="💿" FontSize="22" Margin="0,0,0,8"/>
+                        <TextBlock Text="装机助手" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                        <TextBlock Text="常用软件安装推荐" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                    </StackPanel>
+                </Border>
+            </WrapPanel>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

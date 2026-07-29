@@ -1,0 +1,41 @@
+# ===== 构建产物 (Build output) =====
+bin/
+obj/
+publish/
+dist/
+_build/
+_install/
+_old_artifacts/
+Output/
+.obj2/
+
+# MSBuild 自动生成（每次编译重新生成，不纳入版本控制）
+BuildInfo.g.cs
+
+# ===== IDE / 编辑器 =====
+.vs/
+.idea/
+*.user
+*.suo
+*.userprefs
+
+# ===== 测试 / 诊断产物 =====
+_smoketest/bin/
+_smoketest/obj/
+_smoketest/*.exe
+_smoketest/*.dll
+_smoketest/*.cache
+_crashdiag_out.txt
+
+# ===== 本地数据 / 缓存（含项目记忆，不应上传） =====
+.workbuddy/
+*.log
+
+# ===== 系统 / OS 文件 =====
+Thumbs.db
+Desktop.ini
+ehthumbs.db
+
+# ===== 临时备份 =====
+AppIcon.ico.bak
+*.bak

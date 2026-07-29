@@ -1,0 +1,63 @@
+name: 缺陷报告 / Bug Report
+description: 报告软件运行中的问题、崩溃或异常行为
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢你报告问题！请尽量完整地填写以下信息，方便我们稳定复现并修复。
+  - type: input
+    id: version
+    attributes:
+      label: 软件版本
+      description: 例如 4.2.0（可在「设置 / 关于」中查看）
+      placeholder: "4.2.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: 操作系统
+      description: 你运行软件的系统版本
+      options:
+        - Windows 11
+        - Windows 10
+        - 其他（请在“补充说明”中注明）
+    validations:
+      required: true
+  - type: textarea
+    id: desc
+    attributes:
+      label: 问题描述
+      description: 发生了什么？你期望的行为又是什么？
+      placeholder: "例如：点击「系统清理」后程序无响应……"
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: 复现步骤
+      description: 一步一步说明如何触发该问题（越详细越好）
+      placeholder: |
+        1. 打开软件
+        2. 点击 ……
+        3. 观察到 ……
+    validations:
+      required: false
+  - type: textarea
+    id: logs
+    attributes:
+      label: 日志 / 崩溃信息
+      description: |
+        可附上崩溃日志 `%LOCALAPPDATA%/WINHELP/crash.log` 中的相关片段。
+        请注意先去除其中可能包含的个人文件路径等敏感信息。
+    validations:
+      required: false
+  - type: textarea
+    id: extra
+    attributes:
+      label: 补充说明
+      description: 截图、录屏链接、相关设置或其他有助于排查的信息
+    validations:
+      required: false

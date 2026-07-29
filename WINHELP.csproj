@@ -1,0 +1,45 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <Version>4.2.0</Version>
+    <AssemblyName>司南工具箱</AssemblyName>
+    <Product>司南工具箱</Product>
+    <Company>司南工具箱</Company>
+    <!-- 去掉压缩以加快冷启动响应速度；ReadyToRun 预编译进一步减少 JIT 耗时 -->
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <ApplicationIcon>AppIcon.ico</ApplicationIcon>
+    <!-- 排除构建副本目录，避免重复源文件导致编译冲突 -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);_build\**\*;_smoketest\**\*;.obj2\**\*;_install\**\*</DefaultItemExcludes>
+    <!-- DPI 感知：高 DPI 屏幕下按显示器分辨率渲染，避免模糊/变小 -->
+    <WindowsPerMonitorDpiAware>true</WindowsPerMonitorDpiAware>
+  </PropertyGroup>
+
+  <!-- 自包含单文件发布：无需安装 .NET 运行时，复制到任意 Windows x64 电脑即可运行 -->
+  <PropertyGroup Condition="'$(Configuration)'=='Release'">
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <!-- EnableCompressionInSingleFile 已移除：压缩会严重拖慢冷启动（每次需解压），
+         改用 ReadyToRun 预编译来平衡启动速度与体积。 -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.WindowsDesktop.App.WindowsForms" />
+    <Resource Include="AppIcon.ico" />
+  </ItemGroup>
+
+  <!-- WMI 硬件信息枚举（CPU/显卡/主板等） -->
+  <ItemGroup>
+    <PackageReference Include="System.Management" Version="9.0.0" />
+  </ItemGroup>
+
+  <!-- 构建时间戳生成已移除：不再嵌入/显示构建时间 -->
+
+</Project>
