@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
-    <Version>4.2.0</Version>
+    <Version>4.6.0</Version>
     <AssemblyName>司南工具箱</AssemblyName>
     <Product>司南工具箱</Product>
     <Company>司南工具箱</Company>

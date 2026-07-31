@@ -3,8 +3,9 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:loc="clr-namespace:WINHELP"
         mc:Ignorable="d"
-        Title="陪伴运行" Width="320"
+        Title="{loc:Loc 陪伴运行|Companion Mode}" Width="320"
         MinHeight="430" SizeToContent="Height"
         ResizeMode="NoResize"
         WindowStartupLocation="CenterScreen"
@@ -27,14 +28,19 @@
             <!-- 底部栏 -->
         </Grid.RowDefinitions>
 
-        <!-- Acrylic 模式下的模糊壁纸背景层 -->
-        <Image x:Name="BackdropImage" Grid.RowSpan="6" Stretch="UniformToFill"
-               Visibility="Collapsed" Effect="{StaticResource GlassBlur}" CacheMode="BitmapCache"/>
+        <!-- Acrylic 模式下的模糊壁纸背景层。
+             注意：这里用 Border 承载 ImageBrush 而非独立的 Image 元素。
+             原因：Image 元素在 SizeToContent=Height 的窗口里会把窗口撑大到壁纸的原始分辨率
+             （宽壁纸 → 一长条），改用 DesiredSize 为 0 的 Border（仅 Background 参与绘制、不撑布局）
+             即可彻底避免该问题，同时 BlurEffect 仍能模糊背景图。 -->
+        <Border x:Name="BackdropHost" Grid.RowSpan="6"
+                HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                Visibility="Collapsed" Effect="{StaticResource GlassBlur}" CacheMode="BitmapCache"/>
 
         <!-- ===== 标题 ===== -->
         <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,4,0,10">
             <TextBlock Text="💛" FontSize="16" VerticalAlignment="Center" Margin="0,0,6,0"/>
-            <TextBlock Text="陪伴运行" FontSize="15" FontWeight="Bold" Foreground="#2C3E50" VerticalAlignment="Center"/>
+            <TextBlock Text="{loc:Loc 陪伴运行|Companion Mode}" FontSize="15" FontWeight="Bold" Foreground="#2C3E50" VerticalAlignment="Center"/>
         </StackPanel>
 
         <!-- ===== 图形框（用户自定义图片） ===== -->
@@ -46,7 +52,7 @@
                 <!-- 占位提示（无图片时显示） -->
                 <StackPanel Name="ImgPlaceholder" VerticalAlignment="Center" HorizontalAlignment="Center">
                     <TextBlock Text="🖼️" FontSize="40" HorizontalAlignment="Center" Margin="0,0,0,6"/>
-                    <TextBlock Text="点击左下角 ⚙️ 设置图片" FontSize="11"
+                    <TextBlock Text="{loc:Loc 点击左下角 ⚙️ 设置图片|Tap ⚙️ at the bottom-left to set an image}" FontSize="11"
                                Foreground="#B0B8C0" HorizontalAlignment="Center"/>
                 </StackPanel>
             </Grid>
@@ -59,11 +65,11 @@
                 <TextBlock Name="TxtTime" Text="--:--:--" FontSize="38" FontWeight="Bold"
                            Foreground="#2C3E50" HorizontalAlignment="Center"
                            FontFamily="Consolas,Segoe UI"/>
-                <TextBlock Name="TxtDate" Text="----年--月--日 -" FontSize="13"
+                <TextBlock Name="TxtDate" Text="{loc:Loc ----年--月--日 -|----/--/-- -}" FontSize="13"
                            Foreground="#7F8C8D" HorizontalAlignment="Center" Margin="0,6,0,0"/>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,0">
                     <TextBlock Text="🌐" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                    <TextBlock Name="TxtStatus" Text="正在同步北京时间…" FontSize="11" Foreground="#95A5A6"/>
+                    <TextBlock Name="TxtStatus" Text="{loc:Loc 正在同步北京时间…|Syncing Beijing time…}" FontSize="11" Foreground="#95A5A6"/>
                 </StackPanel>
             </StackPanel>
         </Border>
@@ -73,14 +79,15 @@
                 Padding="12" Visibility="Collapsed">
             <StackPanel>
                 <Grid Margin="0,0,0,2">
-                    <TextBlock Text="📝 便签 / 待办" FontSize="13" FontWeight="Bold" Foreground="#2C3E50" VerticalAlignment="Center"/>
-                    <Button Name="BtnHideNotes" Content="收起" Width="50" Height="24" HorizontalAlignment="Right"
+                    <TextBlock Text="{loc:Loc 📝 便签 / 待办|📝 Notes / To-Do}" FontSize="13" FontWeight="Bold" Foreground="#2C3E50" VerticalAlignment="Center"/>
+                    <Button Name="BtnHideNotes" Content="{loc:Loc 收起|Collapse}" Width="50" Height="24" HorizontalAlignment="Right"
                             Style="{StaticResource GlassToolbarButton}" Background="#95A5A6" Click="BtnHideNotes_Click"/>
                 </Grid>
                 <TextBox Name="TxtNote" Height="34" Margin="0,8,0,8" VerticalContentAlignment="Center"
                          Background="White" Foreground="#2C3E50" BorderBrush="#E0E0E0" BorderThickness="1"/>
-                <Button Name="BtnAddNote" Content="添加" Height="30" Width="90" HorizontalAlignment="Left"
+                <Button Name="BtnAddNote" Content="{loc:Loc 添加|Add}" Height="30" Width="90" HorizontalAlignment="Left"
                         Style="{StaticResource GlassToolbarButton}" Background="#27AE60" Click="BtnAddNote_Click"/>
+                <TextBlock Name="TxtNoteStatus" FontSize="11" Margin="0,6,0,0" Visibility="Collapsed" TextWrapping="Wrap"/>
                 <ListBox Name="ListNotes" Margin="0,8,0,0" MaxHeight="170" Background="Transparent" BorderThickness="0">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
@@ -111,7 +118,7 @@
 
             <!-- 左下角设置按钮 -->
             <Button Grid.Column="0" Name="BtnSettings" Width="44" Height="38"
-                    FontSize="18" Content="⚙️" ToolTip="小窗设置"
+                    FontSize="18" Content="⚙️" ToolTip="{loc:Loc 小窗设置|Mini Window Settings}"
                     Background="White" Foreground="#7F8C8D"
                     BorderThickness="0" Cursor="Hand"
                     Click="BtnSettings_Click"
@@ -119,7 +126,7 @@
 
             <!-- 返回正常程序 -->
             <Button Grid.Column="1" Name="BtnReturn" Height="38" Margin="10,0,10,0"
-                    FontSize="14" FontWeight="SemiBold" Content="返回正常程序"
+                    FontSize="14" FontWeight="SemiBold" Content="{loc:Loc 返回正常程序|Return to Main App}"
                     Background="#4A90D9" Foreground="White"
                     BorderThickness="0" Cursor="Hand"
                     Click="BtnReturn_Click"
@@ -127,7 +134,7 @@
 
             <!-- 便签切换 -->
             <Button Grid.Column="2" Name="BtnToggleNotes" Width="44" Height="38"
-                    FontSize="18" Content="📝" ToolTip="便签 / 待办"
+                    FontSize="18" Content="📝" ToolTip="{loc:Loc 便签 / 待办|Notes / To-Do}"
                     Background="White" Foreground="#7F8C8D"
                     BorderThickness="0" Cursor="Hand"
                     Click="BtnToggleNotes_Click"

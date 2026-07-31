@@ -1,6 +1,7 @@
 <UserControl x:Class="WINHELP.WindowReport"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="clr-namespace:WINHELP"
              Background="Transparent">
 
     <UserControl.Resources>
@@ -40,8 +41,8 @@
                     <TextBlock Text="🏆" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 </Border>
                 <StackPanel VerticalAlignment="Center" Margin="14,0,0,0">
-                    <TextBlock Name="TxtTitle" Text="月度报告 / 成就" FontSize="18" FontWeight="Bold" Foreground="#2C3E50"/>
-                    <TextBlock Name="TxtSub" Text="查看你的优化战绩与成就" FontSize="12" Foreground="#7F8C8D" Margin="0,4,0,0"/>
+                    <TextBlock Name="TxtTitle" Text="{loc:Loc 月度报告 / 成就|Monthly Report / Achievements}" FontSize="18" FontWeight="Bold" Foreground="#2C3E50"/>
+                    <TextBlock Name="TxtSub" Text="{loc:Loc 查看你的优化战绩与成就|View your optimization record and achievements}" FontSize="12" Foreground="#7F8C8D" Margin="0,4,0,0"/>
                 </StackPanel>
             </StackPanel>
         </Border>
@@ -55,50 +56,60 @@
 
             <Border Style="{StaticResource StatCard}" Grid.Column="0" Margin="0,0,6,10">
                 <StackPanel>
-                    <TextBlock Name="LblClean" Style="{StaticResource StatLabel}" Text="累计清理"/>
+                    <TextBlock Name="LblClean" Style="{StaticResource StatLabel}" Text="{loc:Loc 累计清理|Cumulative Cleanup}"/>
                     <TextBlock Name="TxtCumClean" Style="{StaticResource StatValue}" Text="—"/>
-                    <TextBlock Name="TxtMonthClean" FontSize="11.5" Foreground="#4A90D9" Margin="0,4,0,0" Text="本月：—"/>
+                    <TextBlock Name="TxtMonthClean" FontSize="11.5" Foreground="#4A90D9" Margin="0,4,0,0" Text="{loc:Loc 本月：—|This Month: —}"/>
                 </StackPanel>
             </Border>
             <Border Style="{StaticResource StatCard}" Grid.Column="1" Margin="6,0,0,10">
                 <StackPanel>
-                    <TextBlock Name="LblOpt" Style="{StaticResource StatLabel}" Text="累计优化次数"/>
+                    <TextBlock Name="LblOpt" Style="{StaticResource StatLabel}" Text="{loc:Loc 累计优化次数|Cumulative Optimizations}"/>
                     <TextBlock Name="TxtCumOpt" Style="{StaticResource StatValue}" Text="—"/>
-                    <TextBlock Name="TxtMonthOpt" FontSize="11.5" Foreground="#4A90D9" Margin="0,4,0,0" Text="本月：—"/>
+                    <TextBlock Name="TxtMonthOpt" FontSize="11.5" Foreground="#4A90D9" Margin="0,4,0,0" Text="{loc:Loc 本月：—|This Month: —}"/>
                 </StackPanel>
             </Border>
             <Border Style="{StaticResource StatCard}" Grid.Column="0" Grid.Row="1" Margin="0,0,6,10">
                 <StackPanel>
-                    <TextBlock Style="{StaticResource StatLabel}" Text="连续使用天数"/>
+                    <TextBlock Style="{StaticResource StatLabel}" Text="{loc:Loc 连续使用天数|Consecutive Days Used}"/>
                     <TextBlock Name="TxtStreak" Style="{StaticResource StatValue}" Text="—"/>
                 </StackPanel>
             </Border>
             <Border Style="{StaticResource StatCard}" Grid.Column="1" Grid.Row="1" Margin="6,0,0,10">
                 <StackPanel>
-                    <TextBlock Style="{StaticResource StatLabel}" Text="首次使用"/>
+                    <TextBlock Style="{StaticResource StatLabel}" Text="{loc:Loc 首次使用|First Use}"/>
                     <TextBlock Name="TxtFirstUse" Style="{StaticResource StatValue}" Text="—"/>
                 </StackPanel>
             </Border>
         </Grid>
 
-        <!-- 上次优化 + 成就 -->
-        <Border Grid.Row="2" Style="{StaticResource GlassCard}" Padding="14,12" Margin="0,0,0,12">
+        <!-- 优化趋势 sparkline（P2-10） -->
+        <Border Grid.Row="2" Style="{StaticResource GlassCard}" Padding="16,14" Margin="0,0,0,12">
             <StackPanel>
-                <TextBlock Name="LblLast" Style="{StaticResource StatLabel}" Text="上次优化"/>
+                <TextBlock Name="LblTrend" Text="{loc:Loc 优化次数趋势|Optimization Trend}" FontSize="13" FontWeight="Bold"
+                           Foreground="#2C3E50" Margin="0,0,0,8"/>
+                <Grid Name="SparkGrid" Height="72" HorizontalAlignment="Stretch" Margin="0,2,0,0"/>
+                <TextBlock Name="TxtTrendHint" FontSize="11" Foreground="#95A5A6" Margin="0,6,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <!-- 上次优化 + 成就 -->
+        <Border Grid.Row="3" Style="{StaticResource GlassCard}" Padding="14,12" Margin="0,0,0,12">
+            <StackPanel>
+                <TextBlock Name="LblLast" Style="{StaticResource StatLabel}" Text="{loc:Loc 上次优化|Last Optimization}"/>
                 <TextBlock Name="TxtLastOpt" FontSize="14" FontWeight="SemiBold" Foreground="#2C3E50" Margin="0,4,0,0" Text="—"/>
-                <TextBlock Name="LblAch" Text="成就" FontSize="12" Foreground="#7F8C8D" Margin="0,12,0,0"/>
+                <TextBlock Name="LblAch" Text="{loc:Loc 成就|Achievements}" FontSize="12" Foreground="#7F8C8D" Margin="0,12,0,0"/>
                 <TextBlock Name="TxtAch" FontSize="15" FontWeight="Bold" Foreground="#27AE60" Margin="0,4,0,0" Text="—"/>
             </StackPanel>
         </Border>
 
         <!-- 操作 -->
-        <Grid Grid.Row="3">
+        <Grid Grid.Row="4">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
             <TextBlock Name="TxtNote" FontSize="11" Foreground="#95A5A6" VerticalAlignment="Center" TextWrapping="Wrap"/>
-            <Button Name="BtnReset" Grid.Column="1" Content="重置统计" Width="110" Height="36"
+            <Button Name="BtnReset" Grid.Column="1" Content="{loc:Loc 重置统计|Reset Statistics}" Width="110" Height="36"
                     Style="{StaticResource GlassToolbarButton}" Background="#E74C3C" Click="BtnReset_Click"/>
         </Grid>
     </Grid>

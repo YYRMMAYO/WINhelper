@@ -1,4 +1,5 @@
 using System.IO;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -11,6 +12,7 @@ using System.Drawing.Imaging;
 
 namespace WINHELP;
 
+/// <summary>截图 / 快照页：区域截图与标注。</summary>
 public partial class WindowSnapshot : UserControl
 {
     private enum Tool { None, Arrow, Text, Mosaic, Picker }
@@ -57,6 +59,7 @@ public partial class WindowSnapshot : UserControl
     {
         ThemeManager.ApplyButtonTheme(BtnCaptureFull, Color.FromRgb(0x4A, 0x90, 0xD9));
         ThemeManager.ApplyButtonTheme(BtnCaptureRegion, Color.FromRgb(0x4A, 0x90, 0xD9));
+        ThemeManager.ApplyButtonTheme(BtnCaptureAll, Color.FromRgb(0x4A, 0x90, 0xD9));
         ThemeManager.ApplyButtonTheme(BtnArrow, Color.FromRgb(0x5B, 0x8D, 0xEF));
         ThemeManager.ApplyButtonTheme(BtnText, Color.FromRgb(0x5B, 0x8D, 0xEF));
         ThemeManager.ApplyButtonTheme(BtnMosaic, Color.FromRgb(0x5B, 0x8D, 0xEF));
@@ -75,6 +78,7 @@ public partial class WindowSnapshot : UserControl
             "Capture + arrow / text / mosaic annotate + color picker");
         BtnCaptureFull.Content = UiLanguage.L("全屏截图", "Full Screen");
         BtnCaptureRegion.Content = UiLanguage.L("区域截图", "Region");
+        BtnCaptureAll.Content = UiLanguage.L("全屏(多显示器)", "All Screens");
         BtnArrow.Content = UiLanguage.L("箭头", "Arrow");
         BtnText.Content = UiLanguage.L("文字", "Text");
         BtnMosaic.Content = UiLanguage.L("马赛克", "Mosaic");
@@ -112,6 +116,40 @@ public partial class WindowSnapshot : UserControl
         catch (Exception ex)
         {
             TxtStatus.Text = UiLanguage.L("截图失败：" + ex.Message, "Capture failed: " + ex.Message);
+        }
+    }
+
+    private void BtnCaptureAll_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var screens = System.Windows.Forms.Screen.AllScreens;
+            if (screens.Length <= 1)
+            {
+                // 单显示器时退化为全屏截图
+                BtnCaptureFull_Click(sender, e);
+                return;
+            }
+            int minX = screens.Min(s => s.Bounds.X);
+            int minY = screens.Min(s => s.Bounds.Y);
+            int totalW = screens.Max(s => s.Bounds.Right) - minX;
+            int totalH = screens.Max(s => s.Bounds.Bottom) - minY;
+            using var bmp = new System.Drawing.Bitmap(totalW, totalH, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+            using (var g = System.Drawing.Graphics.FromImage(bmp))
+            {
+                foreach (var s in screens)
+                {
+                    var b = s.Bounds;
+                    g.CopyFromScreen(b.X, b.Y, b.X - minX, b.Y - minY, new System.Drawing.Size(b.Width, b.Height));
+                }
+            }
+            bmp.SetResolution(96, 96);
+            SetImage(bmp);
+            TxtStatus.Text = UiLanguage.L($"已拼接 {screens.Length} 块屏幕截图", $"Stitched {screens.Length} screen(s)");
+        }
+        catch (Exception ex)
+        {
+            TxtStatus.Text = UiLanguage.L("多屏截图失败：" + ex.Message, "Multi-screen capture failed: " + ex.Message);
         }
     }
 
@@ -607,6 +645,7 @@ public partial class WindowSnapshot : UserControl
 
     // ===== 区域截图窗口 =====
 
+    /// <summary>窗口：RegionCaptureWindow。</summary>
     private sealed class RegionCaptureWindow : Window
     {
         public Rect? Result;

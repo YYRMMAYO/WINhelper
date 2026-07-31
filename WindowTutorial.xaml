@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
+        xmlns:loc="clr-namespace:WINHELP"
         Background="Transparent">
 
     <UserControl.Resources>
@@ -32,12 +33,12 @@
                         <TextBlock Text="🔑" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
                     <StackPanel VerticalAlignment="Center" Margin="12,0,0,0">
-                        <TextBlock Text="AI 密钥获取教程" FontSize="18" FontWeight="Bold" Foreground="#2C3E50"/>
-                        <TextBlock Text="按步骤申请各大 AI 平台的 API 密钥，一键填入即可使用" FontSize="11" Foreground="#95A5A6"/>
+                        <TextBlock Text="{loc:Loc AI 密钥获取教程|AI API Key Tutorial}" FontSize="18" FontWeight="Bold" Foreground="#2C3E50"/>
+                        <TextBlock Text="{loc:Loc 按步骤申请各大 AI 平台的 API 密钥，一键填入即可使用|Apply for API keys from major AI platforms step by step, then fill in with one click.}" FontSize="11" Foreground="#95A5A6"/>
                     </StackPanel>
                 </StackPanel>
                 <Button Name="BtnBack" Height="34" Width="100" FontSize="12" FontWeight="SemiBold"
-                        Foreground="White" BorderThickness="0" Cursor="Hand" Content="← 返回"
+                        Foreground="White" BorderThickness="0" Cursor="Hand" Content="{loc:Loc ← 返回|← Back}"
                         Click="Button_Back_Click" HorizontalAlignment="Right" VerticalAlignment="Center"/>
             </Grid>
         </Border>

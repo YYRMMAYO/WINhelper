@@ -44,6 +44,13 @@ namespace WINHELP
         // ===== 语言（N16） =====
         public string Language { get; set; } = "zh";
 
+        // ===== 首页智能排序 / 收藏（P0-3） =====
+        public Dictionary<string, int> RecentModules { get; set; } = new();
+        public List<string> StarredModules { get; set; } = new();
+
+        // ===== 首页 NEW 徽标「点击一次后永久隐藏」集合（跨版本保留，不再随升级恢复） =====
+        public List<string> DismissedNewModules { get; set; } = new();
+
         // ===== 陪伴运行全局热键（用户自注册） =====
         /// <summary>陪伴运行全局热键修饰键位（RegisterHotKey MOD_* 位掩码），0 表示未自定义（使用默认回退）</summary>
         public int CompanionHotkeyModifiers { get; set; } = 0;
@@ -92,6 +99,10 @@ namespace WINHELP
                     if (settings != null)
                         Current = settings;
                 }
+                // 兼容旧配置：确保集合字段不为 null
+                if (Current.RecentModules == null) Current.RecentModules = new();
+                if (Current.StarredModules == null) Current.StarredModules = new();
+                if (Current.DismissedNewModules == null) Current.DismissedNewModules = new();
             }
             catch { /* 加载失败使用默认值 */ }
         }
@@ -134,6 +145,79 @@ namespace WINHELP
             {
                 using var key = Registry.CurrentUser.OpenSubKey(RUN_REGISTRY_KEY, false);
                 return key?.GetValue(APP_NAME) != null;
+            }
+            catch { return false; }
+        }
+
+        // ===== 首页智能排序 / 收藏（P0-3） =====
+
+        /// <summary>记录模块使用次数（用于首页智能排序），变化立即落盘</summary>
+        public static void RecordModuleUsage(string key)
+        {
+            if (string.IsNullOrEmpty(key)) return;
+            if (!Current.RecentModules.ContainsKey(key)) Current.RecentModules[key] = 0;
+            Current.RecentModules[key]++;
+            Save();
+        }
+
+        /// <summary>该模块是否已被收藏</summary>
+        public static bool IsStarred(string key) => !string.IsNullOrEmpty(key) && Current.StarredModules.Contains(key);
+
+        /// <summary>切换模块收藏状态</summary>
+        public static void ToggleStar(string key)
+        {
+            if (string.IsNullOrEmpty(key)) return;
+            var list = Current.StarredModules;
+            if (list.Contains(key)) list.Remove(key);
+            else list.Add(key);
+            Save();
+        }
+
+        // ===== 首页 NEW 徽标「点击一次后永久隐藏」（跨版本保留） =====
+
+        /// <summary>该模块的新品徽标是否已被用户点击 dismiss（永久不再显示）</summary>
+        public static bool IsNewDismissed(string key) =>
+            !string.IsNullOrEmpty(key) && Current.DismissedNewModules.Contains(key);
+
+        /// <summary>永久隐藏某模块的 NEW 徽标（点击一次即生效，跨版本保留）</summary>
+        public static void DismissNew(string key)
+        {
+            if (string.IsNullOrEmpty(key)) return;
+            if (!Current.DismissedNewModules.Contains(key))
+            {
+                Current.DismissedNewModules.Add(key);
+                Save();
+            }
+        }
+
+        // ===== 设置导入 / 导出（New E：换机迁移） =====
+
+        /// <summary>将当前设置导出到指定文件（复制 settings.json）</summary>
+        public static void ExportSettings(string path)
+        {
+            try
+            {
+                Directory.CreateDirectory(ConfigDir);
+                if (File.Exists(ConfigPath)) File.Copy(ConfigPath, path, true);
+            }
+            catch { /* 导出失败静默忽略 */ }
+        }
+
+        /// <summary>从指定文件导入设置；成功返回 true 并落盘</summary>
+        public static bool ImportSettings(string path)
+        {
+            try
+            {
+                if (!File.Exists(path)) return false;
+                var json = File.ReadAllText(path);
+                var s = JsonSerializer.Deserialize<AppSettings>(json);
+                if (s == null) return false;
+                Current = s;
+                if (Current.RecentModules == null) Current.RecentModules = new();
+                if (Current.StarredModules == null) Current.StarredModules = new();
+                if (Current.DismissedNewModules == null) Current.DismissedNewModules = new();
+                Save();
+                return true;
             }
             catch { return false; }
         }

@@ -1,4 +1,5 @@
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
@@ -6,15 +7,18 @@ using System.Windows.Media;
 
 namespace WINHELP;
 
+/// <summary>系统报告页：生成系统信息报告。</summary>
 public partial class WindowReport : UserControl
 {
     // ===== 按月统计存储（独立文件，避免改动 SettingsManager） =====
+    /// <summary>MonthStat 类。</summary>
     private sealed class MonthStat
     {
         public long CleanedBytes { get; set; }
         public int OptimizeCount { get; set; }
     }
 
+    /// <summary>ReportData 类。</summary>
     private sealed class ReportData
     {
         public Dictionary<string, MonthStat> Months { get; set; } = new();
@@ -25,6 +29,9 @@ public partial class WindowReport : UserControl
     private static readonly string ReportDir = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "WINHELP");
     private static readonly string ReportPath = Path.Combine(ReportDir, "report.json");
+
+    // 最近一次报告数据（供 sparkline 在布局完成 / 主题变化时重绘）
+    private ReportData _lastData = new();
 
     public WindowReport()
     {
@@ -40,6 +47,7 @@ public partial class WindowReport : UserControl
 
         ApplyTheme();
         Refresh();
+        SparkGrid.SizeChanged += (_, _) => DrawSparkline();
         ThemeManager.ThemeChanged += () => Dispatcher.Invoke(ApplyTheme);
         UiLanguage.Changed += () => Dispatcher.Invoke(Refresh);
     }
@@ -87,6 +95,7 @@ public partial class WindowReport : UserControl
         LblOpt.Text = UiLanguage.L("累计优化次数", "Total Optimizes");
         LblLast.Text = UiLanguage.L("上次优化", "Last Optimize");
         LblAch.Text = UiLanguage.L("成就", "Achievements");
+        LblTrend.Text = UiLanguage.L("优化次数趋势", "Optimization Trend");
         BtnReset.Content = UiLanguage.L("重置统计", "Reset Stats");
         TxtNote.Text = UiLanguage.L(
             "提示：累计值为历史总和；本月值按查看时累计增量归属到当前月份（近似值）。",
@@ -120,6 +129,65 @@ public partial class WindowReport : UserControl
             : s.LastOptimize.ToString("yyyy-MM-dd HH:mm");
 
         TxtAch.Text = BuildAchievement(s);
+
+        _lastData = data;
+        DrawSparkline();
+    }
+
+    // ===== 优化次数趋势 sparkline（P2-10） =====
+    private void DrawSparkline()
+    {
+        SparkGrid.Children.Clear();
+        if (SparkGrid.ActualWidth < 2) return; // 布局尚未完成，等 SizeChanged 再画
+
+        var recent = _lastData.Months
+            .OrderBy(kv => kv.Key)
+            .TakeLast(6)
+            .ToList();
+        if (recent.Count < 2)
+        {
+            TxtTrendHint.Text = UiLanguage.L("数据不足，多用几次即可看到趋势～", "Not enough data yet; keep using the app to see a trend.");
+            return;
+        }
+
+        double w = SparkGrid.ActualWidth;
+        double h = SparkGrid.ActualHeight;
+        double max = recent.Max(kv => (double)kv.Value.OptimizeCount);
+        if (max <= 0) max = 1;
+        double padX = 8, padY = 8;
+        double stepX = (w - padX * 2) / (recent.Count - 1);
+
+        var pts = new PointCollection();
+        for (int i = 0; i < recent.Count; i++)
+        {
+            double x = padX + i * stepX;
+            double y = h - padY - (recent[i].Value.OptimizeCount / max) * (h - padY * 2);
+            pts.Add(new Point(x, y));
+        }
+
+        var line = new System.Windows.Shapes.Polyline
+        {
+            Points = pts,
+            Stroke = new SolidColorBrush(ThemeManager.AccentColor),
+            StrokeThickness = 2.5,
+            StrokeLineJoin = PenLineJoin.Round,
+            StrokeStartLineCap = PenLineCap.Round,
+            StrokeEndLineCap = PenLineCap.Round
+        };
+        SparkGrid.Children.Add(line);
+
+        // 末点高亮圆点
+        var last = pts[^1];
+        SparkGrid.Children.Add(new System.Windows.Shapes.Ellipse
+        {
+            Width = 7, Height = 7,
+            Fill = new SolidColorBrush(ThemeManager.AccentColor),
+            Margin = new Thickness(last.X - 3.5, last.Y - 3.5, 0, 0)
+        });
+
+        TxtTrendHint.Text = UiLanguage.L(
+            $"近 {recent.Count} 个月优化次数（{recent[0].Key} → {recent[^1].Key}）",
+            $"Optimizes over last {recent.Count} months ({recent[0].Key} → {recent[^1].Key})");
     }
 
     private static string BuildAchievement(AppSettings s)

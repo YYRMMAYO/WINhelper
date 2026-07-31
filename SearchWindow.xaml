@@ -1,0 +1,118 @@
+<Window x:Class="WINHELP.SearchWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:WINHELP"
+        Title="命令面板" Height="540" Width="640"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        ShowInTaskbar="False" ResizeMode="NoResize" Topmost="True"
+        PreviewKeyDown="Window_PreviewKeyDown">
+    <Window.Resources>
+        <SolidColorBrush x:Key="PalFg" Color="White"/>
+        <SolidColorBrush x:Key="PalSub" Color="#CCFFFFFF"/>
+        <SolidColorBrush x:Key="PalSel" Color="#334A90D9"/>
+        <SolidColorBrush x:Key="PalCard" Color="#EE1B1F2A"/>
+        <SolidColorBrush x:Key="PalBorder" Color="#334A90D9"/>
+
+        <Style TargetType="ListBox" BasedOn="{StaticResource {x:Type ListBox}}">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
+        </Style>
+
+        <Style TargetType="ListBoxItem">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border Name="Bd" Background="{TemplateBinding Background}" CornerRadius="9" Margin="6,2" Padding="2">
+                            <ContentPresenter/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource PalSel}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <DataTemplate DataType="{x:Type local:CommandItem}">
+            <Grid Margin="8,7">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="{Binding Icon}" FontSize="20" VerticalAlignment="Center" Margin="8,0,12,0"/>
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Title}" FontWeight="Bold" FontSize="14" Foreground="{DynamicResource PalFg}"/>
+                    <TextBlock Text="{Binding Sub}" FontSize="11" Foreground="{DynamicResource PalSub}" Margin="0,2,0,0"/>
+                </StackPanel>
+                <Border Grid.Column="2" CornerRadius="6" Padding="8,3" Margin="10,0,4,0"
+                        Background="{DynamicResource PalSel}" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Group}" FontSize="10" Foreground="{DynamicResource PalFg}" Opacity="0.8"/>
+                </Border>
+            </Grid>
+        </DataTemplate>
+    </Window.Resources>
+
+    <Grid>
+        <!-- 遮罩层：点击空白处关闭 -->
+        <Border Background="#66000000" MouseLeftButtonDown="Overlay_MouseDown"/>
+
+        <!-- 命令面板卡片 -->
+        <Border x:Name="Card" CornerRadius="16" Background="{DynamicResource PalCard}"
+                BorderBrush="{DynamicResource PalBorder}" BorderThickness="1"
+                HorizontalAlignment="Center" VerticalAlignment="Center"
+                Width="640" MaxHeight="540">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="30" ShadowDepth="0" Opacity="0.45" Color="Black"/>
+            </Border.Effect>
+            <Grid Margin="14,12">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- 搜索框 -->
+                <Grid Grid.Row="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="🔍" FontSize="18" VerticalAlignment="Center" Margin="6,0,8,0"/>
+                    <TextBox x:Name="TxtQuery" Grid.Column="1" Height="34" BorderThickness="0"
+                             Background="Transparent" Foreground="{DynamicResource PalFg}"
+                             FontSize="15" VerticalContentAlignment="Center"
+                             TextChanged="TxtQuery_TextChanged" PreviewKeyDown="Window_PreviewKeyDown"/>
+                    <TextBlock x:Name="TxtPlaceholder" Grid.Column="1" Text="输入以搜索模块或动作…"
+                               Foreground="{DynamicResource PalSub}" FontSize="15" VerticalAlignment="Center"
+                               Margin="4,0,0,0" IsHitTestVisible="False"/>
+                    <Border Grid.Column="2" CornerRadius="6" Padding="8,3" Margin="8,0,2,0"
+                            Background="{DynamicResource PalSel}">
+                        <TextBlock Text="Ctrl K" FontSize="10" Foreground="{DynamicResource PalFg}" Opacity="0.8"/>
+                    </Border>
+                </Grid>
+
+                <Rectangle Grid.Row="0" Height="1" VerticalAlignment="Bottom" Margin="0,8,0,0"
+                           Fill="{DynamicResource PalBorder}" Opacity="0.5"/>
+
+                <!-- 结果列表 -->
+                <ListBox x:Name="ListResults" Grid.Row="1" Margin="0,6,0,0"
+                         MouseDoubleClick="ListResults_MouseDoubleClick"
+                         ScrollViewer.CanContentScroll="True"/>
+
+                <!-- 底部提示 -->
+                <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="4,8,4,2"
+                            HorizontalAlignment="Center">
+                    <TextBlock Text="↑ ↓ 选择" FontSize="11" Foreground="{DynamicResource PalSub}" Margin="0,0,14,0"/>
+                    <TextBlock Text="Enter 打开" FontSize="11" Foreground="{DynamicResource PalSub}" Margin="0,0,14,0"/>
+                    <TextBlock Text="Esc 关闭" FontSize="11" Foreground="{DynamicResource PalSub}"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

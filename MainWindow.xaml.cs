@@ -109,8 +109,9 @@ namespace WINHELP
             // 初始化今日概览英雄横幅
             InitHeroBanner();
 
-            // 启动实时系统状况监测
-            InitMonitor();
+            // 启动实时系统状况监测：推迟到首帧渲染之后执行，
+            // 避免 PerformanceCounter 构造 + 首帧采样阻塞窗口首屏呈现，提升启动响应速度
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, () => InitMonitor());
 
             // 订阅更新事件
             UpdateManager.UpdateAvailable += info => Dispatcher.Invoke(() => ShowUpdateBar(info));
@@ -126,9 +127,10 @@ namespace WINHELP
 
         private void ApplyTheme()
         {
-            // 全局背景（共享单例 Brush，支持实时透明度）应用于主窗口与内容容器，确保"背景应用到全部窗口"
+            // 全局背景（共享单例 Brush，支持实时透明度）只应用于主窗口根网格（RootGrid）。
+            // 内容容器 PageHost 保持透明，避免被页面再次叠加同一张壁纸造成"图片背景二次重叠"。
             RootGrid.Background = ThemeManager.BackgroundBrush;
-            PageHost.Background = ThemeManager.BackgroundBrush;
+            PageHost.Background = Brushes.Transparent;
 
             // 同步玻璃模糊背景层（Acrylic 模式可见）
             ApplyGlassBackdrop();
@@ -273,13 +275,12 @@ namespace WINHELP
             _titles["settings"] = ("软件设置", "Settings");
             _titles["theme"] = ("个性装扮", "Appearance");
             _titles["companion"] = ("陪伴运行", "Companion");
-            _titles["site"] = ("网站检索助手", "Site Finder");
+            _titles["site"] = ("网站与官网", "Sites & Official");
             _titles["tool"] = ("WIN 助手", "WIN Helper");
             _titles["bug"] = ("BUG 反馈", "Bug Report");
             _titles["help"] = ("电脑帮助", "PC Help");
             _titles["agent"] = ("Agent 助手", "Agent Assistant");
             _titles["system"] = ("系统状况", "System Status");
-            _titles["nav"] = ("官网导航", "Official Sites");
             _titles["tutorial"] = ("AI 密钥获取教程", "AI Key Tutorial");
             _titles["shred"] = ("文件粉碎", "File Shredder");
             _titles["snapshot"] = ("截图标注", "Screenshot");
@@ -295,43 +296,42 @@ namespace WINHELP
                 p.OnOptimize = () => BtnOptimize_Click(BtnOptimize, new RoutedEventArgs());
                 return p;
             };
-            _factories["clean"] = () => new Window10();
-            _factories["startup"] = () => new Window11();
-            _factories["net"] = () => new Window12();
-            _factories["wizard"] = () => new Window13();
-            _factories["novice"] = () => new Window14();
+            _factories["clean"] = () => new SystemCleanerPage();
+            _factories["startup"] = () => new StartupPage();
+            _factories["net"] = () => new NetworkDiagnosticsPage();
+            _factories["wizard"] = () => new TroubleshootWizardPage();
+            _factories["novice"] = () => new BeginnerGuidePage();
             _factories["setup"] = () => new SetupPage();
             _factories["settings"] = () =>
             {
-                var p = new Window4();
+                var p = new SettingsPage();
                 p.OnCloseRequest = () => SetActiveNav("home", NavHome);
                 return p;
             };
             _factories["theme"] = () =>
             {
-                var p = new Window3();
+                var p = new AppearancePage();
                 p.OnCloseRequest = () => SetActiveNav("home", NavHome);
                 return p;
             };
             _factories["companion"] = () => new CompanionPage();
-            _factories["site"] = () => new Window1();
-            _factories["tool"] = () => new Window2();
-            _factories["bug"] = () => new Window5();
-            _factories["help"] = () => new Window6();
+            _factories["site"] = () => new SiteFinderPage();
+            _factories["tool"] = () => new WinHelperPage();
+            _factories["bug"] = () => new BugReportPage();
+            _factories["help"] = () => new PcHelpPage();
             _factories["agent"] = () =>
             {
-                var p = new Window8();
+                var p = new AgentAssistantPage();
                 p.OnCloseRequest = () => SetActiveNav("home", NavHome);
                 p.OnOpenTutorial = () => SetActiveNav("tutorial", null);
                 return p;
             };
             _factories["system"] = () =>
             {
-                var p = new Window7();
+                var p = new SystemStatusPage();
                 p.OnNavigate = NavigateByKey;
                 return p;
             };
-            _factories["nav"] = () => new Window9();
             _factories["tutorial"] = () =>
             {
                 var p = new WindowTutorial();
@@ -378,6 +378,9 @@ namespace WINHELP
             }
             PageHost.Content = page;
             HookGlobalMouseWheel();
+
+            // 返回主界面时按最新收藏 / 使用频率重排卡片
+            if (key == "home" && page is HomePage hp) hp.ApplySort();
 
             // 返回主界面时自动清空搜索框（需求 #3：搜索后跳转其它模块再回来需清空搜索内容）
             if (key == "home")
@@ -845,7 +848,7 @@ namespace WINHELP
             UpdateBar.Visibility = Visibility.Collapsed;
         }
 
-        // F11：切换陪伴运行
+        // F11：切换陪伴运行；Ctrl+K：全局命令面板
         protected override void OnKeyDown(KeyEventArgs e)
         {
             if (e.Key == Key.F11)
@@ -854,7 +857,79 @@ namespace WINHELP
                 e.Handled = true;
                 return;
             }
+            if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control && e.Key == Key.K)
+            {
+                OpenCommandPalette();
+                e.Handled = true;
+                return;
+            }
             base.OnKeyDown(e);
+        }
+
+        /// <summary>唤起全局命令面板（Ctrl+K）：跨所有模块 + 动作搜索直达。</summary>
+        private void OpenCommandPalette()
+        {
+            var dlg = new SearchWindow(BuildCommandItems());
+            dlg.Owner = this;
+            dlg.ShowDialog();
+        }
+
+        /// <summary>构造命令面板的数据源：全部模块（跳转）+ 一组安全动作（直接执行）。</summary>
+        private List<CommandItem> BuildCommandItems()
+        {
+            var list = new List<CommandItem>();
+            var iconMap = new Dictionary<string, string>
+            {
+                ["home"] = "🏠", ["clean"] = "🧹", ["startup"] = "🚀", ["net"] = "🌐",
+                ["wizard"] = "🛠️", ["novice"] = "📘", ["setup"] = "📦", ["settings"] = "⚙️",
+                ["theme"] = "🎨", ["companion"] = "🐾", ["site"] = "🔎", ["tool"] = "🧰",
+                ["bug"] = "🐞", ["help"] = "❓", ["agent"] = "🤖",                 ["system"] = "💻",
+                ["tutorial"] = "🔑", ["shred"] = "🗑️", ["snapshot"] = "✂️",
+                ["uninstall"] = "♻️", ["report"] = "📊", ["notes"] = "📝", ["recorder"] = "🎥",
+            };
+            foreach (var kv in _titles)
+            {
+                string key = kv.Key;
+                var (zh, en) = kv.Value;
+                list.Add(new CommandItem
+                {
+                    Key = key,
+                    Icon = iconMap.TryGetValue(key, out var ic) ? ic : "📦",
+                    Group = UiLanguage.L("模块", "Module"),
+                    TitleZh = zh, TitleEn = en,
+                    Execute = () => NavigateByKey(key),
+                });
+            }
+            var actG = UiLanguage.L("动作", "Action");
+            list.Add(new CommandItem
+            {
+                Key = "act:optimize", Icon = "✨", Group = actG,
+                TitleZh = "一键优化", TitleEn = "One-Click Optimize",
+                SubZh = "清理临时文件并清空回收站", SubEn = "Clean temp & empty recycle bin",
+                Execute = () => BtnOptimize_Click(BtnOptimize, new RoutedEventArgs()),
+            });
+            list.Add(new CommandItem
+            {
+                Key = "act:companion", Icon = "🐾", Group = actG,
+                TitleZh = "切换陪伴运行", TitleEn = "Toggle Companion",
+                SubZh = "显示 / 隐藏陪伴小窗", SubEn = "Show / hide companion window",
+                Execute = () => CompanionManager.Toggle(),
+            });
+            list.Add(new CommandItem
+            {
+                Key = "act:followsys", Icon = "🌗", Group = actG,
+                TitleZh = "跟随系统主题", TitleEn = "Follow System Theme",
+                SubZh = "自动随系统浅色 / 深色切换", SubEn = "Auto match system light / dark",
+                Execute = () => ThemeManager.SetFollowSystem(!ThemeManager.FollowSystem),
+            });
+            list.Add(new CommandItem
+            {
+                Key = "act:privacy", Icon = "🧼", Group = actG,
+                TitleZh = "清理隐私痕迹", TitleEn = "Clean Privacy Traces",
+                SubZh = "清理浏览器等隐私痕迹", SubEn = "Clean browser privacy traces",
+                Execute = () => System.Threading.Tasks.Task.Run(() => { try { Cleaner.CleanPrivacyTraces(); } catch { } }),
+            });
+            return list;
         }
     }
 }

@@ -8,8 +8,10 @@ using System.Windows.Media;
 
 namespace WINHELP;
 
+/// <summary>文件粉碎页：安全擦除文件（不可恢复）。</summary>
 public partial class WindowShredder : UserControl
 {
+    /// <summary>数据模型：ShredItem。</summary>
     private sealed class ShredItem
     {
         public string Path { get; set; } = "";

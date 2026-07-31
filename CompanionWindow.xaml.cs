@@ -92,10 +92,12 @@ namespace WINHELP
             Dispatcher.Invoke(ApplyGlassBackdrop);
         }
 
-        /// <summary>Acrylic 模式下显示模糊壁纸层（与 MainWindow 同款效果）</summary>
+        /// <summary>Acrylic 模式下显示模糊壁纸层（与 MainWindow 同款效果）。
+        /// 关键：背景图绘制在 BackdropHost(Border) 的 Background(ImageBrush) 上，
+        /// 该 Border 的 DesiredSize 为 0，不会参与 SizeToContent 测量，因此无论壁纸多大都不会把小窗撑成"长条"。</summary>
         private void ApplyGlassBackdrop()
         {
-            if (BackdropImage == null) return;
+            if (BackdropHost == null) return;
 
             bool acrylic = ThemeManager.GlassEffect == GlassMode.Acrylic && ThemeManager.HasBackgroundImage;
             if (acrylic)
@@ -116,22 +118,23 @@ namespace WINHELP
                         _backdropBitmap = bmp;
                         _lastBackdropPath = ThemeManager.BackgroundImagePath;
                         _lastGlassMode = ThemeManager.GlassEffect;
-                        BackdropImage.Source = bmp;
-                        BackdropImage.InvalidateVisual(); // 仅换图时失效重渲
+                        // 用 ImageBrush 作为 Border 背景（不撑布局），再叠 BlurEffect 模糊
+                        BackdropHost.Background = new ImageBrush(bmp) { Stretch = Stretch.UniformToFill };
+                        BackdropHost.InvalidateVisual(); // 仅换图时失效重渲
                     }
                     catch
                     {
-                        BackdropImage.Visibility = Visibility.Collapsed;
+                        BackdropHost.Visibility = Visibility.Collapsed;
                         return;
                     }
                 }
 
-                BackdropImage.Opacity = ThemeManager.BackgroundOpacity;
-                BackdropImage.Visibility = Visibility.Visible;
+                BackdropHost.Opacity = ThemeManager.BackgroundOpacity;
+                BackdropHost.Visibility = Visibility.Visible;
             }
             else
             {
-                BackdropImage.Visibility = Visibility.Collapsed;
+                BackdropHost.Visibility = Visibility.Collapsed;
                 _lastGlassMode = ThemeManager.GlassEffect;
             }
         }
@@ -154,7 +157,7 @@ namespace WINHELP
                     ImgPlaceholder.Visibility = Visibility.Collapsed;
                     return;
                 }
-                catch { /* 图片损坏，回落到占位 */ }
+                catch (Exception ex) { App.LogCrash(ex, "CompanionImage"); /* 图片损坏，回落到占位 */ }
             }
             Img.Source = null;
             ImgPlaceholder.Visibility = Visibility.Visible;
@@ -252,7 +255,8 @@ namespace WINHELP
 
         private void OnNotesChanged()
         {
-            Dispatcher.Invoke(LoadNotes);
+            // 用 BeginInvoke 避免在与 NotesStore.Changed 同一调用栈中重入导致的潜在问题
+            Dispatcher.BeginInvoke((Action)LoadNotes);
         }
 
         private void LoadNotes()
@@ -277,13 +281,48 @@ namespace WINHELP
             NotesPanel.Visibility = Visibility.Collapsed;
         }
 
+        // 便签保存反馈计时器（短暂展示"已保存"后自动隐藏）
+        private readonly DispatcherTimer _noteStatusTimer = new() { Interval = TimeSpan.FromSeconds(2.5) };
+
         private void BtnAddNote_Click(object sender, RoutedEventArgs e)
         {
             var text = TxtNote.Text.Trim();
             if (string.IsNullOrEmpty(text)) return;
-            // 陪伴运行小窗添加的便签：写入共享存储并在桌面建立文件（需求 #6）
-            NotesStore.Add(text, toDesktop: true);
-            TxtNote.Clear();
+            try
+            {
+                // 陪伴运行小窗添加的便签：写入共享存储（%APPDATA%/WINHELP/notes/）并在桌面建立副本
+                NotesStore.Add(text, toDesktop: true);
+                TxtNote.Clear();
+                ShowNoteStatus(UiLanguage.L("已保存到本地便签 ✅", "Saved to local notes ✅"), true);
+            }
+            catch (Exception ex)
+            {
+                // 任何写入异常都明确告知用户，避免"看似没保存"的静默失败
+                ShowNoteStatus(UiLanguage.L($"保存失败：{ex.Message}", $"Save failed: {ex.Message}"), false);
+                MessageBox.Show(
+                    UiLanguage.L($"便签保存失败：{ex.Message}", $"Note save failed: {ex.Message}"),
+                    UiLanguage.L("保存失败", "Save failed"), MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
+        private void ShowNoteStatus(string msg, bool ok)
+        {
+            if (TxtNoteStatus == null) return;
+            TxtNoteStatus.Text = msg;
+            TxtNoteStatus.Foreground = new SolidColorBrush(ok
+                ? Color.FromRgb(0x27, 0xAE, 0x60)
+                : Color.FromRgb(0xE7, 0x4C, 0x3C));
+            TxtNoteStatus.Visibility = Visibility.Visible;
+            _noteStatusTimer.Stop();
+            _noteStatusTimer.Tick -= NoteStatusTimer_Tick;
+            _noteStatusTimer.Tick += NoteStatusTimer_Tick;
+            _noteStatusTimer.Start();
+        }
+
+        private void NoteStatusTimer_Tick(object? sender, EventArgs e)
+        {
+            _noteStatusTimer.Stop();
+            if (TxtNoteStatus != null) TxtNoteStatus.Visibility = Visibility.Collapsed;
         }
 
         private void BtnDeleteNote_Click(object sender, RoutedEventArgs e)

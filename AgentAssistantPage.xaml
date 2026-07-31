@@ -1,0 +1,194 @@
+<UserControl x:Class="WINHELP.AgentAssistantPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             xmlns:loc="clr-namespace:WINHELP"
+             Background="Transparent">
+
+    <UserControl.Resources>
+        
+        <Style x:Key="InputBox" TargetType="TextBox">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#E0E4E8"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="12,9"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="#2C3E50"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="AcceptsReturn" Value="True"/>
+            <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Name="RootGrid" Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <!-- 顶栏 -->
+            <RowDefinition Height="Auto"/>
+            <!-- 设置面板（可折叠） -->
+            <RowDefinition Height="*"/>
+            <!-- 对话区 -->
+            <RowDefinition Height="Auto"/>
+            <!-- 输入区 -->
+        </Grid.RowDefinitions>
+
+        <!-- 顶栏 -->
+        <Border Style="{StaticResource GlassCard}" Grid.Row="0" CornerRadius="12" Padding="16,14" Margin="0,0,0,14">
+            <Grid>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Width="34" Height="34" CornerRadius="10" Background="#EDE7F6" VerticalAlignment="Center">
+                        <TextBlock Text="AI" FontSize="15" FontWeight="Bold" Foreground="#6C4BB4"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <StackPanel VerticalAlignment="Center" Margin="12,0,0,0">
+                        <TextBlock Text="{loc:Loc Agent 助手|Agent Assistant}" FontSize="18" FontWeight="Bold" Foreground="#2C3E50"/>
+                        <TextBlock Text="{loc:Loc 自主接入网络 API，获取 AI 帮助|Autonomously connect to network API, get AI help}" FontSize="11" Foreground="#95A5A6"/>
+                    </StackPanel>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <Button Name="BtnExport" Height="34" Width="92" FontSize="12" FontWeight="SemiBold"
+                            Foreground="White" BorderThickness="0" Cursor="Hand" Content="{loc:Loc 导出对话|Export Chat}"
+                            Click="Button_Export_Click" Margin="0,0,8,0"/>
+                    <Button Name="BtnSettings" Height="34" Width="84" FontSize="12" FontWeight="SemiBold"
+                            Foreground="White" BorderThickness="0" Cursor="Hand" Content="{loc:Loc 设置|Settings}"
+                            Click="Button_Settings_Click" Margin="0,0,8,0"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- 设置面板（默认折叠） -->
+        <Border Style="{StaticResource GlassCard}" Grid.Row="1" Name="SettingsPanel" CornerRadius="12" Padding="18,16" Margin="0,0,0,14" Visibility="Collapsed">
+            <StackPanel>
+                <Grid Margin="0,0,0,12">
+                    <TextBlock Text="{loc:Loc API 接入设置|API Access Settings}" FontSize="14" FontWeight="Bold" Foreground="#2C3E50"
+                               VerticalAlignment="Center"/>
+                    <TextBlock Text="{loc:Loc 支持任意 OpenAI 兼容接口（含本地模型）|Supports any OpenAI-compatible API (including local models)}" FontSize="11" Foreground="#95A5A6"
+                               VerticalAlignment="Center" Margin="14,0,0,0"/>
+                </Grid>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="92"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="{loc:Loc API 地址|API Base URL}" VerticalAlignment="Center"
+                               FontSize="12" Foreground="#34495E" Margin="0,0,10,0"/>
+                    <StackPanel Grid.Row="0" Grid.Column="1" Margin="0,4,0,8">
+                        <TextBox Name="TxtApiBase" Style="{StaticResource InputBox}"
+                                 Height="36"
+                                 Text="https://api.openai.com/v1"/>
+                        <ComboBox Name="CmbPreset" Height="30" Margin="0,6,0,0" FontSize="12"
+                                  SelectionChanged="CmbPreset_SelectionChanged">
+                            <ComboBoxItem Content="{loc:Loc 自定义 / 手动输入|Custom / Manual Input}" IsSelected="True" Tag=""/>
+                            <!-- Tag 保存该服务商对应的默认模型，选预设时一并填入，避免 model 仍是 OpenAI 默认的 gpt-4o-mini 导致对话 HTTP 400（模型不匹配） -->
+                            <ComboBoxItem Content="{loc:Loc Ollama 本地 (http://localhost:11434/v1)|Ollama Local (http://localhost:11434/v1)}" Tag="llama3"/>
+                            <ComboBoxItem Content="{loc:Loc LM Studio 本地 (http://localhost:1234/v1)|LM Studio Local (http://localhost:1234/v1)}" Tag="llama-3.2-1b-instruct"/>
+                            <ComboBoxItem Content="OpenAI (https://api.openai.com/v1)" Tag="gpt-4o-mini"/>
+                            <ComboBoxItem Content="DeepSeek (https://api.deepseek.com/v1)" Tag="deepseek-chat"/>
+                            <ComboBoxItem Content="{loc:Loc 通义千问 (https://dashscope.aliyuncs.com/compatible-mode/v1)|Qwen (https://dashscope.aliyuncs.com/compatible-mode/v1)}" Tag="qwen-plus"/>
+                        </ComboBox>
+                    </StackPanel>
+
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="{loc:Loc API 密钥|API Key}" VerticalAlignment="Center"
+                               FontSize="12" Foreground="#34495E" Margin="0,0,10,0"/>
+                    <PasswordBox Grid.Row="1" Grid.Column="1" Name="TxtApiKey" Height="36"
+                                 Padding="12,8" FontSize="13" BorderBrush="#E0E4E8" BorderThickness="1"
+                                 Background="White" Margin="0,4,0,8"/>
+
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="{loc:Loc 模型名称|Model Name}" VerticalAlignment="Center"
+                               FontSize="12" Foreground="#34495E" Margin="0,0,10,0"/>
+                    <TextBox Grid.Row="2" Grid.Column="1" Name="TxtModel" Style="{StaticResource InputBox}"
+                             Height="36" Margin="0,4,0,8" Text="gpt-4o-mini"/>
+
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="{loc:Loc 温度|Temperature}" VerticalAlignment="Center"
+                               FontSize="12" Foreground="#34495E" Margin="0,0,10,0"/>
+                    <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" Margin="0,4,0,8">
+                        <Slider Name="SldTemp" Width="280" Minimum="0" Maximum="2" TickFrequency="0.1"
+                                IsSnapToTickEnabled="True" Value="0.7" VerticalAlignment="Center"/>
+                        <TextBlock Name="TxtTempVal" Text="0.7" FontSize="12" Foreground="#34495E"
+                                   VerticalAlignment="Center" Margin="10,0,0,0" Width="34"/>
+                    </StackPanel>
+
+                    <TextBlock Grid.Row="4" Grid.Column="0" Text="{loc:Loc 系统提示|System Prompt}" VerticalAlignment="Top"
+                               FontSize="12" Foreground="#34495E" Margin="0,8,10,0"/>
+                    <TextBox Grid.Row="4" Grid.Column="1" Name="TxtSystem" Style="{StaticResource InputBox}"
+                             Height="64" Margin="0,4,0,4"
+                             Text="{loc:Loc 你是 司南工具箱 内置的 AI 助手，擅长帮助用户解决 Windows 电脑使用、软件下载与常见故障排查问题。回答简洁、准确、友好。|You are the built-in AI assistant of Sinan Toolbox, skilled at helping users with Windows PC usage, software downloads, and common troubleshooting. Respond concisely, accurately, and friendly.}"/>
+                </Grid>
+
+                <Grid Margin="0,6,0,0">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                        <Button Name="BtnTest" Height="36" Width="110" FontSize="13" FontWeight="SemiBold"
+                                Foreground="White" BorderThickness="0" Cursor="Hand" Content="{loc:Loc 测试连接|Test Connection}"
+                                Click="Button_Test_Click" Margin="0,0,8,0"/>
+                        <Button Name="BtnSaveSettings" Height="36" Width="120" FontSize="13" FontWeight="SemiBold"
+                                Foreground="White" BorderThickness="0" Cursor="Hand" Content="{loc:Loc 保存设置|Save Settings}"
+                                Click="Button_SaveSettings_Click"/>
+                        <Button Name="BtnTutorial" Height="36" Width="132" FontSize="13" FontWeight="SemiBold"
+                                Foreground="White" BorderThickness="0" Cursor="Hand" Content="{loc:Loc 获取密钥教程|Get API Key Tutorial}"
+                                Click="Button_Tutorial_Click" Margin="8,0,0,0"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Vertical" HorizontalAlignment="Right">
+                        <TextBlock Name="TxtTestHint" FontSize="12" Foreground="#27AE60"
+                                   HorizontalAlignment="Right" TextWrapping="Wrap" MaxWidth="260"/>
+                        <TextBlock Name="TxtSettingsHint" FontSize="12" Foreground="#27AE60"
+                                   HorizontalAlignment="Right" TextWrapping="Wrap" MaxWidth="260" Margin="0,2,0,0"/>
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <!-- 对话区 -->
+        <Border Style="{StaticResource GlassCard}" Grid.Row="2" CornerRadius="12" Padding="16">
+            <Grid>
+                <ScrollViewer Name="ChatScroll" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Name="ChatList" Margin="0,4">
+                        <!-- 消息气泡动态生成 -->
+                    </StackPanel>
+                </ScrollViewer>
+                <TextBlock Name="TxtEmpty" Text="{loc:Loc 配置好 API 后，在这里开始与 AI 助手对话。支持多轮上下文。|After configuring the API, start chatting with the AI assistant here. Multi-turn context supported.}"
+                           FontSize="13" Foreground="#BDC3C7" HorizontalAlignment="Center"
+                           VerticalAlignment="Center" TextWrapping="Wrap" Width="420" TextAlignment="Center"/>
+            </Grid>
+        </Border>
+
+        <!-- 输入区 -->
+        <Border Style="{StaticResource GlassCard}" Grid.Row="3" CornerRadius="12" Padding="14" Margin="0,14,0,0">
+            <StackPanel>
+                <CheckBox Name="ChkAgent" Content="{loc:Loc 🤖 让 AI 代操作电脑（沙盒模式：每步都需你确认）|🤖 Let AI operate your PC (Sandbox mode: confirm each step)}"
+                          FontSize="12" Foreground="#6C4BB4" Margin="2,0,0,6"
+                          Checked="ChkAgent_Changed" Unchecked="ChkAgent_Changed"/>
+                <TextBlock Name="TxtAgentHint" FontSize="11" Foreground="#9B59B6"
+                           TextWrapping="Wrap" Margin="2,0,0,8" Visibility="Collapsed"
+                           Text="{loc:Loc 已开启代操作：AI 可帮你打开程序、打开设置、运行只读诊断、截取屏幕；每次执行前会弹窗让你确认，拒绝即停止。|Agent operation enabled: AI can open programs, open settings, run read-only diagnostics, and capture screenshots; you will be prompted to confirm before each action, and declining stops it.}"/>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBox Grid.Column="0" Name="TxtInput" Style="{StaticResource InputBox}" Height="56"
+                         VerticalContentAlignment="Top" PreviewKeyDown="TxtInput_PreviewKeyDown"
+                         Tag="输入消息，Enter 发送 / Shift+Enter 换行"/>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="12,0,0,0" VerticalAlignment="Bottom">
+                        <Button Name="BtnClear" Height="40" Width="74" FontSize="12" FontWeight="SemiBold"
+                            Foreground="White" BorderThickness="0" Cursor="Hand" Content="{loc:Loc 清空|Clear}"
+                            Click="Button_Clear_Click" Margin="0,0,8,0"/>
+                        <Button Name="BtnSend" Height="40" Width="88" FontSize="13" FontWeight="SemiBold"
+                            Foreground="White" BorderThickness="0" Cursor="Hand" Content="{loc:Loc 发送 ➤|Send ➤}"
+                            Click="Button_Send_Click"/>
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

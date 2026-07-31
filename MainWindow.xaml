@@ -6,8 +6,9 @@
         xmlns:local="clr-namespace:WINHELP"
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         xmlns:sc="clr-namespace:System.Windows;assembly=PresentationCore"
+        xmlns:loc="clr-namespace:WINHELP"
         mc:Ignorable="d"
-        Title="司南工具箱" Height="820" Width="1100"
+        Title="{loc:Loc 司南工具箱|Sinan Toolbox}" Height="820" Width="1100"
         MinHeight="760" MinWidth="960"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
@@ -141,12 +142,12 @@
                 <!-- 左 220 占位：与侧栏对齐，保留品牌 -->
                 <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="20,0,0,0" VerticalAlignment="Center">
                     <TextBlock Text="🛠️" FontSize="18" VerticalAlignment="Center"/>
-                    <TextBlock Text="司南工具箱" FontSize="14" FontWeight="Bold" Foreground="White"
+                    <TextBlock Text="{loc:Loc 司南工具箱|Sinan Toolbox}" FontSize="14" FontWeight="Bold" Foreground="White"
                                VerticalAlignment="Center" Margin="8,0,0,0"/>
                 </StackPanel>
 
                 <!-- 中：当前页标题（白字居中） -->
-                <TextBlock Grid.Column="1" x:Name="TxtPageTitle" Text="主界面"
+                <TextBlock Grid.Column="1" x:Name="TxtPageTitle" Text="{loc:Loc 主界面|Home}"
                            FontSize="14" FontWeight="SemiBold" Foreground="White"
                            VerticalAlignment="Center" HorizontalAlignment="Center"/>
 
@@ -169,7 +170,7 @@
                                      FontSize="12" VerticalContentAlignment="Center"
                                      TextChanged="TxtSearch_TextChanged"
                                      PreviewKeyDown="TxtSearch_PreviewKeyDown"
-                                     ToolTip="搜索首页功能模块"
+                                     ToolTip="{loc:Loc 搜索首页功能模块|Search home modules}"
                                      shell:WindowChrome.IsHitTestVisibleInChrome="True"/>
                         </Grid>
                     </Border>
@@ -178,19 +179,19 @@
                     <Button x:Name="BtnOptimize" Height="32" Margin="0,0,14,0"
                             FontSize="12.5" FontWeight="SemiBold" Foreground="White"
                             Background="#1AFFFFFF" BorderThickness="0" Cursor="Hand"
-                            Content="✨ 一键优化" Padding="14,0"
+                            Content="{loc:Loc ✨ 一键优化|✨ One-click Optimize}" Padding="14,0"
                             Click="BtnOptimize_Click"
                             shell:WindowChrome.IsHitTestVisibleInChrome="True"/>
 
                     <!-- 最小化 / 最大化 / 关闭 -->
                     <Button x:Name="BtnMin" Style="{StaticResource QQCaptionButton}"
-                            Click="BtnMin_Click" ToolTip="最小化"
+                            Click="BtnMin_Click" ToolTip="{loc:Loc 最小化|Minimize}"
                             shell:WindowChrome.IsHitTestVisibleInChrome="True">
                         <Path Data="M0,5 H10" Stroke="White" StrokeThickness="1"
                               Stretch="None" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Button>
                     <Button x:Name="BtnMax" Style="{StaticResource QQCaptionButton}"
-                            Click="BtnMax_Click" ToolTip="最大化 / 还原"
+                            Click="BtnMax_Click" ToolTip="{loc:Loc 最大化 / 还原|Maximize / Restore}"
                             shell:WindowChrome.IsHitTestVisibleInChrome="True">
                         <Grid>
                             <Path x:Name="BtnMaxRestore" Data="M0,0 H10 V10 H0 Z"
@@ -199,7 +200,7 @@
                         </Grid>
                     </Button>
                     <Button x:Name="BtnClose" Style="{StaticResource QQCloseButton}"
-                            Click="BtnClose_Click" ToolTip="关闭"
+                            Click="BtnClose_Click" ToolTip="{loc:Loc 关闭|Close}"
                             shell:WindowChrome.IsHitTestVisibleInChrome="True">
                         <Path Data="M0,0 L10,10 M10,0 L0,10" Stroke="White" StrokeThickness="1.2"
                               Stretch="None" HorizontalAlignment="Center" VerticalAlignment="Center"/>
@@ -246,38 +247,38 @@
                             <TextBlock Text="🛠️" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-1,0,0"/>
                         </Border>
                         <StackPanel VerticalAlignment="Center" Margin="12,0,0,0">
-                            <TextBlock Text="司南工具箱" FontSize="17" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}"/>
-                            <TextBlock Text="优雅工具 · 一键直达" FontSize="11" Foreground="{DynamicResource TextMutedBrush}"/>
+                            <TextBlock Text="{loc:Loc 司南工具箱|Sinan Toolbox}" FontSize="17" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                            <TextBlock Text="{loc:Loc 优雅工具 · 一键直达|Elegant tools · one-tap access}" FontSize="11" Foreground="{DynamicResource TextMutedBrush}"/>
                         </StackPanel>
                     </StackPanel>
 
                     <!-- 导航（主界面 + 快捷启动 + 设置分组） -->
                     <StackPanel Grid.Row="1" Margin="0,8,0,0">
                         <Button x:Name="NavHome" Style="{StaticResource NavItemActiveStyle}" Tag="🏠"
-                                Content="主界面" Click="NavHome_Click"/>
+                                Content="{loc:Loc 主界面|Home}" Click="NavHome_Click"/>
 
                         <Border Background="#E8ECF0" Height="1" Margin="20,14"/>
 
                         <!-- 快捷启动：常用功能一键直达 -->
-                        <TextBlock x:Name="TxtGroupQuick" Text="快捷启动" FontSize="11" Foreground="{DynamicResource TextMutedBrush}"
+                        <TextBlock x:Name="TxtGroupQuick" Text="{loc:Loc 快捷启动|Quick Launch}" FontSize="11" Foreground="{DynamicResource TextMutedBrush}"
                                    Margin="24,4,0,2"/>
                         <Button x:Name="NavTroubleshoot" Style="{StaticResource NavItemStyle}" Tag="🔧"
-                                Content="故障排查" Click="NavTroubleshoot_Click"/>
+                                Content="{loc:Loc 故障排查|Troubleshooting}" Click="NavTroubleshoot_Click"/>
                         <Button x:Name="NavNovice" Style="{StaticResource NavItemStyle}" Tag="📘"
-                                Content="新手导览" Click="NavNovice_Click"/>
+                                Content="{loc:Loc 新手导览|Beginner Guide}" Click="NavNovice_Click"/>
                         <Button x:Name="NavSetup" Style="{StaticResource NavItemStyle}" Tag="💿"
-                                Content="装机助手" Click="NavSetup_Click"/>
+                                Content="{loc:Loc 装机助手|Setup Assistant}" Click="NavSetup_Click"/>
 
                         <Border Background="#E8ECF0" Height="1" Margin="20,14"/>
 
-                        <TextBlock x:Name="TxtGroupSettings" Text="设置" FontSize="11" Foreground="{DynamicResource TextMutedBrush}"
+                        <TextBlock x:Name="TxtGroupSettings" Text="{loc:Loc 设置|Settings}" FontSize="11" Foreground="{DynamicResource TextMutedBrush}"
                                    Margin="24,4,0,2"/>
                         <Button x:Name="NavSettings" Style="{StaticResource NavItemStyle}" Tag="⚙️"
-                                Content="设置" Click="NavSettings_Click"/>
+                                Content="{loc:Loc 设置|Settings}" Click="NavSettings_Click"/>
                         <Button x:Name="NavTheme" Style="{StaticResource NavItemStyle}" Tag="🎨"
-                                Content="主题" Click="NavTheme_Click"/>
+                                Content="{loc:Loc 主题|Theme}" Click="NavTheme_Click"/>
                         <Button x:Name="NavCompanion" Style="{StaticResource NavItemStyle}" Tag="💛"
-                                Content="陪伴运行" Click="NavCompanion_Click"/>
+                                Content="{loc:Loc 陪伴运行|Companion Mode}" Click="NavCompanion_Click"/>
                     </StackPanel>
 
                     <!-- 底部每日贴士（玻璃卡）+ 关闭按钮 -->
@@ -290,12 +291,12 @@
                             <StackPanel Grid.Column="0" Margin="14,12,4,12">
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,8">
                                     <TextBlock Text="💡" FontSize="14" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                    <TextBlock x:Name="TxtDailyTipTitle" Text="每日使用贴士" FontSize="12" FontWeight="SemiBold" Foreground="#2C3E50"/>
+                                    <TextBlock x:Name="TxtDailyTipTitle" Text="{loc:Loc 每日使用贴士|Daily Tip}" FontSize="12" FontWeight="SemiBold" Foreground="#2C3E50"/>
                                 </StackPanel>
                                 <TextBlock x:Name="TxtDailyTip" FontSize="12" Foreground="#7F8C8D"
                                            TextWrapping="Wrap" LineHeight="18"
-                                           Text="按 Win+D 可快速显示桌面，再次按可恢复窗口。"/>
-                                <Button x:Name="BtnNextTip" Content="换一个" FontSize="11"
+                                           Text="{loc:Loc 按 Win+D 可快速显示桌面，再次按可恢复窗口。|Press Win+D to show the desktop, press again to restore windows.}"/>
+                                <Button x:Name="BtnNextTip" Content="{loc:Loc 换一个|Next}" FontSize="11"
                                     Foreground="#4A90D9" Background="Transparent"
                                     BorderThickness="0" Cursor="Hand"
                                     HorizontalAlignment="Left" Margin="0,8,0,0"
@@ -305,7 +306,7 @@
                                     Foreground="#BDC3C7" Background="Transparent"
                                     BorderThickness="0" Cursor="Hand" Width="24" Height="24"
                                     HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,6,0,0"
-                                    ToolTip="关闭贴士" Click="BtnCloseTip_Click"/>
+                                    ToolTip="{loc:Loc 关闭贴士|Close Tip}" Click="BtnCloseTip_Click"/>
                         </Grid>
                     </Border>
                 </Grid>
@@ -332,14 +333,14 @@
                         <Border Style="{StaticResource StatusPill}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="💾" FontSize="13" VerticalAlignment="Center"/>
-                                <TextBlock x:Name="TxtMem" Text="内存 --%" FontSize="12.5" Foreground="#34495E"
+                                <TextBlock x:Name="TxtMem" Text="{loc:Loc 内存 --%|Memory --%}" FontSize="12.5" Foreground="#34495E"
                                            VerticalAlignment="Center" Margin="6,0,0,0" FontWeight="SemiBold"/>
                             </StackPanel>
                         </Border>
                         <Border Style="{StaticResource StatusPill}">
                             <StackPanel Orientation="Horizontal">
                                 <Ellipse x:Name="NetDot" Width="9" Height="9" Fill="#BDC3C7" VerticalAlignment="Center"/>
-                                <TextBlock x:Name="TxtNet" Text="网络 --" FontSize="12.5" Foreground="#34495E"
+                                <TextBlock x:Name="TxtNet" Text="{loc:Loc 网络 --|Network --}" FontSize="12.5" Foreground="#34495E"
                                            VerticalAlignment="Center" Margin="6,0,0,0" FontWeight="SemiBold"/>
                             </StackPanel>
                         </Border>
@@ -348,7 +349,7 @@
                                 Visibility="Collapsed" x:Name="OptResultPill">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="✅" FontSize="13" VerticalAlignment="Center"/>
-                                <TextBlock x:Name="TxtOptResult" Text="已优化" FontSize="12.5" Foreground="#27AE60"
+                                <TextBlock x:Name="TxtOptResult" Text="{loc:Loc 已优化|Optimized}" FontSize="12.5" Foreground="#27AE60"
                                            VerticalAlignment="Center" Margin="6,0,0,0" FontWeight="SemiBold"/>
                             </StackPanel>
                         </Border>
@@ -372,18 +373,18 @@
                                 <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                                     <TextBlock x:Name="TxtHeroDay" Text="--" FontSize="20" FontWeight="Bold"
                                                Foreground="#2E86C1" HorizontalAlignment="Center"/>
-                                    <TextBlock x:Name="TxtHeroMonth" Text="--月" FontSize="10"
+                                    <TextBlock x:Name="TxtHeroMonth" Text="{loc:Loc --月|-- mo}" FontSize="10"
                                                Foreground="#7F8C8D" HorizontalAlignment="Center" Margin="0,2,0,0"/>
                                 </StackPanel>
                             </Border>
 
                             <!-- 中：欢迎语 + 系统摘要 + 扩展信息（O8） -->
                             <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="18,0,0,0">
-                                <TextBlock x:Name="TxtHeroGreeting" Text="你好，欢迎回来" FontSize="16"
+                                <TextBlock x:Name="TxtHeroGreeting" Text="{loc:Loc 你好，欢迎回来|Hello, welcome back}" FontSize="16"
                                            FontWeight="Bold" Foreground="#2C3E50"/>
-                                <TextBlock x:Name="TxtHeroSummary" Text="系统运行正常 · 网络在线"
+                                <TextBlock x:Name="TxtHeroSummary" Text="{loc:Loc 系统运行正常 · 网络在线|System running normally · network online}"
                                            FontSize="12" Foreground="#7F8C8D" Margin="0,4,0,0"/>
-                                <TextBlock x:Name="TxtHeroExtra" Text="上次优化：— · 可清理：—"
+                                <TextBlock x:Name="TxtHeroExtra" Text="{loc:Loc 上次优化：— · 可清理：—|Last optimized: — · Cleanable: —}"
                                            FontSize="11.5" Foreground="#95A5A6" Margin="0,4,0,0"/>
                             </StackPanel>
 
@@ -398,13 +399,13 @@
                                 <Border Background="#F2F3F5" CornerRadius="8" Padding="10,6" Margin="0,0,8,0">
                                     <StackPanel Orientation="Horizontal">
                                         <Ellipse x:Name="HeroDotMem" Width="8" Height="8" Fill="#27AE60" VerticalAlignment="Center"/>
-                                        <TextBlock x:Name="HeroLabelMem" Text="内存" FontSize="11" Foreground="#7F8C8D" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                                        <TextBlock x:Name="HeroLabelMem" Text="{loc:Loc 内存|Memory}" FontSize="11" Foreground="#7F8C8D" VerticalAlignment="Center" Margin="6,0,0,0"/>
                                     </StackPanel>
                                 </Border>
                                 <Border Background="#F2F3F5" CornerRadius="8" Padding="10,6">
                                     <StackPanel Orientation="Horizontal">
                                         <Ellipse x:Name="HeroDotNet" Width="8" Height="8" Fill="#27AE60" VerticalAlignment="Center"/>
-                                        <TextBlock x:Name="HeroLabelNet" Text="网络" FontSize="11" Foreground="#7F8C8D" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                                        <TextBlock x:Name="HeroLabelNet" Text="{loc:Loc 网络|Network}" FontSize="11" Foreground="#7F8C8D" VerticalAlignment="Center" Margin="6,0,0,0"/>
                                     </StackPanel>
                                 </Border>
                             </StackPanel>
@@ -445,13 +446,13 @@
                         FontSize="12" FontWeight="SemiBold"
                         Background="#FF9800" Foreground="White"
                         BorderThickness="0" Cursor="Hand"
-                        Content="立即下载" Margin="16,0,8,0"
+                        Content="{loc:Loc 立即下载|Download Now}" Margin="16,0,8,0"
                         shell:WindowChrome.IsHitTestVisibleInChrome="True"
                         Click="BtnDownload_Click"/>
                 <Button Grid.Column="3" Name="BtnDismiss" Height="30" Width="60"
                         FontSize="12" Foreground="#BF360C"
                         Background="Transparent" BorderThickness="0" Cursor="Hand"
-                        Content="忽略"
+                        Content="{loc:Loc 忽略|Dismiss}"
                         shell:WindowChrome.IsHitTestVisibleInChrome="True"
                         Click="BtnDismiss_Click"/>
             </Grid>

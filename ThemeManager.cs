@@ -3,6 +3,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Windows;
+using Microsoft.Win32;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -27,6 +28,9 @@ namespace WINHELP
         public string PresetKey { get; set; } = "default";
         /// <summary>全局界面字体（中文常用美观字体），默认微软雅黑</summary>
         public string FontFamilyName { get; set; } = "Microsoft YaHei";
+
+        /// <summary>是否跟随系统深浅色（P1-7）</summary>
+        public bool FollowSystem { get; set; } = false;
     }
 
     /// <summary>
@@ -56,6 +60,9 @@ namespace WINHELP
         // ===== 星空主题状态 =====
         /// <summary>当前是否是星空主题（深色渐变背景）</summary>
         public static bool IsStarryActive { get; set; } = false;
+
+        /// <summary>是否开启「跟随系统深浅色」（P1-7）</summary>
+        public static bool FollowSystem { get; private set; } = false;
         /// <summary>星空主题预设（已选中的那个）</summary>
         public static string ActivePresetKey { get; set; } = "default";
 
@@ -128,17 +135,21 @@ namespace WINHELP
         /// <summary>语义图标/强调文字色（O2）。</summary>
         public static SolidColorBrush IconBrush { get; set; } = new SolidColorBrush(Color.FromRgb(0x5F, 0x6B, 0x7A));
 
+        /// <summary>仅用于「直接绘制在深色背景上（非玻璃卡片）」的文字（如首页分组标题、装扮页标题）。
+        /// 星空/极光深色背景下翻为浅色，其余情况为深灰，保证在各自背景上均清晰可读。</summary>
+        public static SolidColorBrush TextOnDarkBrush { get; set; } = new SolidColorBrush(Color.FromRgb(0x2C, 0x3E, 0x50));
+
         /// <summary>是否设置了自定义背景壁纸（星空主题视为"有底色"但不算"有图片"）</summary>
         public static bool HasBackgroundImage
             => !IsStarryActive && !string.IsNullOrEmpty(BackgroundImagePath) && File.Exists(BackgroundImagePath);
 
-        /// <summary>按钮文字前景色：有壁纸或星空主题时用柔和珍珠白（比纯白更优雅），无壁纸时纯白</summary>
+        /// <summary>按钮文字前景色：有壁纸时用柔和珍珠白（比纯白更优雅），无壁纸（含星空/极光深色背景）时纯白</summary>
         public static Color ButtonForegroundColor
-            => (HasBackgroundImage || IsStarryActive) ? Color.FromRgb(0xEA, 0xEC, 0xF0) : Colors.White;
+            => HasBackgroundImage ? Color.FromRgb(0xEA, 0xEC, 0xF0) : Colors.White;
 
-        /// <summary>透明图标按钮文字色：有壁纸或星空主题时浅色（在半透明底上清晰可读），无壁纸时灰色</summary>
+        /// <summary>透明图标按钮文字色：有壁纸时浅色（在半透明底上清晰可读），无壁纸（含星空/极光）时灰色</summary>
         public static Color IconButtonForegroundColor
-            => (HasBackgroundImage || IsStarryActive) ? Color.FromRgb(0xF0, 0xF2, 0xF5) : Color.FromRgb(0x7F, 0x8C, 0x8D);
+            => HasBackgroundImage ? Color.FromRgb(0xF0, 0xF2, 0xF5) : Color.FromRgb(0x7F, 0x8C, 0x8D);
 
         /// <summary>主题变更时触发</summary>
         public static event Action? ThemeChanged;
@@ -263,6 +274,61 @@ namespace WINHELP
                 }
             }
             catch { /* 字体名无效时忽略，沿用默认 */ }
+        }
+
+        // ===== 跟随系统深浅色（P1-7） =====
+        private static bool _systemEventsHooked = false;
+
+        /// <summary>开启/关闭跟随系统深浅色，并立即应用一次</summary>
+        public static void SetFollowSystem(bool enable)
+        {
+            FollowSystem = enable;
+            if (enable)
+            {
+                EnsureSystemEventsHooked();
+                ApplySystemTheme();
+            }
+            Save();
+        }
+
+        /// <summary>在首个窗口显示后调用：若已开启则订阅系统主题变化并应用</summary>
+        public static void InitFollowSystem()
+        {
+            if (FollowSystem) EnsureSystemEventsHooked();
+        }
+
+        private static void EnsureSystemEventsHooked()
+        {
+            if (_systemEventsHooked) return;
+            try { SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged; _systemEventsHooked = true; }
+            catch { _systemEventsHooked = false; }
+        }
+
+        private static void OnUserPreferenceChanged(object? sender, UserPreferenceChangedEventArgs e)
+        {
+            if (!FollowSystem || e.Category != UserPreferenceCategory.General) return;
+            var app = Application.Current;
+            if (app?.Dispatcher != null) app.Dispatcher.InvokeAsync(ApplySystemTheme);
+            else ApplySystemTheme();
+        }
+
+        /// <summary>根据系统当前深浅色应用对应预设（深色 → 星空，浅色 → 默认蓝）</summary>
+        public static void ApplySystemTheme()
+        {
+            bool dark = IsSystemDarkMode();
+            var preset = Presets.FirstOrDefault(p => dark ? p.Key == "starry" : p.Key == "default") ?? Presets[0];
+            SetPreset(preset);
+        }
+
+        private static bool IsSystemDarkMode()
+        {
+            try
+            {
+                using var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");
+                if (key?.GetValue("AppsUseLightTheme") is int v) return v == 0;
+            }
+            catch { }
+            return false;
         }
 
         /// <summary>将当前主题色同步到共享画刷（控件引用后随颜色变化即时更新）</summary>
@@ -440,24 +506,20 @@ namespace WINHELP
             // 侧边栏：与面板一致
             byte sidebarAlpha = panelAlpha;
 
-            // 星空（深色）模式下：侧边栏改为深色玻璃，文字画刷翻为浅色以保证可读性。
-            // 其它玻璃表面保持浅色（深字在浅卡上对比度本就足够），故文字不翻，避免「浅字+浅卡」回归。
-            if (isStarry)
-            {
-                GlassSidebarBrush = new SolidColorBrush(Color.FromArgb(0xCC, 0x1C, 0x22, 0x3A));
-                TextPrimaryBrush   = new SolidColorBrush(Color.FromRgb(0xF5, 0xF7, 0xFA));
-                TextSecondaryBrush = new SolidColorBrush(Color.FromRgb(0xC8, 0xD0, 0xDA));
-                TextMutedBrush     = new SolidColorBrush(Color.FromRgb(0x9A, 0xA6, 0xB2));
-                IconBrush          = new SolidColorBrush(Color.FromRgb(0xD0, 0xD8, 0xE2));
-            }
-            else
-            {
-                GlassSidebarBrush  = new SolidColorBrush(Color.FromArgb(sidebarAlpha, 0xFF, 0xFF, 0xFF));
-                TextPrimaryBrush   = new SolidColorBrush(Color.FromRgb(0x2C, 0x3E, 0x50));
-                TextSecondaryBrush = new SolidColorBrush(Color.FromRgb(0x7F, 0x8C, 0x8D));
-                TextMutedBrush     = new SolidColorBrush(Color.FromRgb(0x95, 0xA5, 0xA6));
-                IconBrush          = new SolidColorBrush(Color.FromRgb(0x5F, 0x6B, 0x7A));
-            }
+            // 星空/极光模式：背景为深色渐变，但玻璃面板保持浅色（与深色文字形成清晰对比）。
+            // 文字画刷始终使用深色，避免「浅字 + 浅卡」导致无法阅读（原 bug）。
+            // 侧边栏也保持浅色玻璃，导航文字维持深色，保证可读性。
+            GlassSidebarBrush  = new SolidColorBrush(Color.FromArgb(sidebarAlpha, 0xFF, 0xFF, 0xFF));
+            TextPrimaryBrush   = new SolidColorBrush(Color.FromRgb(0x2C, 0x3E, 0x50));
+            TextSecondaryBrush = new SolidColorBrush(Color.FromRgb(0x7F, 0x8C, 0x8D));
+            TextMutedBrush     = new SolidColorBrush(Color.FromRgb(0x95, 0xA5, 0xA6));
+            IconBrush          = new SolidColorBrush(Color.FromRgb(0x5F, 0x6B, 0x7A));
+
+            // 仅「直接绘制在深色背景上（非卡片）」的文字（如首页分组标题、装扮页标题）
+            // 在星空/极光模式下翻为浅色，其余情况维持深灰，保证在各自背景上均清晰可读。
+            TextOnDarkBrush = isStarry
+                ? new SolidColorBrush(Color.FromRgb(0xD6, 0xDE, 0xEA))
+                : new SolidColorBrush(Color.FromRgb(0x2C, 0x3E, 0x50));
 
             // 小药丸 alpha（最透）
             byte pillAlpha;
@@ -497,6 +559,7 @@ namespace WINHELP
                 res["TextSecondaryBrush"] = TextSecondaryBrush;
                 res["TextMutedBrush"]     = TextMutedBrush;
                 res["IconBrush"]          = IconBrush;
+                res["TextOnDarkBrush"]    = TextOnDarkBrush;
             }
 
             // 通知玻璃变更
@@ -640,6 +703,7 @@ namespace WINHELP
                 {
                     AccentColorHex = AccentColor.ToString(),
                     BackgroundImagePath = BackgroundImagePath,
+                    FollowSystem = FollowSystem,
                     BackgroundOpacity = BackgroundOpacity,
                     GlassStrength = GlassStrength,
                     GlassMode = GlassEffect.ToString(),
@@ -663,6 +727,7 @@ namespace WINHELP
                 ActivePresetKey = string.IsNullOrEmpty(config.PresetKey) ? "default" : config.PresetKey;
                 // 根据 PresetKey 推导 IsStarryActive（容错旧配置无 PresetKey 的情况）
                 IsStarryActive = ActivePresetKey == "starry" || ActivePresetKey == "aurora";
+                FollowSystem = config.FollowSystem;
 
                 if (!string.IsNullOrEmpty(config.AccentColorHex))
                 {

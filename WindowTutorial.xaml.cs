@@ -139,7 +139,7 @@ namespace WINHELP
 
         private void ApplyTheme()
         {
-            RootGrid.Background = ThemeManager.CreateBackgroundBrush();
+            RootGrid.Background = Brushes.Transparent;
             ThemeManager.ApplyButtonTheme(BtnBack, Color.FromRgb(0x95, 0xA5, 0xA6),
                 hoverColor: Color.FromRgb(0x7F, 0x8C, 0x8D));
         }

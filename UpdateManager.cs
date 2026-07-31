@@ -50,9 +50,9 @@ namespace WINHELP
         }
 
         /// <summary>
-        /// 版本覆盖值 — 由 Window1 的"软件版本"文字模块解析后设置。
+        /// 版本覆盖值 — 由 SiteFinderPage 的"软件版本"文字模块解析后设置。
         /// 设置后 LocalVersion 将返回此值，而非程序集版本。
-        /// 这是版本检测的检测路径：Window1 → 软件更新 → 软件版本文字模块。
+        /// 这是版本检测的检测路径：SiteFinderPage → 软件更新 → 软件版本文字模块。
         /// </summary>
         public static string? VersionOverride { get; set; }
 
@@ -61,7 +61,7 @@ namespace WINHELP
         {
             get
             {
-                // 优先使用从 Window1 软件版本文字模块解析的版本号
+                // 优先使用从 SiteFinderPage 软件版本文字模块解析的版本号
                 if (!string.IsNullOrWhiteSpace(VersionOverride))
                     return VersionOverride;
 

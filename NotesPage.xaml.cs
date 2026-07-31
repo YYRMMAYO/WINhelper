@@ -65,6 +65,8 @@ namespace WINHELP
         private void UpdateCountText()
         {
             TxtNoteCount.Text = UiLanguage.L($"共 {_notes.Count} 条便签", $"{_notes.Count} note(s)");
+            if (TxtEmptyHint != null)
+                TxtEmptyHint.Visibility = _notes.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         }
 
         // ===== 添加便签 =====
@@ -121,17 +123,26 @@ namespace WINHELP
 
         private void OpenInExplorer(string path)
         {
+            if (!File.Exists(path))
+            {
+                MessageBox.Show(UiLanguage.L("便签文件已不存在。", "The note file no longer exists."),
+                    UiLanguage.L("打开失败", "Open failed"), MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
             try
             {
-                if (File.Exists(path))
-                    Process.Start(new System.Diagnostics.ProcessStartInfo
-                    {
-                        FileName = "explorer.exe",
-                        Arguments = $"/select,\"{path}\"",
-                        UseShellExecute = true
-                    });
+                Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "explorer.exe",
+                    Arguments = $"/select,\"{path}\"",
+                    UseShellExecute = true
+                });
             }
-            catch { }
+            catch (Exception ex)
+            {
+                MessageBox.Show(UiLanguage.L($"无法打开：{ex.Message}", $"Cannot open: {ex.Message}"),
+                    UiLanguage.L("打开失败", "Open failed"), MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
         }
     }
 }

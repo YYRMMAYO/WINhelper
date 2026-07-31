@@ -1,0 +1,116 @@
+﻿<Window x:Class="WINHELP.SplashWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="clr-namespace:WINHELP"
+        Title="司南工具箱"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ShowInTaskbar="False"
+        Topmost="True"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterScreen"
+        Width="380" Height="240">
+
+    <!-- 启动动画：加载时淡入 + 缩放，旋转环持续转动；关闭时淡出（见 SplashWindow.xaml.cs） -->
+    <Window.Triggers>
+        <EventTrigger RoutedEvent="Loaded">
+            <BeginStoryboard>
+                <Storyboard>
+                    <DoubleAnimation Storyboard.TargetName="Card"
+                                     Storyboard.TargetProperty="Opacity"
+                                     From="0" To="1" Duration="0:0:0.45">
+                        <DoubleAnimation.EasingFunction>
+                            <CubicEase EasingMode="EaseOut"/>
+                        </DoubleAnimation.EasingFunction>
+                    </DoubleAnimation>
+                    <DoubleAnimation Storyboard.TargetName="CardScale"
+                                     Storyboard.TargetProperty="ScaleX"
+                                     From="0.9" To="1" Duration="0:0:0.45">
+                        <DoubleAnimation.EasingFunction>
+                            <CubicEase EasingMode="EaseOut"/>
+                        </DoubleAnimation.EasingFunction>
+                    </DoubleAnimation>
+                    <DoubleAnimation Storyboard.TargetName="CardScale"
+                                     Storyboard.TargetProperty="ScaleY"
+                                     From="0.9" To="1" Duration="0:0:0.45">
+                        <DoubleAnimation.EasingFunction>
+                            <CubicEase EasingMode="EaseOut"/>
+                        </DoubleAnimation.EasingFunction>
+                    </DoubleAnimation>
+                </Storyboard>
+            </BeginStoryboard>
+            <BeginStoryboard>
+                <Storyboard RepeatBehavior="Forever">
+                    <DoubleAnimation Storyboard.TargetName="RingRotate"
+                                     Storyboard.TargetProperty="Angle"
+                                     From="0" To="360" Duration="0:0:1.1"/>
+                </Storyboard>
+            </BeginStoryboard>
+        </EventTrigger>
+    </Window.Triggers>
+
+    <Border x:Name="Card" RenderTransformOrigin="0.5,0.5" CornerRadius="20"
+            Background="#F7F9FC" BorderBrush="#E3E8EF" BorderThickness="1">
+        <Border.RenderTransform>
+            <ScaleTransform x:Name="CardScale" ScaleX="0.9" ScaleY="0.9"/>
+        </Border.RenderTransform>
+        <Border.Effect>
+            <DropShadowEffect Color="#1A2A3A" Opacity="0.28" BlurRadius="30" ShadowDepth="0"/>
+        </Border.Effect>
+
+        <Grid Margin="0,28,0,22">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- 罗盘徽标 + 旋转环 -->
+            <Grid Grid.Row="0" Width="76" Height="76" HorizontalAlignment="Center" Margin="0,0,0,16">
+                <Ellipse Width="76" Height="76" Fill="#EAF2FB"/>
+                <Ellipse Width="62" Height="62" Stroke="#4A90D9" StrokeThickness="4"
+                         StrokeDashArray="42 150" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Ellipse.RenderTransform>
+                        <RotateTransform x:Name="RingRotate" CenterX="31" CenterY="31"/>
+                    </Ellipse.RenderTransform>
+                </Ellipse>
+                <TextBlock Text="🧭" FontSize="34" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Grid>
+
+            <!-- 标题 -->
+            <TextBlock Grid.Row="1" Text="{loc:Loc 司南工具箱|Sinan Toolbox}" FontSize="22" FontWeight="Bold"
+                       Foreground="#2C3E50" HorizontalAlignment="Center"/>
+            <TextBlock Grid.Row="2"
+                       Text="{loc:Loc 正在启动，请稍候…|Starting up, please wait…}"
+                       FontSize="13" Foreground="#8A96A3" HorizontalAlignment="Center" Margin="0,8,0,0"/>
+
+            <!-- 进度条（不确定态） -->
+            <Grid Grid.Row="3" Width="240" Height="4" Margin="0,18,0,0">
+                <Border Background="#E6EBF1" CornerRadius="2"/>
+                <Border x:Name="Bar" Width="80" Height="4" CornerRadius="2" Background="#4A90D9"
+                        HorizontalAlignment="Left">
+                    <Border.RenderTransform>
+                        <TranslateTransform x:Name="BarOffset" X="0"/>
+                    </Border.RenderTransform>
+                    <Border.Triggers>
+                        <EventTrigger RoutedEvent="Loaded">
+                            <BeginStoryboard>
+                                <Storyboard RepeatBehavior="Forever">
+                                    <DoubleAnimation Storyboard.TargetName="BarOffset"
+                                                     Storyboard.TargetProperty="X"
+                                                     From="0" To="160" Duration="0:0:1.4">
+                                        <DoubleAnimation.EasingFunction>
+                                            <SineEase EasingMode="EaseInOut"/>
+                                        </DoubleAnimation.EasingFunction>
+                                    </DoubleAnimation>
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </EventTrigger>
+                    </Border.Triggers>
+                </Border>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

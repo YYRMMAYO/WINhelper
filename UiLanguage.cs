@@ -9,6 +9,7 @@ namespace WINHELP
     /// </summary>
     public enum Lang { Zh, En }
 
+    /// <summary>UI 语言管理器（单例）：中 / 英切换与本地化文本。</summary>
     public static class UiLanguage
     {
         private static readonly string ConfigDir = Path.Combine(

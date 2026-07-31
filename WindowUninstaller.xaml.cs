@@ -7,8 +7,10 @@ using System.Windows.Media;
 
 namespace WINHELP;
 
+/// <summary>软件卸载页：管理 / 卸载已安装程序。</summary>
 public partial class WindowUninstaller : UserControl
 {
+    /// <summary>数据模型：ProgramItem。</summary>
     private sealed class ProgramItem
     {
         public string DisplayName { get; set; } = "";
@@ -22,6 +24,7 @@ public partial class WindowUninstaller : UserControl
         public string? KeyPath;
     }
 
+    /// <summary>数据模型：ResidueItem。</summary>
     private sealed class ResidueItem
     {
         public string Path { get; set; } = "";

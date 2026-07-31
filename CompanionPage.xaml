@@ -1,6 +1,7 @@
 ﻿<UserControl x:Class="WINHELP.CompanionPage"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="clr-namespace:WINHELP"
              Background="Transparent">
 
     <UserControl.Resources>
@@ -38,8 +39,8 @@
                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 </Border>
                 <StackPanel VerticalAlignment="Center" Margin="14,0,0,0">
-                    <TextBlock Text="陪伴运行" FontSize="20" FontWeight="Bold" Foreground="#2C3E50"/>
-                    <TextBlock Text="以悬浮小窗常驻桌面，隐藏主界面，专注重心"
+                    <TextBlock Text="{loc:Loc 陪伴运行|Companion Mode}" FontSize="20" FontWeight="Bold" Foreground="#2C3E50"/>
+                    <TextBlock Text="{loc:Loc 以悬浮小窗常驻桌面，隐藏主界面，专注重心|Stay on the desktop as a floating window, hide the main UI, and stay focused}"
                                FontSize="12" Foreground="#95A5A6" Margin="0,3,0,0"/>
                 </StackPanel>
             </StackPanel>
@@ -50,7 +51,7 @@
                 <StackPanel Orientation="Horizontal">
                     <Ellipse x:Name="StatusBadgeDot" Width="8" Height="8" Fill="#BDC3C7"
                              VerticalAlignment="Center"/>
-                    <TextBlock x:Name="StatusBadgeText" Text="未开启"
+                    <TextBlock x:Name="StatusBadgeText" Text="{loc:Loc 未开启|Off}"
                                FontSize="12" FontWeight="SemiBold" Foreground="#7F8C8D"
                                Margin="8,0,0,0" VerticalAlignment="Center"/>
                 </StackPanel>
@@ -91,9 +92,9 @@
                     </Border>
 
                     <StackPanel Grid.Row="1">
-                        <TextBlock x:Name="TxtBigStatus" Text="陪伴未运行"
+                        <TextBlock x:Name="TxtBigStatus" Text="{loc:Loc 陪伴未运行|Companion not running}"
                                    FontSize="26" FontWeight="Bold" Foreground="#2C3E50"/>
-                        <TextBlock x:Name="TxtBigDesc" Text="开启后程序会缩小成悬浮小窗，专注陪你工作。"
+                        <TextBlock x:Name="TxtBigDesc" Text="{loc:Loc 开启后程序会缩小成悬浮小窗，专注陪你工作。|Once enabled, the app shrinks into a floating window and keeps you company while you work.}"
                                    FontSize="13" Foreground="#7F8C8D" Margin="0,8,0,0"
                                    TextWrapping="Wrap" LineHeight="20"/>
                     </StackPanel>
@@ -116,8 +117,8 @@
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Style="{StaticResource InfoLabel}" Text="当前模式"/>
-                            <TextBlock Grid.Column="1" x:Name="TxtMode" Style="{StaticResource InfoValue}" Text="标准模式"/>
+                            <TextBlock Grid.Column="0" Style="{StaticResource InfoLabel}" Text="{loc:Loc 当前模式|Current Mode}"/>
+                            <TextBlock Grid.Column="1" x:Name="TxtMode" Style="{StaticResource InfoValue}" Text="{loc:Loc 标准模式|Standard Mode}"/>
                         </Grid>
                         <Border Grid.Row="1" Height="1" Background="#EDF0F4" Margin="0,0,0,12"/>
 
@@ -127,10 +128,10 @@
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Style="{StaticResource InfoLabel}" Text="全局热键"/>
+                            <TextBlock Grid.Column="0" Style="{StaticResource InfoLabel}" Text="{loc:Loc 全局热键|Global Hotkey}"/>
                             <TextBlock Grid.Column="1" x:Name="TxtHotkey" Style="{StaticResource InfoValue}"
                                        Text="Ctrl+Alt+C"/>
-                            <Button Grid.Column="2" x:Name="BtnRebind" Content="重新设置" Height="28"
+                            <Button Grid.Column="2" x:Name="BtnRebind" Content="{loc:Loc 重新设置|Rebind}" Height="28"
                                     Padding="12,0" Margin="12,0,0,0" FontSize="12" FontWeight="SemiBold"
                                     Foreground="White" BorderThickness="0" Cursor="Hand"
                                     Click="BtnRebind_Click"/>
@@ -147,13 +148,13 @@
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Grid.Column="0" VerticalAlignment="Center">
                                     <TextBlock x:Name="TxtCaptureHint"
-                                               Text="请按下新的热键组合（需含 Ctrl / Alt / Shift 之一）…"
+                                               Text="{loc:Loc 请按下新的热键组合（需含 Ctrl / Alt / Shift 之一）…|Press a new hotkey combo (must include Ctrl / Alt / Shift)…}"
                                                FontSize="12.5" FontWeight="SemiBold" Foreground="#8A6D3B"
                                                TextWrapping="Wrap"/>
-                                    <TextBlock x:Name="TxtCaptureSub" Text="按下后自动生效并保存"
+                                    <TextBlock x:Name="TxtCaptureSub" Text="{loc:Loc 按下后自动生效并保存|Applies and saves automatically after pressing}"
                                                FontSize="11" Foreground="#B08D57" Margin="0,4,0,0"/>
                                 </StackPanel>
-                                <Button Grid.Column="1" x:Name="BtnCancelCapture" Content="取消"
+                                <Button Grid.Column="1" x:Name="BtnCancelCapture" Content="{loc:Loc 取消|Cancel}"
                                         Height="28" Width="64" Margin="10,0,0,0" FontSize="12"
                                         Background="#ECF0F1" Foreground="#7F8C8D" BorderThickness="0"
                                         Cursor="Hand" Click="BtnCancelCapture_Click"/>
@@ -168,11 +169,11 @@
                         <Button x:Name="BtnToggle" Height="44" Width="180"
                                 FontSize="14" FontWeight="SemiBold"
                                 Foreground="White" BorderThickness="0" Cursor="Hand"
-                                Content="开启陪伴运行"
+                                Content="{loc:Loc 开启陪伴运行|Start Companion}"
                                 Click="BtnToggle_Click"/>
                         <TextBlock x:Name="TxtHint" FontSize="11" Foreground="#BDC3C7"
                                    VerticalAlignment="Center" Margin="14,0,0,0"
-                                   Text="按 F11 或全局热键也能切换"/>
+                                   Text="{loc:Loc 按 F11 或全局热键也能切换|Press F11 or the global hotkey to toggle as well}"/>
                     </StackPanel>
                 </Grid>
             </Border>
@@ -187,7 +188,7 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <TextBlock Grid.Row="0" Text="使用说明" FontSize="15" FontWeight="Bold"
+                    <TextBlock Grid.Row="0" Text="{loc:Loc 使用说明|How to Use}" FontSize="15" FontWeight="Bold"
                                Foreground="#2C3E50" Margin="0,0,0,14"/>
 
                     <StackPanel Grid.Row="1" Margin="0,0,0,16">
@@ -195,11 +196,11 @@
                             <StackPanel>
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
                                     <TextBlock Text="⌨️" FontSize="14" VerticalAlignment="Center"/>
-                                    <TextBlock Text="快捷切换" FontSize="13" FontWeight="SemiBold"
+                                    <TextBlock Text="{loc:Loc 快捷切换|Quick Switch}" FontSize="13" FontWeight="SemiBold"
                                                Foreground="#2C3E50" Margin="8,0,0,0" VerticalAlignment="Center"/>
                                 </StackPanel>
                                 <TextBlock FontSize="12" Foreground="#7F8C8D" LineHeight="20" TextWrapping="Wrap"
-                                           Text="· F11 在主窗口内一键切换。&#xa;· 全局热键可在任意界面唤起陪伴小窗。"/>
+                                           Text="{loc:Loc · F11 在主窗口内一键切换。&#xa;· 全局热键可在任意界面唤起陪伴小窗。|· Press F11 inside the main window to toggle.&#xa;· The global hotkey summons the companion window anywhere.}"/>
                             </StackPanel>
                         </Border>
 
@@ -207,11 +208,11 @@
                             <StackPanel>
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
                                     <TextBlock Text="🪟" FontSize="14" VerticalAlignment="Center"/>
-                                    <TextBlock Text="小窗模式" FontSize="13" FontWeight="SemiBold"
+                                    <TextBlock Text="{loc:Loc 小窗模式|Mini Window Mode}" FontSize="13" FontWeight="SemiBold"
                                                Foreground="#2C3E50" Margin="8,0,0,0" VerticalAlignment="Center"/>
                                 </StackPanel>
                                 <TextBlock FontSize="12" Foreground="#7F8C8D" LineHeight="20" TextWrapping="Wrap"
-                                           Text="· 开启后主窗口自动隐藏。&#xa;· 桌面仅保留小窗，可拖动调整位置。&#xa;· 双击系统托盘图标可恢复主窗口。"/>
+                                           Text="{loc:Loc · 开启后主窗口自动隐藏。&#xa;· 桌面仅保留小窗，可拖动调整位置。&#xa;· 双击系统托盘图标可恢复主窗口。|· The main window hides automatically once enabled.&#xa;· Only the mini window stays on the desktop and can be dragged.&#xa;· Double-click the tray icon to restore the main window.}"/>
                             </StackPanel>
                         </Border>
 
@@ -219,11 +220,11 @@
                             <StackPanel>
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
                                     <TextBlock Text="🔚" FontSize="14" VerticalAlignment="Center"/>
-                                    <TextBlock Text="退出陪伴" FontSize="13" FontWeight="SemiBold"
+                                    <TextBlock Text="{loc:Loc 退出陪伴|Exit Companion}" FontSize="13" FontWeight="SemiBold"
                                                Foreground="#2C3E50" Margin="8,0,0,0" VerticalAlignment="Center"/>
                                 </StackPanel>
                                 <TextBlock FontSize="12" Foreground="#7F8C8D" LineHeight="20" TextWrapping="Wrap"
-                                           Text="· 在本页面点击「关闭陪伴运行」。&#xa;· 或再次按 F11 / 全局热键。&#xa;· 右键系统托盘图标也有快捷菜单。"/>
+                                           Text="{loc:Loc · 在本页面点击「关闭陪伴运行」。&#xa;· 或再次按 F11 / 全局热键。&#xa;· 右键系统托盘图标也有快捷菜单。|· Click Stop Companion on this page.&#xa;· Or press F11 / the global hotkey again.&#xa;· Right-click the tray icon for a quick menu.}"/>
                             </StackPanel>
                         </Border>
                     </StackPanel>
@@ -236,7 +237,7 @@
                             <TextBlock Text="💡" FontSize="14" VerticalAlignment="Center" Margin="0,0,8,0"/>
                             <TextBlock FontSize="12" Foreground="#8A6D3B" VerticalAlignment="Center"
                                        TextWrapping="Wrap" LineHeight="18"
-                                       Text="陪伴运行适合：写作、阅读、追剧、专注工作等场景。"/>
+                                       Text="{loc:Loc 陪伴运行适合：写作、阅读、追剧、专注工作等场景。|Companion mode is great for: writing, reading, binge-watching, focused work, etc.}"/>
                         </StackPanel>
                     </Border>
                 </Grid>

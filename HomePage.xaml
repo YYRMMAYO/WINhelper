@@ -62,7 +62,7 @@
         <Style x:Key="SectionHeader" TargetType="TextBlock">
             <Setter Property="FontSize" Value="15"/>
             <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextOnDarkBrush}"/>
             <Setter Property="Margin" Value="4,4,0,10"/>
         </Style>
     </UserControl.Resources>
@@ -189,8 +189,8 @@
                 <Border Style="{StaticResource HomeCard}" Tag="site" MouseLeftButtonDown="Card_Click">
                     <StackPanel>
                         <TextBlock Text="🌐" FontSize="22" Margin="0,0,0,8"/>
-                        <TextBlock Text="网站检索助手" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}"/>
-                        <TextBlock Text="常用网站一键直达" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                        <TextBlock Text="网站与官网" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                        <TextBlock Text="常用网站 + 软件官网" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"/>
                     </StackPanel>
                 </Border>
 
@@ -199,14 +199,6 @@
                         <TextBlock Text="🛠️" FontSize="22" Margin="0,0,0,8"/>
                         <TextBlock Text="WIN 助手" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}"/>
                         <TextBlock Text="实用软件官方下载" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"/>
-                    </StackPanel>
-                </Border>
-
-                <Border Style="{StaticResource HomeCard}" Tag="nav" MouseLeftButtonDown="Card_Click">
-                    <StackPanel>
-                        <TextBlock Text="🔗" FontSize="22" Margin="0,0,0,8"/>
-                        <TextBlock Text="官网导航" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}"/>
-                        <TextBlock Text="常用软件官方直达" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"/>
                     </StackPanel>
                 </Border>
 

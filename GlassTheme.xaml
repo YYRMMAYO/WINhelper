@@ -50,6 +50,8 @@
     <SolidColorBrush x:Key="TextSecondaryBrush" Color="#7F8C8D"/>
     <SolidColorBrush x:Key="TextMutedBrush" Color="#95A5A6"/>
     <SolidColorBrush x:Key="IconBrush" Color="#5F6B7A"/>
+    <!-- 仅用于直接绘制在深色背景上的文字（星空/极光下翻为浅色），兜底深灰 -->
+    <SolidColorBrush x:Key="TextOnDarkBrush" Color="#2C3E50"/>
 
     <!-- ============================================================
          玻璃卡片：用于内容区块 (HomePage 卡片、模块内容卡等)

@@ -66,6 +66,18 @@ namespace WINHELP
         private static readonly string[] OpenSettings = SettingsTargets.Keys.ToArray();
         private static readonly string[] Diagnostics = AllowedCommands.ToArray();
 
+        // 允许打开的常用文件夹（Shell 特殊文件夹，绝不以字符串拼接命令）
+        private static readonly Dictionary<string, string> FolderTargets = new()
+        {
+            ["文档"] = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+            ["下载"] = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads"),
+            ["桌面"] = Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
+            ["图片"] = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures),
+            ["音乐"] = Environment.GetFolderPath(Environment.SpecialFolder.MyMusic),
+            ["视频"] = Environment.GetFolderPath(Environment.SpecialFolder.MyVideos),
+        };
+        private static readonly string[] OpenFolders = FolderTargets.Keys.ToArray();
+
         /// <summary>工具执行结果</summary>
         public class ToolResult
         {
@@ -163,6 +175,74 @@ namespace WINHELP
                         required = new string[0]
                     }
                 }
+            },
+            new
+            {
+                type = "function",
+                function = new
+                {
+                    name = "kill_process",
+                    description = "结束一个正在运行的、卡死的进程（需要用户确认）。只能按进程名结束，不能运行任意命令。",
+                    parameters = new
+                    {
+                        type = "object",
+                        properties = new
+                        {
+                            process_name = new
+                            {
+                                type = "string",
+                                description = "要结束的进程名（不含 .exe，如 notepad、chrome），必须是正在运行的进程"
+                            }
+                        },
+                        required = new[] { "process_name" }
+                    }
+                }
+            },
+            new
+            {
+                type = "function",
+                function = new
+                {
+                    name = "open_folder",
+                    description = "打开一个常用系统文件夹（如文档、下载、桌面、图片、音乐、视频）。",
+                    parameters = new
+                    {
+                        type = "object",
+                        properties = new
+                        {
+                            folder = new
+                            {
+                                type = "string",
+                                @enum = OpenFolders,
+                                description = "要打开的文件夹，必须是下列之一：" + string.Join("、", OpenFolders)
+                            }
+                        },
+                        required = new[] { "folder" }
+                    }
+                }
+            },
+            new
+            {
+                type = "function",
+                function = new
+                {
+                    name = "toggle_setting",
+                    description = "切换一个受控的本软件设置（如开机自动启动）。只能切换预定义的少数安全设置。",
+                    parameters = new
+                    {
+                        type = "object",
+                        properties = new
+                        {
+                            setting = new
+                            {
+                                type = "string",
+                                @enum = new[] { "autostart" },
+                                description = "要切换的设置，目前仅支持 autostart（开机自动启动）"
+                            }
+                        },
+                        required = new[] { "setting" }
+                    }
+                }
             }
         };
 
@@ -191,12 +271,15 @@ namespace WINHELP
 
             try
             {
-                return name switch
+                return                 name switch
                 {
                     "open_app" => RunOpenApp(args),
                     "open_settings" => RunOpenSettings(args),
                     "run_diagnostic" => await RunDiagnosticAsync(args),
-                    "take_screenshot" => RunScreenshot(),
+                    "take_screenshot" => RunScreenshot(false),
+                    "kill_process" => RunKillProcess(args),
+                    "open_folder" => RunOpenFolder(args),
+                    "toggle_setting" => RunToggleSetting(args),
                     _ => new ToolResult { Description = desc, Text = "未知工具：" + (name ?? "") }
                 };
             }
@@ -272,10 +355,27 @@ namespace WINHELP
             return sb.ToString();
         }
 
-        private static ToolResult RunScreenshot()
+        private static ToolResult RunScreenshot(bool allScreens = false)
         {
-            var bounds = System.Windows.Forms.Screen.PrimaryScreen?.Bounds
+            System.Drawing.Rectangle bounds;
+            if (allScreens && System.Windows.Forms.Screen.AllScreens.Length > 1)
+            {
+                // 多显示器：拼接所有屏幕为一张大图
+                int minX = int.MaxValue, minY = int.MaxValue, maxX = int.MinValue, maxY = int.MinValue;
+                foreach (var s in System.Windows.Forms.Screen.AllScreens)
+                {
+                    minX = Math.Min(minX, s.Bounds.X);
+                    minY = Math.Min(minY, s.Bounds.Y);
+                    maxX = Math.Max(maxX, s.Bounds.Right);
+                    maxY = Math.Max(maxY, s.Bounds.Bottom);
+                }
+                bounds = System.Drawing.Rectangle.FromLTRB(minX, minY, maxX, maxY);
+            }
+            else
+            {
+                bounds = System.Windows.Forms.Screen.PrimaryScreen?.Bounds
                          ?? new System.Drawing.Rectangle(0, 0, 1280, 720);
+            }
 
             // 缩放以降低外传数据量（最大 1280x720）
             float scale = Math.Min(1f, Math.Min(1280f / bounds.Width, 720f / bounds.Height));
@@ -301,6 +401,57 @@ namespace WINHELP
             };
         }
 
+        // ===== 受控写操作（白名单 + 人工确认，绝不暴露裸 shell） =====
+
+        private static ToolResult RunKillProcess(JsonElement args)
+        {
+            var name = Arg(args, "process_name").Trim();
+            if (string.IsNullOrEmpty(name))
+                return new ToolResult { Description = "结束进程", Text = "进程名为空。" };
+
+            // 自保护：禁止结束本程序
+            var self = System.Diagnostics.Process.GetCurrentProcess().ProcessName;
+            if (name.Equals(self, StringComparison.OrdinalIgnoreCase))
+                return new ToolResult { Description = "结束进程", Text = "出于安全考虑，不能结束本程序自身。" };
+
+            var procs = System.Diagnostics.Process.GetProcessesByName(name);
+            if (procs.Length == 0)
+                return new ToolResult { Description = $"结束进程「{name}」", Text = $"未找到名为「{name}」的运行中进程。" };
+
+            int killed = 0;
+            foreach (var p in procs)
+            {
+                try { p.Kill(); killed++; }
+                catch { /* 部分进程无权限，跳过 */ }
+            }
+            return new ToolResult { Description = $"结束进程「{name}」", Text = $"已结束 {killed} 个「{name}」进程。" };
+        }
+
+        private static ToolResult RunOpenFolder(JsonElement args)
+        {
+            var folder = Arg(args, "folder");
+            if (string.IsNullOrEmpty(folder) || !FolderTargets.TryGetValue(folder, out var path))
+                return new ToolResult { Description = "打开文件夹", Text = $"不支持的文件夹：「{folder}」。" };
+            Process.Start(new ProcessStartInfo { FileName = path, UseShellExecute = true });
+            return new ToolResult { Description = $"打开文件夹「{folder}」", Text = $"已打开「{folder}」：{path}" };
+        }
+
+        private static ToolResult RunToggleSetting(JsonElement args)
+        {
+            var setting = Arg(args, "setting");
+            if (setting != "autostart")
+                return new ToolResult { Description = "切换设置", Text = $"不支持的设置：「{setting}」。" };
+            bool next = !SettingsManager.Current.AutoStart;
+            SettingsManager.Current.AutoStart = next;
+            SettingsManager.SetAutoStart(next);
+            SettingsManager.Save();
+            return new ToolResult
+            {
+                Description = "切换开机自动启动",
+                Text = next ? "已开启开机自动启动。" : "已关闭开机自动启动。"
+            };
+        }
+
         // ===== 辅助 =====
 
         private static string Arg(JsonElement args, string key)
@@ -314,6 +465,9 @@ namespace WINHELP
                 "open_settings" => $"打开系统设置「{Arg(args, "page")}」页面",
                 "run_diagnostic" => $"运行只读诊断命令：{Arg(args, "command")}",
                 "take_screenshot" => "截取当前屏幕画面（截图可能包含隐私信息，将发送给 AI 服务用于分析）",
+                "kill_process" => $"结束进程「{Arg(args, "process_name")}」",
+                "open_folder" => $"打开文件夹「{Arg(args, "folder")}」",
+                "toggle_setting" => $"切换设置「{Arg(args, "setting")}」",
                 _ => "执行操作：" + (name ?? "")
             };
         }

@@ -16,6 +16,7 @@ public static class NotesStore
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "WINHELP", "notes");
     public static readonly string DesktopDir = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
 
+    /// <summary>便签条目数据模型。</summary>
     public sealed class NoteEntry
     {
         public string FilePath { get; set; } = "";

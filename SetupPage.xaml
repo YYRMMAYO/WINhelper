@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:WINHELP"
+        xmlns:loc="clr-namespace:WINHELP"
         mc:Ignorable="d"
         Background="Transparent">
 
@@ -24,7 +25,7 @@
             <Setter Property="Effect" Value="{StaticResource CardShadow}"/>
         </Style>
 
-        <!-- "打开官网"按钮：与 Window9 视觉一致 -->
+        <!-- "打开官网"按钮：与 OfficialSitesPage 视觉一致 -->
         <Style x:Key="SiteOpenButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
             <Setter Property="Height" Value="30"/>
             <Setter Property="FontSize" Value="12"/>
@@ -76,8 +77,8 @@
                     <TextBlock Text="💻" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-1,0,0"/>
                 </Border>
                 <StackPanel VerticalAlignment="Center" Margin="12,0,0,0">
-                    <TextBlock Text="装机助手" FontSize="20" FontWeight="Bold" Foreground="#2C3E50"/>
-                    <TextBlock Text="新电脑装机常用软件 · 全部为官方网站，无广告 / 捆绑" FontSize="12" Foreground="#95A5A6"/>
+                    <TextBlock Text="{loc:Loc '装机助手|Setup Assistant'}" FontSize="20" FontWeight="Bold" Foreground="#2C3E50"/>
+                    <TextBlock Text="{loc:Loc '新电脑装机常用软件 · 全部为官方网站，无广告 / 捆绑|Essential software for a new PC · All official sites, no ads / bundles'}" FontSize="12" Foreground="#95A5A6"/>
                 </StackPanel>
             </StackPanel>
         </Border>
@@ -87,238 +88,285 @@
             <StackPanel>
 
                 <!-- ============ 💬 通讯社交 ============ -->
-                <TextBlock Text="💬 通讯社交" Style="{StaticResource GroupHeader}"/>
+                <TextBlock Text="{loc:Loc '💬 通讯社交|💬 Communication and Social'}" Style="{StaticResource GroupHeader}"/>
                 <WrapPanel Orientation="Horizontal">
                     <Border Style="{StaticResource SetupCard}">
                         <StackPanel VerticalAlignment="Center" Margin="14,0">
                             <TextBlock Text="💬 QQ" FontSize="14" FontWeight="Bold" Foreground="#2C3E50"/>
-                            <TextBlock Text="腾讯即时通讯软件" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
-                            <Button Style="{StaticResource SiteOpenButton}" Content="打开官网" Tag="https://im.qq.com" Click="OpenSite_Click"/>
+                            <TextBlock Text="{loc:Loc '腾讯即时通讯软件|Tencent instant messaging app'}" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
+                            <Button Style="{StaticResource SiteOpenButton}" Content="{loc:Loc '打开官网|Open Website'}" Tag="https://im.qq.com" Click="OpenSite_Click"/>
                         </StackPanel>
                     </Border>
                     <Border Style="{StaticResource SetupCard}">
                         <StackPanel VerticalAlignment="Center" Margin="14,0">
                             <TextBlock Text="💚 微信" FontSize="14" FontWeight="Bold" Foreground="#2C3E50"/>
-                            <TextBlock Text="国民社交 / 移动支付" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
-                            <Button Style="{StaticResource SiteOpenButton}" Content="打开官网" Tag="https://weixin.qq.com" Click="OpenSite_Click"/>
+                            <TextBlock Text="{loc:Loc '国民社交 / 移动支付|Social networking / mobile payments'}" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
+                            <Button Style="{StaticResource SiteOpenButton}" Content="{loc:Loc '打开官网|Open Website'}" Tag="https://weixin.qq.com" Click="OpenSite_Click"/>
                         </StackPanel>
                     </Border>
                     <Border Style="{StaticResource SetupCard}">
                         <StackPanel VerticalAlignment="Center" Margin="14,0">
                             <TextBlock Text="🏢 企业微信" FontSize="14" FontWeight="Bold" Foreground="#2C3E50"/>
-                            <TextBlock Text="企业沟通与协同办公" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
-                            <Button Style="{StaticResource SiteOpenButton}" Content="打开官网" Tag="https://work.weixin.qq.com" Click="OpenSite_Click"/>
+                            <TextBlock Text="{loc:Loc '企业沟通与协同办公|Enterprise communication and collaboration'}" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
+                            <Button Style="{StaticResource SiteOpenButton}" Content="{loc:Loc '打开官网|Open Website'}" Tag="https://work.weixin.qq.com" Click="OpenSite_Click"/>
                         </StackPanel>
                     </Border>
                     <Border Style="{StaticResource SetupCard}">
                         <StackPanel VerticalAlignment="Center" Margin="14,0">
                             <TextBlock Text="📞 钉钉" FontSize="14" FontWeight="Bold" Foreground="#2C3E50"/>
-                            <TextBlock Text="阿里巴巴团队协作平台" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
-                            <Button Style="{StaticResource SiteOpenButton}" Content="打开官网" Tag="https://www.dingtalk.com" Click="OpenSite_Click"/>
+                            <TextBlock Text="{loc:Loc '阿里巴巴团队协作平台|Alibaba team collaboration platform'}" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
+                            <Button Style="{StaticResource SiteOpenButton}" Content="{loc:Loc '打开官网|Open Website'}" Tag="https://www.dingtalk.com" Click="OpenSite_Click"/>
                         </StackPanel>
                     </Border>
                     <Border Style="{StaticResource SetupCard}">
                         <StackPanel VerticalAlignment="Center" Margin="14,0">
                             <TextBlock Text="🚀 飞书" FontSize="14" FontWeight="Bold" Foreground="#2C3E50"/>
-                            <TextBlock Text="字节跳动办公协作套件" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
-                            <Button Style="{StaticResource SiteOpenButton}" Content="打开官网" Tag="https://www.feishu.cn" Click="OpenSite_Click"/>
+                            <TextBlock Text="{loc:Loc '字节跳动办公协作套件|ByteDance office collaboration suite'}" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
+                            <Button Style="{StaticResource SiteOpenButton}" Content="{loc:Loc '打开官网|Open Website'}" Tag="https://www.feishu.cn" Click="OpenSite_Click"/>
                         </StackPanel>
                     </Border>
                     <Border Style="{StaticResource SetupCard}">
                         <StackPanel VerticalAlignment="Center" Margin="14,0">
                             <TextBlock Text="📺 哔哩哔哩" FontSize="14" FontWeight="Bold" Foreground="#2C3E50"/>
-                            <TextBlock Text="年轻人喜爱的视频社区" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
-                            <Button Style="{StaticResource SiteOpenButton}" Content="打开官网" Tag="https://www.bilibili.com" Click="OpenSite_Click"/>
+                            <TextBlock Text="{loc:Loc '年轻人喜爱的视频社区|Video community loved by young people'}" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
+                            <Button Style="{StaticResource SiteOpenButton}" Content="{loc:Loc '打开官网|Open Website'}" Tag="https://www.bilibili.com" Click="OpenSite_Click"/>
                         </StackPanel>
                     </Border>
                     <Border Style="{StaticResource SetupCard}">
                         <StackPanel VerticalAlignment="Center" Margin="14,0">
                             <TextBlock Text="🎵 抖音" FontSize="14" FontWeight="Bold" Foreground="#2C3E50"/>
-                            <TextBlock Text="记录美好生活的短视频" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
-                            <Button Style="{StaticResource SiteOpenButton}" Content="打开官网" Tag="https://www.douyin.com" Click="OpenSite_Click"/>
+                            <TextBlock Text="{loc:Loc '记录美好生活的短视频|Short videos to record beautiful moments'}" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
+                            <Button Style="{StaticResource SiteOpenButton}" Content="{loc:Loc '打开官网|Open Website'}" Tag="https://www.douyin.com" Click="OpenSite_Click"/>
                         </StackPanel>
                     </Border>
                 </WrapPanel>
 
                 <!-- ============ 🖥️ 驱动硬件 ============ -->
-                <TextBlock Text="🖥️ 驱动与硬件" Style="{StaticResource GroupHeader}"/>
+                <TextBlock Text="{loc:Loc '🖥️ 驱动与硬件|🖥️ Drivers and Hardware'}" Style="{StaticResource GroupHeader}"/>
                 <WrapPanel Orientation="Horizontal">
                     <Border Style="{StaticResource SetupCard}">
                         <StackPanel VerticalAlignment="Center" Margin="14,0">
                             <TextBlock Text="🟢 NVIDIA 驱动" FontSize="14" FontWeight="Bold" Foreground="#2C3E50"/>
-                            <TextBlock Text="英伟达显卡官方驱动下载" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
-                            <Button Style="{StaticResource SiteOpenButton}" Content="打开官网" Tag="https://www.nvidia.com/Download/index.aspx" Click="OpenSite_Click"/>
+                            <TextBlock Text="{loc:Loc '英伟达显卡官方驱动下载|Official NVIDIA GPU driver download'}" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
+                            <Button Style="{StaticResource SiteOpenButton}" Content="{loc:Loc '打开官网|Open Website'}" Tag="https://www.nvidia.com/Download/index.aspx" Click="OpenSite_Click"/>
                         </StackPanel>
                     </Border>
                     <Border Style="{StaticResource SetupCard}">
                         <StackPanel VerticalAlignment="Center" Margin="14,0">
                             <TextBlock Text="🔴 AMD 驱动" FontSize="14" FontWeight="Bold" Foreground="#2C3E50"/>
-                            <TextBlock Text="AMD 显卡 / 处理器驱动" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
-                            <Button Style="{StaticResource SiteOpenButton}" Content="打开官网" Tag="https://www.amd.com/zh-hans/support" Click="OpenSite_Click"/>
+                            <TextBlock Text="{loc:Loc 'AMD 显卡 / 处理器驱动|AMD GPU / processor drivers'}" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
+                            <Button Style="{StaticResource SiteOpenButton}" Content="{loc:Loc '打开官网|Open Website'}" Tag="https://www.amd.com/zh-hans/support" Click="OpenSite_Click"/>
                         </StackPanel>
                     </Border>
                     <Border Style="{StaticResource SetupCard}">
                         <StackPanel VerticalAlignment="Center" Margin="14,0">
                             <TextBlock Text="🔵 Intel 驱动" FontSize="14" FontWeight="Bold" Foreground="#2C3E50"/>
-                            <TextBlock Text="Intel 处理器 / 核显驱动" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
-                            <Button Style="{StaticResource SiteOpenButton}" Content="打开官网" Tag="https://www.intel.cn/content/www/cn/zh/download-center" Click="OpenSite_Click"/>
+                            <TextBlock Text="{loc:Loc 'Intel 处理器 / 核显驱动|Intel processor / integrated GPU drivers'}" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
+                            <Button Style="{StaticResource SiteOpenButton}" Content="{loc:Loc '打开官网|Open Website'}" Tag="https://www.intel.cn/content/www/cn/zh/download-center" Click="OpenSite_Click"/>
                         </StackPanel>
                     </Border>
                     <Border Style="{StaticResource SetupCard}">
                         <StackPanel VerticalAlignment="Center" Margin="14,0">
                             <TextBlock Text="🔊 Realtek 声卡" FontSize="14" FontWeight="Bold" Foreground="#2C3E50"/>
-                            <TextBlock Text="瑞昱声卡 / 网卡驱动" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
-                            <Button Style="{StaticResource SiteOpenButton}" Content="打开官网" Tag="https://www.realtek.com/Download/List?cate_id=593" Click="OpenSite_Click"/>
+                            <TextBlock Text="{loc:Loc '瑞昱声卡 / 网卡驱动|Realtek audio / network card drivers'}" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
+                            <Button Style="{StaticResource SiteOpenButton}" Content="{loc:Loc '打开官网|Open Website'}" Tag="https://www.realtek.com/Download/List?cate_id=593" Click="OpenSite_Click"/>
                         </StackPanel>
                     </Border>
                     <Border Style="{StaticResource SetupCard}">
                         <StackPanel VerticalAlignment="Center" Margin="14,0">
                             <TextBlock Text="🧰 图吧工具箱" FontSize="14" FontWeight="Bold" Foreground="#2C3E50"/>
-                            <TextBlock Text="硬件检测 / 系统工具箱合集" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
-                            <Button Style="{StaticResource SiteOpenButton}" Content="打开官网" Tag="https://www.tbtool.cn/" Click="OpenSite_Click"/>
+                            <TextBlock Text="{loc:Loc '硬件检测 / 系统工具箱合集|Hardware detection / system tools collection'}" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
+                            <Button Style="{StaticResource SiteOpenButton}" Content="{loc:Loc '打开官网|Open Website'}" Tag="https://www.tbtool.cn/" Click="OpenSite_Click"/>
                         </StackPanel>
                     </Border>
                     <Border Style="{StaticResource SetupCard}">
                         <StackPanel VerticalAlignment="Center" Margin="14,0">
                             <TextBlock Text="🇨🇳 联想官网" FontSize="14" FontWeight="Bold" Foreground="#2C3E50"/>
-                            <TextBlock Text="联想电脑驱动 / 售后支持" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
-                            <Button Style="{StaticResource SiteOpenButton}" Content="打开官网" Tag="https://www.lenovo.com.cn" Click="OpenSite_Click"/>
+                            <TextBlock Text="{loc:Loc '联想电脑驱动 / 售后支持|Lenovo PC drivers / after-sales support'}" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
+                            <Button Style="{StaticResource SiteOpenButton}" Content="{loc:Loc '打开官网|Open Website'}" Tag="https://www.lenovo.com.cn" Click="OpenSite_Click"/>
                         </StackPanel>
                     </Border>
                     <Border Style="{StaticResource SetupCard}">
                         <StackPanel VerticalAlignment="Center" Margin="14,0">
                             <TextBlock Text="⬛ 戴尔官网" FontSize="14" FontWeight="Bold" Foreground="#2C3E50"/>
-                            <TextBlock Text="戴尔电脑驱动 / 技术支持" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
-                            <Button Style="{StaticResource SiteOpenButton}" Content="打开官网" Tag="https://www.dell.com" Click="OpenSite_Click"/>
+                            <TextBlock Text="{loc:Loc '戴尔电脑驱动 / 技术支持|Dell PC drivers / technical support'}" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
+                            <Button Style="{StaticResource SiteOpenButton}" Content="{loc:Loc '打开官网|Open Website'}" Tag="https://www.dell.com" Click="OpenSite_Click"/>
+                        </StackPanel>
+                    </Border>
+                </WrapPanel>
+
+                <!-- ============ 🔧 主板官网 ============ -->
+                <TextBlock Text="{loc:Loc '🔧 主板官网|🔧 Motherboard Official Sites'}" Style="{StaticResource GroupHeader}"/>
+                <WrapPanel Orientation="Horizontal">
+                    <Border Style="{StaticResource SetupCard}">
+                        <StackPanel VerticalAlignment="Center" Margin="14,0">
+                            <TextBlock Text="🟦 华硕 ASUS" FontSize="14" FontWeight="Bold" Foreground="#2C3E50"/>
+                            <TextBlock Text="{loc:Loc '主板 / 显卡 / 整机官网|Motherboard / GPU / PC official site'}" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
+                            <Button Style="{StaticResource SiteOpenButton}" Content="{loc:Loc '打开官网|Open Website'}" Tag="https://www.asus.com.cn" Click="OpenSite_Click"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource SetupCard}">
+                        <StackPanel VerticalAlignment="Center" Margin="14,0">
+                            <TextBlock Text="🔴 微星 MSI" FontSize="14" FontWeight="Bold" Foreground="#2C3E50"/>
+                            <TextBlock Text="{loc:Loc '主板 / 游戏本 / 外设官网|Motherboard / gaming laptop / gear'}" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
+                            <Button Style="{StaticResource SiteOpenButton}" Content="{loc:Loc '打开官网|Open Website'}" Tag="https://cn.msi.com" Click="OpenSite_Click"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource SetupCard}">
+                        <StackPanel VerticalAlignment="Center" Margin="14,0">
+                            <TextBlock Text="🟢 技嘉 GIGABYTE" FontSize="14" FontWeight="Bold" Foreground="#2C3E50"/>
+                            <TextBlock Text="{loc:Loc '主板 / 显卡官网|Motherboard / GPU official site'}" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
+                            <Button Style="{StaticResource SiteOpenButton}" Content="{loc:Loc '打开官网|Open Website'}" Tag="https://www.gigabyte.cn" Click="OpenSite_Click"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource SetupCard}">
+                        <StackPanel VerticalAlignment="Center" Margin="14,0">
+                            <TextBlock Text="🟠 华擎 ASRock" FontSize="14" FontWeight="Bold" Foreground="#2C3E50"/>
+                            <TextBlock Text="{loc:Loc '主板 / 迷你主机官网|Motherboard / mini PC official site'}" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
+                            <Button Style="{StaticResource SiteOpenButton}" Content="{loc:Loc '打开官网|Open Website'}" Tag="https://www.asrock.com" Click="OpenSite_Click"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource SetupCard}">
+                        <StackPanel VerticalAlignment="Center" Margin="14,0">
+                            <TextBlock Text="🌈 七彩虹 Colorful" FontSize="14" FontWeight="Bold" Foreground="#2C3E50"/>
+                            <TextBlock Text="{loc:Loc '显卡 / 主板官网|GPU / motherboard official site'}" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
+                            <Button Style="{StaticResource SiteOpenButton}" Content="{loc:Loc '打开官网|Open Website'}" Tag="https://www.colorful.cn" Click="OpenSite_Click"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource SetupCard}">
+                        <StackPanel VerticalAlignment="Center" Margin="14,0">
+                            <TextBlock Text="🟡 铭瑄 Maxsun" FontSize="14" FontWeight="Bold" Foreground="#2C3E50"/>
+                            <TextBlock Text="{loc:Loc '显卡 / 主板官网|GPU / motherboard official site'}" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
+                            <Button Style="{StaticResource SiteOpenButton}" Content="{loc:Loc '打开官网|Open Website'}" Tag="https://www.maxsun.com.cn" Click="OpenSite_Click"/>
                         </StackPanel>
                     </Border>
                 </WrapPanel>
 
                 <!-- ============ 🌐 浏览器与办公 ============ -->
-                <TextBlock Text="🌐 浏览器与办公" Style="{StaticResource GroupHeader}"/>
+                <TextBlock Text="{loc:Loc '🌐 浏览器与办公|🌐 Browsers and Office'}" Style="{StaticResource GroupHeader}"/>
                 <WrapPanel Orientation="Horizontal">
                     <Border Style="{StaticResource SetupCard}">
                         <StackPanel VerticalAlignment="Center" Margin="14,0">
                             <TextBlock Text="🟡 Google Chrome" FontSize="14" FontWeight="Bold" Foreground="#2C3E50"/>
-                            <TextBlock Text="全球最流行的浏览器" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
-                            <Button Style="{StaticResource SiteOpenButton}" Content="打开官网" Tag="https://www.google.cn/chrome" Click="OpenSite_Click"/>
+                            <TextBlock Text="{loc:Loc '全球最流行的浏览器|The most popular browser in the world'}" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
+                            <Button Style="{StaticResource SiteOpenButton}" Content="{loc:Loc '打开官网|Open Website'}" Tag="https://www.google.cn/chrome" Click="OpenSite_Click"/>
                         </StackPanel>
                     </Border>
                     <Border Style="{StaticResource SetupCard}">
                         <StackPanel VerticalAlignment="Center" Margin="14,0">
                             <TextBlock Text="🟦 Microsoft Edge" FontSize="14" FontWeight="Bold" Foreground="#2C3E50"/>
-                            <TextBlock Text="Win11 内置 Chromium 内核" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
-                            <Button Style="{StaticResource SiteOpenButton}" Content="打开官网" Tag="https://www.microsoft.com/edge" Click="OpenSite_Click"/>
+                            <TextBlock Text="{loc:Loc 'Win11 内置 Chromium 内核|Built-in Chromium engine in Windows 11'}" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
+                            <Button Style="{StaticResource SiteOpenButton}" Content="{loc:Loc '打开官网|Open Website'}" Tag="https://www.microsoft.com/edge" Click="OpenSite_Click"/>
                         </StackPanel>
                     </Border>
                     <Border Style="{StaticResource SetupCard}">
                         <StackPanel VerticalAlignment="Center" Margin="14,0">
                             <TextBlock Text="🦊 Firefox" FontSize="14" FontWeight="Bold" Foreground="#2C3E50"/>
-                            <TextBlock Text="开源隐私友好浏览器" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
-                            <Button Style="{StaticResource SiteOpenButton}" Content="打开官网" Tag="https://www.mozilla.org/zh-CN/firefox" Click="OpenSite_Click"/>
+                            <TextBlock Text="{loc:Loc '开源隐私友好浏览器|Open-source privacy-friendly browser'}" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
+                            <Button Style="{StaticResource SiteOpenButton}" Content="{loc:Loc '打开官网|Open Website'}" Tag="https://www.mozilla.org/zh-CN/firefox" Click="OpenSite_Click"/>
                         </StackPanel>
                     </Border>
                     <Border Style="{StaticResource SetupCard}">
                         <StackPanel VerticalAlignment="Center" Margin="14,0">
                             <TextBlock Text="📄 Microsoft 365" FontSize="14" FontWeight="Bold" Foreground="#2C3E50"/>
                             <TextBlock Text="Word / Excel / PowerPoint" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
-                            <Button Style="{StaticResource SiteOpenButton}" Content="打开官网" Tag="https://www.microsoft.com/microsoft-365" Click="OpenSite_Click"/>
+                            <Button Style="{StaticResource SiteOpenButton}" Content="{loc:Loc '打开官网|Open Website'}" Tag="https://www.microsoft.com/microsoft-365" Click="OpenSite_Click"/>
                         </StackPanel>
                     </Border>
                     <Border Style="{StaticResource SetupCard}">
                         <StackPanel VerticalAlignment="Center" Margin="14,0">
                             <TextBlock Text="📝 WPS Office" FontSize="14" FontWeight="Bold" Foreground="#2C3E50"/>
-                            <TextBlock Text="国产免费办公套件" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
-                            <Button Style="{StaticResource SiteOpenButton}" Content="打开官网" Tag="https://www.wps.cn" Click="OpenSite_Click"/>
+                            <TextBlock Text="{loc:Loc '国产免费办公套件|Free domestic office suite'}" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
+                            <Button Style="{StaticResource SiteOpenButton}" Content="{loc:Loc '打开官网|Open Website'}" Tag="https://www.wps.cn" Click="OpenSite_Click"/>
                         </StackPanel>
                     </Border>
                     <Border Style="{StaticResource SetupCard}">
                         <StackPanel VerticalAlignment="Center" Margin="14,0">
                             <TextBlock Text="📦 7-Zip" FontSize="14" FontWeight="Bold" Foreground="#2C3E50"/>
-                            <TextBlock Text="开源免费压缩 / 解压" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
-                            <Button Style="{StaticResource SiteOpenButton}" Content="打开官网" Tag="https://www.7-zip.org" Click="OpenSite_Click"/>
+                            <TextBlock Text="{loc:Loc '开源免费压缩 / 解压|Open-source free compression / extraction'}" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
+                            <Button Style="{StaticResource SiteOpenButton}" Content="{loc:Loc '打开官网|Open Website'}" Tag="https://www.7-zip.org" Click="OpenSite_Click"/>
                         </StackPanel>
                     </Border>
                     <Border Style="{StaticResource SetupCard}">
                         <StackPanel VerticalAlignment="Center" Margin="14,0">
                             <TextBlock Text="⌨️ 搜狗输入法" FontSize="14" FontWeight="Bold" Foreground="#2C3E50"/>
-                            <TextBlock Text="智能词库中文输入法" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
-                            <Button Style="{StaticResource SiteOpenButton}" Content="打开官网" Tag="https://pinyin.sogou.com" Click="OpenSite_Click"/>
+                            <TextBlock Text="{loc:Loc '智能词库中文输入法|Smart-dictionary Chinese input method'}" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
+                            <Button Style="{StaticResource SiteOpenButton}" Content="{loc:Loc '打开官网|Open Website'}" Tag="https://pinyin.sogou.com" Click="OpenSite_Click"/>
                         </StackPanel>
                     </Border>
                     <Border Style="{StaticResource SetupCard}">
                         <StackPanel VerticalAlignment="Center" Margin="14,0">
                             <TextBlock Text="🎥 腾讯会议" FontSize="14" FontWeight="Bold" Foreground="#2C3E50"/>
-                            <TextBlock Text="高清流畅的视频会议" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
-                            <Button Style="{StaticResource SiteOpenButton}" Content="打开官网" Tag="https://meeting.tencent.com" Click="OpenSite_Click"/>
+                            <TextBlock Text="{loc:Loc '高清流畅的视频会议|HD smooth video conferencing'}" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
+                            <Button Style="{StaticResource SiteOpenButton}" Content="{loc:Loc '打开官网|Open Website'}" Tag="https://meeting.tencent.com" Click="OpenSite_Click"/>
                         </StackPanel>
                     </Border>
                 </WrapPanel>
 
                 <!-- ============ 🎬 影音工具 ============ -->
-                <TextBlock Text="🎬 影音与工具" Style="{StaticResource GroupHeader}"/>
+                <TextBlock Text="{loc:Loc '🎬 影音与工具|🎬 Media and Tools'}" Style="{StaticResource GroupHeader}"/>
                 <WrapPanel Orientation="Horizontal">
                     <Border Style="{StaticResource SetupCard}">
                         <StackPanel VerticalAlignment="Center" Margin="14,0">
                             <TextBlock Text="🎮 Steam" FontSize="14" FontWeight="Bold" Foreground="#2C3E50"/>
-                            <TextBlock Text="全球最大 PC 游戏平台" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
-                            <Button Style="{StaticResource SiteOpenButton}" Content="打开官网" Tag="https://store.steampowered.com" Click="OpenSite_Click"/>
+                            <TextBlock Text="{loc:Loc '全球最大 PC 游戏平台|The largest PC gaming platform in the world'}" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
+                            <Button Style="{StaticResource SiteOpenButton}" Content="{loc:Loc '打开官网|Open Website'}" Tag="https://store.steampowered.com" Click="OpenSite_Click"/>
                         </StackPanel>
                     </Border>
                     <Border Style="{StaticResource SetupCard}">
                         <StackPanel VerticalAlignment="Center" Margin="14,0">
                             <TextBlock Text="🐯 WeGame" FontSize="14" FontWeight="Bold" Foreground="#2C3E50"/>
-                            <TextBlock Text="腾讯游戏平台" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
-                            <Button Style="{StaticResource SiteOpenButton}" Content="打开官网" Tag="https://www.wegame.com.cn" Click="OpenSite_Click"/>
+                            <TextBlock Text="{loc:Loc '腾讯游戏平台|Tencent gaming platform'}" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
+                            <Button Style="{StaticResource SiteOpenButton}" Content="{loc:Loc '打开官网|Open Website'}" Tag="https://www.wegame.com.cn" Click="OpenSite_Click"/>
                         </StackPanel>
                     </Border>
                     <Border Style="{StaticResource SetupCard}">
                         <StackPanel VerticalAlignment="Center" Margin="14,0">
                             <TextBlock Text="🎥 PotPlayer" FontSize="14" FontWeight="Bold" Foreground="#2C3E50"/>
-                            <TextBlock Text="轻量强大的视频播放器" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
-                            <Button Style="{StaticResource SiteOpenButton}" Content="打开官网" Tag="https://potplayer.daum.net" Click="OpenSite_Click"/>
+                            <TextBlock Text="{loc:Loc '轻量强大的视频播放器|Lightweight and powerful video player'}" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
+                            <Button Style="{StaticResource SiteOpenButton}" Content="{loc:Loc '打开官网|Open Website'}" Tag="https://potplayer.daum.net" Click="OpenSite_Click"/>
                         </StackPanel>
                     </Border>
                     <Border Style="{StaticResource SetupCard}">
                         <StackPanel VerticalAlignment="Center" Margin="14,0">
                             <TextBlock Text="🎵 网易云音乐" FontSize="14" FontWeight="Bold" Foreground="#2C3E50"/>
-                            <TextBlock Text="音乐 / 歌单 / 播客" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
-                            <Button Style="{StaticResource SiteOpenButton}" Content="打开官网" Tag="https://music.163.com" Click="OpenSite_Click"/>
+                            <TextBlock Text="{loc:Loc '音乐 / 歌单 / 播客|Music / playlists / podcasts'}" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
+                            <Button Style="{StaticResource SiteOpenButton}" Content="{loc:Loc '打开官网|Open Website'}" Tag="https://music.163.com" Click="OpenSite_Click"/>
                         </StackPanel>
                     </Border>
                     <Border Style="{StaticResource SetupCard}">
                         <StackPanel VerticalAlignment="Center" Margin="14,0">
                             <TextBlock Text="🎶 QQ 音乐" FontSize="14" FontWeight="Bold" Foreground="#2C3E50"/>
-                            <TextBlock Text="腾讯正版音乐平台" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
-                            <Button Style="{StaticResource SiteOpenButton}" Content="打开官网" Tag="https://y.qq.com" Click="OpenSite_Click"/>
+                            <TextBlock Text="{loc:Loc '腾讯正版音乐平台|Tencent licensed music platform'}" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
+                            <Button Style="{StaticResource SiteOpenButton}" Content="{loc:Loc '打开官网|Open Website'}" Tag="https://y.qq.com" Click="OpenSite_Click"/>
                         </StackPanel>
                     </Border>
                     <Border Style="{StaticResource SetupCard}">
                         <StackPanel VerticalAlignment="Center" Margin="14,0">
                             <TextBlock Text="✂️ 剪映" FontSize="14" FontWeight="Bold" Foreground="#2C3E50"/>
-                            <TextBlock Text="字节跳动免费视频剪辑" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
-                            <Button Style="{StaticResource SiteOpenButton}" Content="打开官网" Tag="https://www.capcut.cn" Click="OpenSite_Click"/>
+                            <TextBlock Text="{loc:Loc '字节跳动免费视频剪辑|ByteDance free video editing'}" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
+                            <Button Style="{StaticResource SiteOpenButton}" Content="{loc:Loc '打开官网|Open Website'}" Tag="https://www.capcut.cn" Click="OpenSite_Click"/>
                         </StackPanel>
                     </Border>
                     <Border Style="{StaticResource SetupCard}">
                         <StackPanel VerticalAlignment="Center" Margin="14,0">
                             <TextBlock Text="☁️ 百度网盘" FontSize="14" FontWeight="Bold" Foreground="#2C3E50"/>
-                            <TextBlock Text="文件存储 / 备份 / 分享" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
-                            <Button Style="{StaticResource SiteOpenButton}" Content="打开官网" Tag="https://pan.baidu.com" Click="OpenSite_Click"/>
+                            <TextBlock Text="{loc:Loc '文件存储 / 备份 / 分享|File storage / backup / sharing'}" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
+                            <Button Style="{StaticResource SiteOpenButton}" Content="{loc:Loc '打开官网|Open Website'}" Tag="https://pan.baidu.com" Click="OpenSite_Click"/>
                         </StackPanel>
                     </Border>
                     <Border Style="{StaticResource SetupCard}">
                         <StackPanel VerticalAlignment="Center" Margin="14,0">
                             <TextBlock Text="⚡ 夸克浏览器" FontSize="14" FontWeight="Bold" Foreground="#2C3E50"/>
-                            <TextBlock Text="阿里智能极速浏览器" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
-                            <Button Style="{StaticResource SiteOpenButton}" Content="打开官网" Tag="https://www.quark.cn" Click="OpenSite_Click"/>
+                            <TextBlock Text="{loc:Loc '阿里智能极速浏览器|Alibaba smart fast browser'}" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
+                            <Button Style="{StaticResource SiteOpenButton}" Content="{loc:Loc '打开官网|Open Website'}" Tag="https://www.quark.cn" Click="OpenSite_Click"/>
                         </StackPanel>
                     </Border>
                     <Border Style="{StaticResource SetupCard}">
                         <StackPanel VerticalAlignment="Center" Margin="14,0">
                             <TextBlock Text="🎬 OBS Studio" FontSize="14" FontWeight="Bold" Foreground="#2C3E50"/>
-                            <TextBlock Text="开源直播 / 录屏软件" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
-                            <Button Style="{StaticResource SiteOpenButton}" Content="打开官网" Tag="https://obsproject.com" Click="OpenSite_Click"/>
+                            <TextBlock Text="{loc:Loc '开源直播 / 录屏软件|Open-source live streaming / screen recording'}" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,8" TextWrapping="Wrap"/>
+                            <Button Style="{StaticResource SiteOpenButton}" Content="{loc:Loc '打开官网|Open Website'}" Tag="https://obsproject.com" Click="OpenSite_Click"/>
                         </StackPanel>
                     </Border>
                 </WrapPanel>
@@ -326,9 +374,9 @@
                 <!-- 底部说明 -->
                 <Border Style="{StaticResource GlassCard}" CornerRadius="10" Padding="14,10" Margin="0,8,0,4">
                     <TextBlock FontSize="11.5" Foreground="#95A5A6" TextWrapping="Wrap">
-                        <Run Text="💡 所有链接均为软件官方网站，点击按钮即可在默认浏览器打开。"/>
+                        <Run Text="{loc:Loc '💡 所有链接均为软件官方网站，点击按钮即可在默认浏览器打开。|💡 All links lead to official software websites. Click a button to open it in your default browser.'}"/>
                         <LineBreak/>
-                        <Run Text="提示：本软件不捆绑任何第三方软件，请放心使用。" FontWeight="SemiBold" Foreground="#4A90D9"/>
+                        <Run Text="{loc:Loc '提示：本软件不捆绑任何第三方软件，请放心使用。|Tip: This app bundles no third-party software. Feel free to use it.'}" FontWeight="SemiBold" Foreground="#4A90D9"/>
                     </TextBlock>
                 </Border>
 

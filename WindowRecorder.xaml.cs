@@ -1,423 +1,221 @@
-using System.Collections.ObjectModel;
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
-using System.Drawing;
-using System.Drawing.Imaging;
 using System.IO;
-using System.Runtime.InteropServices;
-using System.Text;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Animation;
-using System.Windows.Threading;
+using Microsoft.Win32;
 
 namespace WINHELP;
 
+/// <summary>
+/// 录音录像模块（V4.5.0 重写）：
+/// 本软件不自带录音录像功能。该页面在加载时扫描电脑中已安装的录屏 / 录音软件，
+/// 若检测到则提供「打开」按钮一键启动；若未安装则提示用户前往官网下载。
+/// </summary>
 public partial class WindowRecorder : UserControl
 {
-    private sealed class MediaItem
+    /// <summary>RecApp 类。</summary>
+    private sealed class RecApp
     {
-        public string Name { get; set; } = "";
-        public string Path { get; set; } = "";
+        public string Name = "";
+        public string Emoji = "";
+        public string Url = "";
+        public List<string> ExeNames = new();
+        public List<string> RelativePaths = new();
+        public string RegKeyword = "";
+        public string? ResolvedExe;
     }
 
-    private readonly ObservableCollection<MediaItem> _audioItems = new();
-    private readonly ObservableCollection<MediaItem> _screenItems = new();
-
-    private string _audioFolder = "";
-    private string _screenFolder = "";
-
-    // 录音（MCI）
-    private bool _audioRecording;
-    private DateTime _audioStart;
-
-    // 录像
-    private bool _screenRecording;
-    private DateTime _screenStart;
-    private CancellationTokenSource? _screenCts;
-    private Task? _screenTask;
-
-    private readonly DispatcherTimer _uiTimer = new() { Interval = TimeSpan.FromMilliseconds(250) };
-    private static readonly int[] FpsOptions = { 8, 10, 15, 20 };
-
-    [DllImport("winmm.dll", CharSet = CharSet.Unicode)]
-    private static extern int mciSendString(string command, StringBuilder? buffer, int bufferSize, IntPtr hwndCallback);
-
-    [DllImport("kernel32.dll", CharSet = CharSet.Auto)]
-    private static extern int GetShortPathName(string lpszLongPath, StringBuilder lpszShortPath, int cchBuffer);
+    // 已知录屏 / 录音软件目录（与「网站与官网」模块保持一致）
+    private static readonly List<RecApp> Catalog = new()
+    {
+        new RecApp { Name = "OBS Studio", Emoji = "🎥", Url = "https://obsproject.com/",
+            ExeNames = new(){"obs64.exe","obs32.exe"},
+            RelativePaths = new(){"obs-studio\\bin\\64bit","obs-studio\\bin\\32bit"},
+            RegKeyword = "OBS Studio" },
+        new RecApp { Name = "Bandicam", Emoji = "🎬", Url = "https://www.bandicam.com/",
+            ExeNames = new(){"bandicam.exe"}, RelativePaths = new(){""}, RegKeyword = "Bandicam" },
+        new RecApp { Name = "ShareX", Emoji = "📸", Url = "https://getsharex.com/",
+            ExeNames = new(){"ShareX.exe"}, RelativePaths = new(){""}, RegKeyword = "ShareX" },
+        new RecApp { Name = "Camtasia", Emoji = "🎞️", Url = "https://www.techsmith.com/camtasia.html",
+            ExeNames = new(){"CamtasiaStudio.exe"},
+            RelativePaths = new(){"TechSmith\\Camtasia 2024","TechSmith\\Camtasia 2023","TechSmith\\Camtasia 2022","TechSmith\\Camtasia 2021","TechSmith\\Camtasia 2020","TechSmith\\Camtasia 2019"},
+            RegKeyword = "Camtasia" },
+        new RecApp { Name = "ScreenToGif", Emoji = "🎞️", Url = "https://www.screentogif.com/",
+            ExeNames = new(){"ScreenToGif.exe"}, RelativePaths = new(){""}, RegKeyword = "ScreenToGif" },
+        new RecApp { Name = "Audacity", Emoji = "🎙️", Url = "https://www.audacityteam.org/",
+            ExeNames = new(){"audacity.exe"}, RelativePaths = new(){""}, RegKeyword = "Audacity" },
+        new RecApp { Name = "Ocenaudio", Emoji = "🎧", Url = "https://www.ocenaudio.com/",
+            ExeNames = new(){"ocenaudio.exe","ocenaudio-64.exe"}, RelativePaths = new(){""}, RegKeyword = "ocenaudio" },
+        new RecApp { Name = "Adobe Audition", Emoji = "🎚️", Url = "https://www.adobe.com/products/audition.html",
+            ExeNames = new(){"Audition.exe"},
+            RelativePaths = new(){"Adobe\\Adobe Audition 2025","Adobe\\Adobe Audition 2024","Adobe\\Adobe Audition 2023","Adobe\\Adobe Audition 2022","Adobe\\Adobe Audition 2021","Adobe\\Adobe Audition 2020"},
+            RegKeyword = "Adobe Audition" },
+    };
 
     public WindowRecorder()
     {
         InitializeComponent();
-
-        ListAudio.ItemsSource = _audioItems;
-        ListScreen.ItemsSource = _screenItems;
-
-        _audioFolder = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "司南工具箱", "录音");
-        _screenFolder = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.MyVideos), "司南工具箱", "录像");
-        Directory.CreateDirectory(_audioFolder);
-        Directory.CreateDirectory(_screenFolder);
-        TxtAudioFolder.Text = _audioFolder;
-        TxtScreenFolder.Text = _screenFolder;
-
-        FpsSlider.ValueChanged += (_, _) =>
-            FpsValue.Text = FpsOptions[(int)FpsSlider.Value] + " fps";
-
-        _uiTimer.Tick += UiTimer_Tick;
-
-        SetMode(true);
-        ApplyTheme();
-        RefreshStrings();
-        LoadExisting();
-
-        ModeTrack.SizeChanged += (_, _) => PositionModeThumb();
-        RecDotAudio.Fill = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0x95, 0xA5, 0xA6));
-        RecDotScreen.Fill = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0x95, 0xA5, 0xA6));
-
-        ThemeManager.ThemeChanged += () => Dispatcher.Invoke(() => { ApplyTheme(); RefreshStrings(); });
-        UiLanguage.Changed += () => Dispatcher.Invoke(RefreshStrings);
+        Loaded += OnLoaded;
     }
 
-    // ===== 模式切换 =====
-
-    private void BtnModeAudio_Click(object sender, RoutedEventArgs e) => SetMode(true);
-    private void BtnModeScreen_Click(object sender, RoutedEventArgs e) => SetMode(false);
-
-    private bool _audioMode = true;
-
-    private void SetMode(bool audio)
+    private void OnLoaded(object sender, RoutedEventArgs e)
     {
-        _audioMode = audio;
-        PanelAudio.Visibility = audio ? Visibility.Visible : Visibility.Collapsed;
-        PanelScreen.Visibility = audio ? Visibility.Collapsed : Visibility.Visible;
-        BtnModeAudio.Foreground = new SolidColorBrush(audio ? Colors.White : System.Windows.Media.Color.FromRgb(0x5F, 0x6B, 0x7A));
-        BtnModeScreen.Foreground = new SolidColorBrush(audio ? System.Windows.Media.Color.FromRgb(0x5F, 0x6B, 0x7A) : Colors.White);
-        PositionModeThumb();
-    }
-
-    /// <summary>根据当前模式把滑动指示块对齐到对应半区（带缓动）。</summary>
-    private void PositionModeThumb()
-    {
-        double w = ModeTrack.ActualWidth;
-        if (w <= 1) return;
-        double half = w / 2.0;
-        ModeThumb.Width = half;
-        double to = _audioMode ? 0 : half;
-        var anim = new DoubleAnimation(to, TimeSpan.FromSeconds(0.3))
+        var installed = DetectInstalled();
+        if (installed.Count == 0)
         {
-            EasingFunction = new System.Windows.Media.Animation.CubicEase { EasingMode = System.Windows.Media.Animation.EasingMode.EaseOut }
+            TxtNone.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            TxtNone.Visibility = Visibility.Collapsed;
+            foreach (var app in installed)
+                FoundPanel.Children.Add(BuildCard(app, true));
+        }
+        // 推荐下载区始终展示全部已知软件，方便用户补充安装
+        foreach (var app in Catalog)
+            RecommendPanel.Children.Add(BuildCard(app, false));
+    }
+
+    private Border BuildCard(RecApp app, bool installed)
+    {
+        var border = new Border { Style = (Style)FindResource("RecCard") };
+        var sp = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+        sp.Children.Add(new TextBlock
+        {
+            Text = $"{app.Emoji} {app.Name}",
+            FontSize = 14, FontWeight = FontWeights.Bold,
+            Foreground = new SolidColorBrush(Color.FromRgb(0x2C, 0x3E, 0x50))
+        });
+        sp.Children.Add(new TextBlock
+        {
+            Text = installed
+                ? UiLanguage.L("已安装 · 可一键打开", "Installed · launch now")
+                : UiLanguage.L("未安装 · 前往官网下载", "Not installed · get it"),
+            FontSize = 11, Foreground = new SolidColorBrush(Color.FromRgb(0x95, 0xA5, 0xA6)),
+            Margin = new Thickness(0, 2, 0, 10)
+        });
+        var btn = new Button
+        {
+            Height = 32, FontSize = 12.5, FontWeight = FontWeights.SemiBold,
+            Content = installed ? UiLanguage.L("打开", "Open") : UiLanguage.L("前往官网", "Official Site"),
+            Cursor = Cursors.Hand
         };
-        ModeThumbX.BeginAnimation(System.Windows.Media.TranslateTransform.XProperty, anim);
+        if (installed)
+        {
+            btn.Tag = app.ResolvedExe;
+            btn.Click += OpenApp_Click;
+        }
+        else
+        {
+            btn.Tag = app.Url;
+            btn.Click += OpenSite_Click;
+        }
+        ThemeManager.ApplyButtonTheme(btn, ThemeManager.AccentColor);
+        sp.Children.Add(btn);
+        border.Child = sp;
+        return border;
     }
 
-    private void StartRecPulse()
+    private void OpenApp_Click(object sender, RoutedEventArgs e)
     {
-        RecDotAudio.Fill = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0xE7, 0x4C, 0x3C));
-        RecDotScreen.Fill = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0xE7, 0x4C, 0x3C));
-        if (FindResource("RecPulse") is System.Windows.Media.Animation.Storyboard sb)
-            sb.Begin(this);
-    }
-
-    private void StopRecPulse()
-    {
-        if (FindResource("RecPulse") is System.Windows.Media.Animation.Storyboard sb)
-            sb.Stop(this);
-        RecDotAudio.Fill = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0x95, 0xA5, 0xA6));
-        RecDotScreen.Fill = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0x95, 0xA5, 0xA6));
-    }
-
-    // ===== 录音（MCI） =====
-
-    private void BtnAudioStart_Click(object sender, RoutedEventArgs e)
-    {
-        if (_audioRecording) return;
-        if (mciSendString("open new type waveaudio alias yayuRec", null, 0, IntPtr.Zero) != 0)
+        if (sender is Button b && b.Tag is string path && File.Exists(path))
         {
-            SetAudioStatus("无法开始录音：未检测到录音设备");
-            return;
-        }
-        if (mciSendString("record yayuRec", null, 0, IntPtr.Zero) != 0)
-        {
-            mciSendString("close yayuRec", null, 0, IntPtr.Zero);
-            SetAudioStatus("无法开始录音");
-            return;
-        }
-        _audioRecording = true;
-        _audioStart = DateTime.Now;
-        _uiTimer.Start();
-        BtnAudioStart.IsEnabled = false;
-        BtnAudioStop.IsEnabled = true;
-        TxtAudioState.Text = UiLanguage.L("录制中…", "Recording…");
-        StartRecPulse();
-    }
-
-    private void BtnAudioStop_Click(object sender, RoutedEventArgs e)
-    {
-        if (!_audioRecording) return;
-        _audioRecording = false;
-        BtnAudioStart.IsEnabled = true;
-        BtnAudioStop.IsEnabled = false;
-        TxtAudioState.Text = UiLanguage.L("未开始", "Idle");
-        StopRecPulse();
-
-        // 先保存到临时短路径（规避 MCI 长路径/中文路径兼容问题），再移动到目标目录
-        string stamp = TimeStamp();
-        string tmp = Path.Combine(Path.GetTempPath(), $"yayu_rec_{stamp}.wav");
-        string? shortTmp = ToShortPath(tmp);
-        if (shortTmp == null) shortTmp = tmp;
-
-        mciSendString("stop yayuRec", null, 0, IntPtr.Zero);
-        int rc = mciSendString($"save yayuRec \"{shortTmp}\"", null, 0, IntPtr.Zero);
-        mciSendString("close yayuRec", null, 0, IntPtr.Zero);
-
-        string finalPath = Path.Combine(_audioFolder, $"录音_{stamp}.wav");
-        try
-        {
-            if (rc == 0 && File.Exists(shortTmp))
-            {
-                if (File.Exists(finalPath)) File.Delete(finalPath);
-                File.Move(shortTmp, finalPath);
-                AddItem(_audioItems, finalPath);
-                SetAudioStatus(UiLanguage.L($"已保存：{Path.GetFileName(finalPath)}", $"Saved: {Path.GetFileName(finalPath)}"));
-            }
-            else
-            {
-                SetAudioStatus(UiLanguage.L("录音保存失败", "Save failed"));
-            }
-        }
-        catch (Exception ex)
-        {
-            SetAudioStatus(UiLanguage.L("录音保存出错：" + ex.Message, "Save error: " + ex.Message));
-        }
-        finally
-        {
-            if (File.Exists(shortTmp)) { try { File.Delete(shortTmp); } catch { } }
-            TxtAudioTimer.Text = "00:00";
-        }
-    }
-
-    // ===== 录像（GDI+ 截屏 + VfW AVI） =====
-
-    private void BtnScreenStart_Click(object sender, RoutedEventArgs e)
-    {
-        if (_screenRecording) return;
-
-        int fps = FpsOptions[(int)FpsSlider.Value];
-        var bounds = System.Windows.Forms.Screen.PrimaryScreen!.Bounds;
-        int sw = bounds.Width, sh = bounds.Height;
-        const int maxW = 1280;
-        int tw = sw > maxW ? maxW : sw;
-        tw = (tw / 4) * 4; if (tw < 4) tw = 4;
-        int th = (int)Math.Round(sh * (double)tw / sw);
-        th = (th / 2) * 2; if (th < 2) th = 2;
-
-        string file = Path.Combine(_screenFolder, $"录像_{TimeStamp()}.avi");
-
-        _screenRecording = true;
-        _screenStart = DateTime.Now;
-        _uiTimer.Start();
-        BtnScreenStart.IsEnabled = false;
-        BtnScreenStop.IsEnabled = true;
-        TxtScreenState.Text = UiLanguage.L("录制中…", "Recording…");
-        StartRecPulse();
-
-        _screenCts = new CancellationTokenSource();
-        var token = _screenCts.Token;
-        bool captureCursor = ChkCursor.IsChecked == true;
-        int srcX = bounds.X, srcY = bounds.Y;
-
-        _screenTask = Task.Run(() =>
-        {
-            try
-            {
-                using var avi = new AviWriter(file, tw, th, fps);
-                using var full = new Bitmap(sw, sh, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
-                using var target = new Bitmap(tw, th, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
-                var buf = new byte[tw * 3 * th];
-                var handle = GCHandle.Alloc(buf, GCHandleType.Pinned);
-                try
-                {
-                    double interval = 1000.0 / fps;
-                    while (!token.IsCancellationRequested)
-                    {
-                        var swatch = Stopwatch.StartNew();
-                        using (var gf = Graphics.FromImage(full))
-                            gf.CopyFromScreen(srcX, srcY, 0, 0, new System.Drawing.Size(sw, sh), CopyPixelOperation.SourceCopy);
-                        using (var gt = Graphics.FromImage(target))
-                        {
-                            gt.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBilinear;
-                            gt.DrawImage(full, 0, 0, tw, th);
-                            if (captureCursor) DrawCursor(gt, srcX, srcY, sw, sh, tw, th);
-                        }
-                        target.RotateFlip(RotateFlipType.RotateNoneFlipY);
-                        var data = target.LockBits(new System.Drawing.Rectangle(0, 0, tw, th), ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
-                        Marshal.Copy(data.Scan0, buf, 0, buf.Length);
-                        target.UnlockBits(data);
-                        avi.WriteFrame(handle.AddrOfPinnedObject(), buf.Length);
-
-                        double wait = interval - swatch.ElapsedMilliseconds;
-                        if (wait > 0) Thread.Sleep((int)wait);
-                    }
-                }
-                finally
-                {
-                    handle.Free();
-                }
-                Dispatcher.Invoke(() =>
-                {
-                    AddItem(_screenItems, file);
-                    SetScreenStatus(UiLanguage.L($"已保存：{Path.GetFileName(file)}（{avi.FrameCount} 帧）",
-                        $"Saved: {Path.GetFileName(file)} ({avi.FrameCount} frames)"));
-                });
-            }
+            try { Process.Start(new ProcessStartInfo(path) { UseShellExecute = true }); }
             catch (Exception ex)
             {
-                Dispatcher.Invoke(() => SetScreenStatus(UiLanguage.L("录像出错：" + ex.Message, "Record error: " + ex.Message)));
+                MessageBox.Show(UiLanguage.L($"无法打开该程序：{ex.Message}", $"Cannot launch: {ex.Message}"),
+                    UiLanguage.L("打开失败", "Launch failed"), MessageBoxButton.OK, MessageBoxImage.Warning);
             }
-        }, token);
-    }
-
-    private void BtnScreenStop_Click(object sender, RoutedEventArgs e)
-    {
-        if (!_screenRecording) return;
-        _screenCts?.Cancel();
-        try { _screenTask?.Wait(3000); } catch { }
-        _screenRecording = false;
-        BtnScreenStart.IsEnabled = true;
-        BtnScreenStop.IsEnabled = false;
-        TxtScreenState.Text = UiLanguage.L("未开始", "Idle");
-        TxtScreenTimer.Text = "00:00";
-        StopRecPulse();
-    }
-
-    private static void DrawCursor(Graphics g, int srcX, int srcY, int sw, int sh, int tw, int th)
-    {
-        try
-        {
-            var pos = System.Windows.Forms.Cursor.Position;
-            int cx = pos.X - srcX, cy = pos.Y - srcY;
-            if (cx < 0 || cy < 0 || cx > sw || cy > sh) return;
-            double sx = (double)tw / sw, sy = (double)th / sh;
-            int dx = (int)(cx * sx), dy = (int)(cy * sy);
-            var cur = System.Windows.Forms.Cursor.Current ?? System.Windows.Forms.Cursors.Default;
-            cur.Draw(g, new System.Drawing.Rectangle(dx, dy, cur.Size.Width, cur.Size.Height));
         }
-        catch { }
     }
 
-    // ===== 计时器刷新 =====
-
-    private void UiTimer_Tick(object? sender, EventArgs e)
+    private void OpenSite_Click(object sender, RoutedEventArgs e)
     {
-        if (_audioRecording)
+        if (sender is Button b && b.Tag is string url)
         {
-            var ts = DateTime.Now - _audioStart;
-            TxtAudioTimer.Text = $"{(int)ts.TotalMinutes:D2}:{ts.Seconds:D2}";
+            try { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); }
+            catch (Exception ex)
+            {
+                MessageBox.Show(UiLanguage.L($"无法打开网页：{ex.Message}", $"Cannot open page: {ex.Message}"),
+                    UiLanguage.L("打开失败", "Launch failed"), MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
         }
-        if (_screenRecording)
-        {
-            var ts = DateTime.Now - _screenStart;
-            TxtScreenTimer.Text = $"{(int)ts.TotalMinutes:D2}:{ts.Seconds:D2}";
-        }
-        if (!_audioRecording && !_screenRecording && _uiTimer.IsEnabled)
-            _uiTimer.Stop();
     }
 
-    // ===== 文件夹选择 =====
+    // ===== 检测已安装的录屏 / 录音软件 =====
 
-    private void BtnAudioBrowse_Click(object sender, RoutedEventArgs e)
+    private static List<RecApp> DetectInstalled()
     {
-        var dlg = new System.Windows.Forms.FolderBrowserDialog
+        string? prog = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+        string? progX86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
+        var roots = new List<string?>(2) { prog };
+        if (!string.Equals(prog, progX86, StringComparison.OrdinalIgnoreCase)) roots.Add(progX86);
+
+        var found = new List<RecApp>();
+        foreach (var app in Catalog)
         {
-            Description = UiLanguage.L("选择录音保存文件夹", "Select audio save folder"),
-            SelectedPath = _audioFolder
+            string? exe = null;
+            foreach (var root in roots)
+            {
+                if (string.IsNullOrEmpty(root)) continue;
+                foreach (var rel in app.RelativePaths)
+                {
+                    foreach (var name in app.ExeNames)
+                    {
+                        var p = Path.Combine(root, rel ?? "", name);
+                        if (File.Exists(p)) { exe = p; break; }
+                    }
+                    if (exe != null) break;
+                }
+                if (exe != null) break;
+            }
+            if (exe == null) exe = FindExeInRegistry(app);
+            if (!string.IsNullOrEmpty(exe) && File.Exists(exe))
+            {
+                app.ResolvedExe = exe;
+                found.Add(app);
+            }
+        }
+        return found;
+    }
+
+    private static string? FindExeInRegistry(RecApp app)
+    {
+        var hives = new[] { Registry.LocalMachine, Registry.CurrentUser };
+        var subKeys = new[]
+        {
+            @"Software\Microsoft\Windows\CurrentVersion\Uninstall",
+            @"Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"
         };
-        if (dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+        foreach (var hive in hives)
         {
-            _audioFolder = dlg.SelectedPath;
-            TxtAudioFolder.Text = _audioFolder;
+            foreach (var sub in subKeys)
+            {
+                using var key = hive.OpenSubKey(sub);
+                if (key == null) continue;
+                foreach (var name in key.GetSubKeyNames())
+                {
+                    using var sk = key.OpenSubKey(name);
+                    if (sk == null) continue;
+                    var disp = sk.GetValue("DisplayName") as string;
+                    if (string.IsNullOrEmpty(disp)) continue;
+                    if (disp.IndexOf(app.RegKeyword, StringComparison.OrdinalIgnoreCase) < 0) continue;
+                    var loc = sk.GetValue("InstallLocation") as string;
+                    if (string.IsNullOrEmpty(loc)) continue;
+                    foreach (var en in app.ExeNames)
+                    {
+                        var cand = Path.Combine(loc, en);
+                        if (File.Exists(cand)) return cand;
+                        var candBin = Path.Combine(loc, "bin", en);
+                        if (File.Exists(candBin)) return candBin;
+                    }
+                }
+            }
         }
-    }
-
-    private void BtnScreenBrowse_Click(object sender, RoutedEventArgs e)
-    {
-        var dlg = new System.Windows.Forms.FolderBrowserDialog
-        {
-            Description = UiLanguage.L("选择录像保存文件夹", "Select video save folder"),
-            SelectedPath = _screenFolder
-        };
-        if (dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
-        {
-            _screenFolder = dlg.SelectedPath;
-            TxtScreenFolder.Text = _screenFolder;
-        }
-    }
-
-    // ===== 列表 / 打开 =====
-
-    private void AddItem(ObservableCollection<MediaItem> list, string path)
-    {
-        list.Insert(0, new MediaItem { Name = Path.GetFileName(path), Path = path });
-    }
-
-    private void LoadExisting()
-    {
-        foreach (var f in Directory.Exists(_audioFolder) ? Directory.GetFiles(_audioFolder, "*.wav") : Array.Empty<string>())
-            if (File.GetLastWriteTime(f) > DateTime.Now.AddDays(-30)) _audioItems.Add(new MediaItem { Name = Path.GetFileName(f), Path = f });
-        foreach (var f in Directory.Exists(_screenFolder) ? Directory.GetFiles(_screenFolder, "*.avi") : Array.Empty<string>())
-            if (File.GetLastWriteTime(f) > DateTime.Now.AddDays(-30)) _screenItems.Add(new MediaItem { Name = Path.GetFileName(f), Path = f });
-    }
-
-    private void OpenItem_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is Button b && b.Tag is string p && File.Exists(p))
-            Process.Start(new ProcessStartInfo(p) { UseShellExecute = true });
-    }
-
-    private void OpenFolder_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is Button b && b.Tag is string p)
-        {
-            string dir = File.Exists(p) ? Path.GetDirectoryName(p) ?? p : p;
-            if (Directory.Exists(dir))
-                Process.Start(new ProcessStartInfo("explorer.exe", $"/select,\"{p}\"") { UseShellExecute = true });
-        }
-    }
-
-    // ===== 辅助 =====
-
-    private void SetAudioStatus(string s) => TxtAudioState.Text = s;
-    private void SetScreenStatus(string s) => TxtScreenState.Text = s;
-
-    private static string TimeStamp() => DateTime.Now.ToString("yyyyMMdd_HHmmss");
-
-    private static string? ToShortPath(string longPath)
-    {
-        var sb = new StringBuilder(1024);
-        int n = GetShortPathName(longPath, sb, sb.Capacity);
-        return n > 0 ? sb.ToString() : null;
-    }
-
-    private void ApplyTheme()
-    {
-        ThemeManager.ApplyButtonTheme(BtnAudioStart, System.Windows.Media.Color.FromRgb(0xE7, 0x4C, 0x3C));
-        ThemeManager.ApplyButtonTheme(BtnScreenStart, System.Windows.Media.Color.FromRgb(0xE7, 0x4C, 0x3C));
-        ThemeManager.ApplyButtonTheme(BtnAudioStop, System.Windows.Media.Color.FromRgb(0x95, 0xA5, 0xA6));
-        ThemeManager.ApplyButtonTheme(BtnScreenStop, System.Windows.Media.Color.FromRgb(0x95, 0xA5, 0xA6));
-        ThemeManager.ApplyButtonTheme(BtnAudioBrowse, System.Windows.Media.Color.FromRgb(0x4A, 0x90, 0xD9));
-        ThemeManager.ApplyButtonTheme(BtnScreenBrowse, System.Windows.Media.Color.FromRgb(0x4A, 0x90, 0xD9));
-    }
-
-    private void RefreshStrings()
-    {
-        TxtTitle.Text = UiLanguage.L("录音录像", "Recorder");
-        TxtSub.Text = UiLanguage.L("麦克风录音与屏幕录像，录制文件保存在本地", "Microphone recording & screen capture, saved locally");
-        TxtFpsLabel.Text = UiLanguage.L("帧率", "Frame rate");
-        TxtScreenHint.Text = UiLanguage.L("提示：录像时建议先最小化本窗口，以免把工具箱本身也录进去。",
-            "Tip: minimize this window while recording to avoid capturing the toolbox itself.");
-        if (!_audioRecording) TxtAudioState.Text = UiLanguage.L("未开始", "Idle");
-        if (!_screenRecording) TxtScreenState.Text = UiLanguage.L("未开始", "Idle");
+        return null;
     }
 }

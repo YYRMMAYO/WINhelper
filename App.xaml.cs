@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Forms;
 using System.Windows.Threading;
@@ -23,10 +24,30 @@ namespace WINHELP
             // UI 线程异常还会被标记为已处理并弹出提示，避免“闪退”（直接关闭、无任何信息）。
             InstallGlobalExceptionHandlers();
 
+            // base.OnStartup 必须调用一次（处理命令行、触发 Startup 事件等），且使用真实参数 e。
+            base.OnStartup(e);
+
+            // 1. 第一时间展示启动动画：点击软件优先播放动画，后台继续启动软件。
+            //    这样即使后续初始化略有耗时，用户也能立刻获得"程序已启动"的反馈，
+            //    主观上显著改善"启动响应慢"的体感。
+            var splash = new SplashWindow();
+            splash.Show();
+
+            // 2. 将后续较重的初始化移到后台异步流程，避免阻塞启动动画的首帧渲染。
+            _ = StartupCoreAsync(splash);
+        }
+
+        /// <summary>
+        /// 启动核心流程（在启动动画呈现后于后台继续）。
+        /// 逻辑与原 OnStartup 的同步流程一致，仅改为 async 以不阻塞启动动画。
+        /// </summary>
+        private async Task StartupCoreAsync(SplashWindow splash)
+        {
+            // 让启动动画先播放约 0.5s，给用户明确的"已启动"反馈，再继续后台启动。
+            await Task.Delay(500);
+
             try
             {
-                base.OnStartup(e);
-
                 // 1. 加载主题配置
                 ThemeManager.Load();
                 // 1.0 应用已保存的全局界面字体（在首个窗口显示前生效）
@@ -36,11 +57,17 @@ namespace WINHELP
             //      （必须在首个窗口 Show 之前调用，DynamicResource 才能解析）
             ThemeManager.RegisterGlassResources();
 
+            // 1.06 若开启「跟随系统深浅色」，订阅系统主题变化（P1-7）
+            ThemeManager.InitFollowSystem();
+
             // 1.1 加载 UI 语言（中文 / 英文）
             UiLanguage.Load();
 
             // 2. 加载应用设置
             SettingsManager.Load();
+
+            // 2.05 加载插件清单（New B：轻量扩展机制，无插件时静默跳过）
+            PluginLoader.Load();
 
             // 2.1 加载陪伴运行（小窗模式）设置
             CompanionSettingsManager.Load();
@@ -51,8 +78,8 @@ namespace WINHELP
             // 3. 应用开机自动启动（同步注册表与设置）
             SettingsManager.SetAutoStart(SettingsManager.Current.AutoStart);
 
-            // 4. 从 Window1 "软件版本"文字模块初始化版本号（版本检测的检测路径）
-            //    实际解析（构造隐藏的 Window1 实例）开销较大，推迟到首帧渲染后执行。
+            // 4. 从 SiteFinderPage "软件版本"文字模块初始化版本号（版本检测的检测路径）
+            //    实际解析（构造隐藏的 SiteFinderPage 实例）开销较大，推迟到首帧渲染后执行。
 
             // 5. 创建系统托盘图标（必须在主窗口显示前完成）
             SetupTrayIcon();
@@ -61,14 +88,20 @@ namespace WINHELP
             _mainWindow = new MainWindow();
             _mainWindow.Show();
 
+            // 6.x 主窗口首帧稳定后再淡出启动动画
+            await Task.Delay(250);
+            splash?.FadeOutAndClose();
+
             // 6.x 启动后的非关键初始化：推迟到首帧渲染（Loaded）之后执行，
             //      避免阻塞主窗口首次呈现，显著提升启动响应速度。
-            Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () =>
+            //      注：Dispatcher.BeginInvoke 返回可 await 的 DispatcherOperation，
+            //      此处为刻意"即发即弃"，用 _ = 丢弃返回值以消除 CS4014 警告。
+            _ = Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () =>
             {
                 try
                 {
                     // 4. 解析软件版本号
-                    Window1.EnsureVersionInitialized();
+                    SiteFinderPage.EnsureVersionInitialized();
 
                     // 4.1 记录/补齐版本历史
                     UpgradeTracker.Initialize();
@@ -105,6 +138,7 @@ namespace WINHELP
                 LogCrash(ex, "App.OnStartup");
                 try
                 {
+                    splash?.Close();
                     System.Windows.MessageBox.Show(
                         "程序启动时发生错误，详情已记录到日志文件。\n\n" + ex.Message,
                         "司南工具箱启动失败", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -169,7 +203,7 @@ namespace WINHELP
         }
 
         /// <summary>把异常信息追加写入 crash.log（文件锁保护，避免多进程并发写入冲突）。</summary>
-        private static void LogCrash(Exception ex, string context)
+        internal static void LogCrash(Exception ex, string context)
         {
             try
             {
