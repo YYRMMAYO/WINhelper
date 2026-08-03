@@ -1,4 +1,5 @@
-﻿<Window x:Class="WINHELP.SplashWindow"
+﻿<!-- 独立窗体：启动动画（Splash），由 App 启动流程 Show，就绪后 FadeOutAndClose。详见 MODULES.md -->
+<Window x:Class="WINHELP.SplashWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:loc="clr-namespace:WINHELP"

@@ -1,0 +1,144 @@
+<UserControl x:Class="WINHELP.IssueSolverPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:loc="clr-namespace:WINHELP"
+             mc:Ignorable="d"
+             Background="Transparent">
+    <UserControl.Resources>
+        <Style x:Key="GroupHeader" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="Margin" Value="0,12,0,4"/>
+        </Style>
+        <Style x:Key="SectionHeader" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+            <Setter Property="Margin" Value="0,12,0,4"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Margin="18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="56"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="56"/>
+        </Grid.RowDefinitions>
+
+        <!-- 顶栏 -->
+        <Border Grid.Row="0" Style="{StaticResource GlassCard}">
+            <Grid Margin="14,0,14,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- 标题 -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="🩺" FontSize="22" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="{loc:Loc 问题解决|Issue Solver}" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                        <TextBlock Text="{loc:Loc 常见故障速查 · 一键修复|Common issues &amp; one-click fix}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- 管理员状态徽标 -->
+                <Border x:Name="AdminBadge" Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center"
+                        CornerRadius="6" Padding="8,4" Margin="8,0">
+                    <TextBlock x:Name="AdminBadgeText" FontSize="11" FontWeight="SemiBold" Foreground="White"/>
+                </Border>
+
+                <!-- 搜索框 -->
+                <Border Grid.Column="2" Style="{StaticResource GlassSearchFrame}">
+                    <Grid Margin="8,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="🔍" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBox x:Name="TxtSearch" Grid.Column="1" BorderThickness="0" Background="Transparent"
+                                 VerticalAlignment="Center" Foreground="{DynamicResource TextPrimaryBrush}"
+                                 CaretBrush="{DynamicResource TextPrimaryBrush}"
+                                 TextChanged="TxtSearch_TextChanged"/>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- 中间两列 -->
+        <Grid Grid.Row="1" Margin="0,12,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="360"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- 左：分类芯片 + 问题列表 -->
+            <Grid Grid.Column="0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <WrapPanel x:Name="ChipsPanel" Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,4"/>
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                    <StackPanel x:Name="ListPanel"/>
+                </ScrollViewer>
+            </Grid>
+
+            <!-- 右：详情 + 控制台 -->
+            <Grid Grid.Column="1" Margin="14,0,0,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
+                    <StackPanel x:Name="DetailPanel"/>
+                </ScrollViewer>
+                <Border x:Name="ConsoleCard" Grid.Row="1" Style="{StaticResource GlassCard}"
+                        Visibility="Collapsed" Margin="0,12,0,0">
+                    <Grid Margin="12">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="200"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Text="{loc:Loc 执行输出|Execution output}"
+                                   FontSize="12" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}"
+                                   Margin="0,0,0,6"/>
+                        <TextBox x:Name="TxtConsole" Grid.Row="1"
+                                 Background="#1E1E1E" Foreground="#DCDCDC"
+                                 FontFamily="Consolas" FontSize="12" TextWrapping="Wrap"
+                                 IsReadOnly="True" IsUndoEnabled="False"
+                                 BorderThickness="0" Padding="10"
+                                 VerticalScrollBarVisibility="Auto"/>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Grid>
+
+        <!-- 状态栏 -->
+        <Border Grid.Row="2" Style="{StaticResource GlassPanel}" Margin="0,12,0,0">
+            <Grid Margin="14,0,14,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock x:Name="TxtStatus" Text="{loc:Loc 就绪|Ready}" FontSize="12" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                    <TextBlock x:Name="TxtTimer" Text="00:00" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
+                               Margin="12,0,0,0" FontFamily="Consolas"/>
+                </StackPanel>
+                <Button x:Name="BtnCancel" Grid.Column="1" Content="{loc:Loc 取消|Cancel}"
+                        Style="{StaticResource GlassToolbarButton}" Width="120" Margin="6,0" IsEnabled="False"/>
+                <Button x:Name="BtnCopy" Grid.Column="2" Content="{loc:Loc 复制输出|Copy output}"
+                        Style="{StaticResource GlassToolbarButton}" Width="120" Margin="6,0"/>
+                <Button x:Name="BtnClearConsole" Grid.Column="3" Content="{loc:Loc 清空|Clear}"
+                        Style="{StaticResource GlassToolbarButton}" Width="120" Margin="6,0"/>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

@@ -1,4 +1,9 @@
-﻿using System;
+﻿// 司南工具箱 (WINHELP)
+// Copyright (C) 2025-2026 YYRMM
+// 本程序为自由软件，在 GNU 通用公共许可证第 2 版（GPL v2）下发布。
+// 你可以自由使用、复制、修改和再分发，但须保留本协议且不附加任何限制。
+// 本程序按“现状”提供，不含任何担保。详见 LICENSE。
+using System;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
@@ -123,8 +128,6 @@ namespace WINHELP
                     if (!string.IsNullOrEmpty(hk) && _mainWindow != null)
                         _mainWindow.NavCompanion.ToolTip = $"陪伴运行小窗（{hk} 或 F11）";
 
-                    // 8.1 调试 / 自动化测试钩子（仅当设置了对应环境变量时生效，正常启动无影响）
-                    ApplyDebugAutoMode();
                 }
                 catch (Exception ex)
                 {
@@ -228,61 +231,6 @@ namespace WINHELP
                 sw.Flush();
             }
             catch { /* 日志写入失败不应引发二次异常 */ }
-        }
-
-        /// <summary>
-        /// 调试 / 冒烟测试钩子：仅当设置了环境变量时生效。
-        /// - WINHELP_HOTKEY_DEBUG=1：将实际注册成功的全局热键写入临时文件，供冒烟测试读取。
-        /// - WINHELP_COMPANION_AUTO=enter | enter-exit：自动进入 / 进入再退出陪伴运行小窗，
-        ///   用于验证「主窗口 ↔ 陪伴窗口」的可见性状态切换。
-        /// 以上均为测试辅助，正常启动不会读取这些变量，因此不影响用户体验。
-        /// </summary>
-        private void ApplyDebugAutoMode()
-        {
-            try
-            {
-                if (Environment.GetEnvironmentVariable("WINHELP_HOTKEY_DEBUG") == "1")
-                {
-                    var marker = Path.Combine(Path.GetTempPath(), "winhelp_hotkey_debug.txt");
-                    File.WriteAllText(marker, CompanionManager.HotkeyRegistered
-                        ? (CompanionManager.HotkeyLabel ?? "registered")
-                        : "failed");
-                }
-            }
-            catch { }
-
-            var mode = Environment.GetEnvironmentVariable("WINHELP_COMPANION_AUTO");
-            if (string.IsNullOrWhiteSpace(mode) || _mainWindow == null) return;
-
-            // 等待主窗口真正可见后再安排进入/退出，避免自包含 exe 冷启动慢导致
-            // 进入时主窗口尚未显示、从而无法正确隐藏的问题。
-            var poll = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
-            poll.Tick += (_, _) =>
-            {
-                if (_mainWindow == null || !_mainWindow.IsVisible) return;
-                poll.Stop();
-
-                void Enter() => CompanionManager.Enter();
-                void Exit() => CompanionManager.Exit();
-
-                if (mode == "enter")
-                {
-                    var t = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(2000) };
-                    t.Tick += (_, _) => { t.Stop(); Enter(); };
-                    t.Start();
-                }
-                else if (mode == "enter-exit")
-                {
-                    var t1 = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(2000) };
-                    t1.Tick += (_, _) => { t1.Stop(); Enter(); };
-                    t1.Start();
-
-                    var t2 = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(9000) };
-                    t2.Tick += (_, _) => { t2.Stop(); Exit(); };
-                    t2.Start();
-                }
-            };
-            poll.Start();
         }
 
         /// <summary>创建系统托盘图标</summary>

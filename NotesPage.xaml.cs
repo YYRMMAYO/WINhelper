@@ -11,9 +11,10 @@ using System.Windows.Input;
 namespace WINHELP
 {
     /// <summary>
-    /// 桌面便签模块 — 与主界面共享 NotesStore（%APPDATA%/WINHELP/notes/ 每条约一个 .txt）。
+    /// 桌面便签模块（导航 key="notes"）— 与主界面共享 NotesStore（%APPDATA%/WINHELP/notes/ 每条约一个 .txt）。
     /// 勾选"同时保存到桌面文件"时额外在桌面创建副本。陪伴运行小窗添加的便签也会
     /// 通过 NotesStore.Changed 事件同步显示在这里。
+    /// 由 MainWindow._factories 懒加载；依赖 NotesStore 与 ThemeManager 玻璃画刷。
     /// </summary>
     public partial class NotesPage : UserControl
     {

@@ -5,7 +5,8 @@ using System.Windows.Media;
 namespace WINHELP
 {
     /// <summary>
-    /// 陪伴运行说明页（内嵌在右侧内容区，不再弹窗）
+    /// 陪伴运行说明页（导航 key="companion"，内嵌在右侧内容区，不再弹窗）
+    /// 由 MainWindow._factories 懒加载；依赖 CompanionManager 状态与 ThemeManager 玻璃画刷。
     /// </summary>
     public partial class CompanionPage : UserControl
     {

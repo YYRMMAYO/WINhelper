@@ -7,7 +7,7 @@ using System.Windows.Media;
 
 namespace WINHELP;
 
-/// <summary>软件卸载页：管理 / 卸载已安装程序。</summary>
+/// <summary>软件卸载页（导航 key="uninstall"）：管理 / 卸载已安装程序、清理残留。由 MainWindow._factories 懒加载；依赖 ThemeManager 玻璃画刷与 LocExtension 多语言。</summary>
 public partial class WindowUninstaller : UserControl
 {
     /// <summary>数据模型：ProgramItem。</summary>
@@ -141,8 +141,26 @@ public partial class WindowUninstaller : UserControl
     private void BtnUninstall_Click(object sender, RoutedEventArgs e)
     {
         if (_selected == null || string.IsNullOrWhiteSpace(_selected.UninstallString)) return;
+
+        var cmd = _selected.UninstallString.Trim();
+
+        // 安全：把注册表中的 UninstallString 完整展示给用户，
+        // 并阻止恶意程序通过解释器（cmd/powershell 等）隐藏执行的卸载命令（安全审计建议 P0）。
+        string? reason = CheckUninstallCommand(cmd);
+        if (reason != null)
+        {
+            MessageBox.Show(Window.GetWindow(this),
+                UiLanguage.L($"已阻止启动此卸载命令，原因：{reason}\n\n命令内容：\n{cmd}",
+                    $"Blocked launching this uninstall command, reason: {reason}\n\nCommand:\n{cmd}"),
+                UiLanguage.L("已阻止不安全卸载命令", "Unsafe uninstall command blocked"),
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            TxtStatus.Text = UiLanguage.L("已阻止不安全卸载命令", "Blocked unsafe uninstall command");
+            return;
+        }
+
         var r = MessageBox.Show(Window.GetWindow(this),
-            UiLanguage.L($"确定要卸载「{_selected.DisplayName}」吗？", $"Uninstall '{_selected.DisplayName}'?"),
+            UiLanguage.L($"确定要卸载「{_selected.DisplayName}」吗？\n\n将执行以下命令：\n{cmd}",
+                $"Uninstall '{_selected.DisplayName}'?\n\nThe following command will run:\n{cmd}"),
             UiLanguage.L("确认卸载", "Confirm Uninstall"),
             MessageBoxButton.YesNo, MessageBoxImage.Question);
         if (r != MessageBoxResult.Yes) return;
@@ -161,6 +179,62 @@ public partial class WindowUninstaller : UserControl
         {
             TxtStatus.Text = UiLanguage.L("卸载启动失败：" + ex.Message, "Failed to launch: " + ex.Message);
         }
+    }
+
+    /// <summary>
+    /// 检查注册表 UninstallString 是否属于危险模式。
+    /// 正常的卸载命令通常是 C:\...\uninstall.exe /x 或 msiexec /x {GUID}；
+    /// 恶意程序常以 cmd /c start / powershell -c 等解释器包裹任意命令。
+    /// 返回 null 表示安全，否则返回阻止原因。
+    /// </summary>
+    private static string? CheckUninstallCommand(string cmd)
+    {
+        try
+        {
+            var low = cmd.ToLowerInvariant();
+
+            // 1) 必须以引号包裹的可执行文件路径或 exe/msi 直接路径开头；禁止裸解释器调用
+            //    提取第一段（引号内或第一个空格前）
+            string first;
+            cmd = cmd.TrimStart();
+            if (cmd.StartsWith("\""))
+            {
+                int end = cmd.IndexOf('"', 1);
+                first = end > 1 ? cmd.Substring(1, end - 1) : cmd.Substring(1);
+            }
+            else
+            {
+                int sp = cmd.IndexOf(' ');
+                first = sp > 0 ? cmd.Substring(0, sp) : cmd;
+            }
+
+            var exe = Path.GetFileName(first).ToLowerInvariant();
+
+            // 禁止经系统解释器间接执行
+            string[] dangerousExes = { "cmd.exe", "cmd", "powershell.exe", "powershell",
+                "pwsh.exe", "pwsh", "wscript.exe", "cscript.exe", "mshta.exe",
+                "rundll32.exe", "regsvr32.exe", "conhost.exe" };
+            if (dangerousExes.Contains(exe))
+                return "命令通过系统解释器执行，可能包含隐藏的恶意操作";
+
+            // 2) 命令中若包含明显恶意关键字，直接阻止
+            string[] maliciousPatterns =
+            {
+                "powershell", "cmd.exe", " wget ", " iwr ", " irm ", "bitsadmin",
+                "certutil", "start http", "start https", " download",
+                " -enc ", " -encodedcommand ", " -windowstyle hidden", " -w hidden"
+            };
+            foreach (var p in maliciousPatterns)
+            {
+                if (low.Contains(p, StringComparison.OrdinalIgnoreCase))
+                    return "命令包含可疑的下载/隐藏执行特征";
+            }
+        }
+        catch
+        {
+            return "命令格式无法解析";
+        }
+        return null;
     }
 
     // ===== 扫描残留 =====

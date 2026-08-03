@@ -6,7 +6,9 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
-    <Version>4.6.0</Version>
+    <Version>4.8.0</Version>
+    <Copyright>Copyright (C) 2025-2026 YYRMM. Licensed under GPL-2.0</Copyright>
+    <PackageLicenseExpression>GPL-2.0-only</PackageLicenseExpression>
     <AssemblyName>司南工具箱</AssemblyName>
     <Product>司南工具箱</Product>
     <Company>司南工具箱</Company>
@@ -38,6 +40,7 @@
   <!-- WMI 硬件信息枚举（CPU/显卡/主板等） -->
   <ItemGroup>
     <PackageReference Include="System.Management" Version="9.0.0" />
+    <!-- DPAPI（System.Security.Cryptography.ProtectedData）已由 net10.0-windows 目标框架内置提供，无需额外包引用 -->
   </ItemGroup>
 
   <!-- 构建时间戳生成已移除：不再嵌入/显示构建时间 -->

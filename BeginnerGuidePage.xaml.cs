@@ -4,7 +4,7 @@ using System.Windows.Media;
 
 namespace WINHELP;
 
-/// <summary>新手引导页：首次使用的提示与使用技巧。</summary>
+/// <summary>新手导览页（导航 key="novice"）：首次使用的提示与使用技巧。由 MainWindow._factories 懒加载；依赖 ThemeManager 玻璃画刷与 LocExtension 多语言。</summary>
 public partial class BeginnerGuidePage : UserControl
 {
     private readonly string[] _tips =

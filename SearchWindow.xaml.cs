@@ -29,8 +29,8 @@ namespace WINHELP
     }
 
     /// <summary>
-    /// 全局命令面板（Ctrl+K 唤起）：跨所有模块 + 动作搜索直达。
-    /// 模态浮层，复用 MainWindow 注入的导航与动作委托，避免直接耦合各页面。
+    /// 全局命令面板（独立窗体，Ctrl+K 唤起）：跨所有模块 + 动作搜索直达。
+    /// 模态浮层，由 MainWindow 构建 CommandItem 列表并注入导航/动作委托，避免直接耦合各页面。
     /// </summary>
     public partial class SearchWindow : Window
     {

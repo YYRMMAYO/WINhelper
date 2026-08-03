@@ -203,7 +203,9 @@ namespace WINHELP
             catch { /* 导出失败静默忽略 */ }
         }
 
-        /// <summary>从指定文件导入设置；成功返回 true 并落盘</summary>
+        /// <summary>从指定文件导入设置；成功返回 true 并落盘。
+        /// 安全：导入前做字段校验，拒绝恶意/损坏的配置文件
+        /// （如非法热键、非法日期、越界值等），避免被篡改的 JSON 静默改动行为（安全审计建议 P2）。</summary>
         public static bool ImportSettings(string path)
         {
             try
@@ -212,10 +214,38 @@ namespace WINHELP
                 var json = File.ReadAllText(path);
                 var s = JsonSerializer.Deserialize<AppSettings>(json);
                 if (s == null) return false;
+
+                // —— 字段校验（不合法则拒绝导入） ——
+                if (string.IsNullOrEmpty(s.SchedulerTime) ||
+                    !TimeSpan.TryParse(s.SchedulerTime, out _))
+                    return false;
+
+                if (s.SchedulerDayOfWeek is < -1 or > 6)
+                    return false;
+
+                if (s.LauncherHotkeyVk is <= 0 or > 0xFF)
+                    return false;
+
+                if (s.CompanionHotkeyVk is < 0 or > 0xFF)
+                    return false;
+
+                if (s.RecentModules == null) s.RecentModules = new();
+                if (s.StarredModules == null) s.StarredModules = new();
+                if (s.DismissedNewModules == null) s.DismissedNewModules = new();
+                if (s.VersionHistory == null) s.VersionHistory = new();
+
+                // 日期字段：default 表示从未使用，校验合理性
+                if (s.FirstUse != default && s.FirstUse > DateTime.Now.AddMinutes(5))
+                    return false;
+                if (s.LastOptimize != default && s.LastOptimize > DateTime.Now.AddMinutes(5))
+                    return false;
+                if (s.LastUsageDate != default && s.LastUsageDate > DateTime.Now.AddMinutes(5))
+                    return false;
+
+                if (s.OptimizeCount < 0 || s.CleanedBytes < 0 || s.UsageStreak < 0)
+                    return false;
+
                 Current = s;
-                if (Current.RecentModules == null) Current.RecentModules = new();
-                if (Current.StarredModules == null) Current.StarredModules = new();
-                if (Current.DismissedNewModules == null) Current.DismissedNewModules = new();
                 Save();
                 return true;
             }

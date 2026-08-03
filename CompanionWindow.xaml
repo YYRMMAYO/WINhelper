@@ -1,4 +1,5 @@
-﻿<Window x:Class="WINHELP.CompanionWindow"
+﻿<!-- 独立窗体：陪伴运行小窗，由 CompanionPage / 托盘菜单启动。详见 MODULES.md -->
+<Window x:Class="WINHELP.CompanionWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"

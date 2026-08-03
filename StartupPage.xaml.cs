@@ -10,7 +10,7 @@ using System.Windows.Media;
 
 namespace WINHELP;
 
-/// <summary>启动项管理页：管理开机自启程序。</summary>
+/// <summary>启动项管理页（导航 key="startup"）：管理开机自启程序。由 MainWindow._factories 懒加载；依赖 ThemeManager 玻璃画刷与 LocExtension 多语言。</summary>
 public partial class StartupPage : UserControl
 {
     private enum Impact { High, Medium, Low }

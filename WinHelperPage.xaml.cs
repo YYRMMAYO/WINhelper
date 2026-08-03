@@ -7,7 +7,8 @@ using System.Windows.Media;
 namespace WINHELP
 {
     /// <summary>
-    /// WinHelperPage.xaml 交互逻辑 — WIN助手（实用软件官方直通车）
+    /// WinHelperPage.xaml 交互逻辑 — WIN 助手（导航 key="tool"，实用软件官方直通车）
+    /// 由 MainWindow._factories 懒加载；依赖 ThemeManager 玻璃画刷与 LocExtension 多语言。
     /// </summary>
     public partial class WinHelperPage : UserControl
     {

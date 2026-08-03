@@ -121,7 +121,9 @@ namespace WINHELP
             }
         }
 
-        /// <summary>执行一次计划优化（创建还原点 + 一键优化）。全程异常安全。</summary>
+        /// <summary>执行一次计划优化（创建还原点 + 仅清理临时文件，不清空回收站）。全程异常安全。
+        /// 安全说明：无人值守任务绝不自动清空回收站 —— 回收站可能包含用户误删后希望恢复的文件，
+        /// 自动清除会造成不可逆的数据丢失（安全审计建议 P0）。</summary>
         private static void RunOptimize()
         {
             try
@@ -138,10 +140,9 @@ namespace WINHELP
                     }
                 }
 
-                // 一键优化：清理临时文件 + 清空回收站，返回释放的字节数。
-                // 无人值守运行：对超过 200MB 的大文件/目录做保护（不自动删除，避免误删），
-                // 回收站仍按原计划清空（属用户主动设定的计划任务）。
-                long freed = Cleaner.OneClickOptimize(200L * 1024 * 1024);
+                // 仅递归清理临时文件（对超过 200MB 的大文件/目录做保护，不自动删除），
+                // 绝不调用 EmptyRecycleBin / OneClickOptimize（后者包含清空回收站）。
+                long freed = Cleaner.CleanTempRecursively(200L * 1024 * 1024);
                 System.Diagnostics.Debug.WriteLine($"[SchedulerManager] 定时优化完成，释放 {freed} 字节。");
             }
             catch

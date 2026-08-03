@@ -27,7 +27,9 @@ namespace WINHELP
     }
 
     /// <summary>
-    /// AppearancePage.xaml 交互逻辑 — 个性装扮（内嵌为右侧页面）
+    /// AppearancePage.xaml 交互逻辑 — 个性装扮（导航 key="theme"，内嵌为右侧页面）
+    /// 主题色/背景图/玻璃强度/字体均直接写 ThemeManager 与 theme.json。
+    /// 由 MainWindow._factories 懒加载；依赖 ThemeManager 玻璃画刷与 LocExtension 多语言。
     /// </summary>
     public partial class AppearancePage : UserControl
     {

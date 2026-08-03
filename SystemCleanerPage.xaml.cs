@@ -14,7 +14,7 @@ using Microsoft.Win32;
 
 namespace WINHELP;
 
-/// <summary>系统清理页：垃圾清理与磁盘占用分析（treemap）。</summary>
+/// <summary>系统清理页（导航 key="clean"）：垃圾清理与磁盘占用分析（treemap）。由 MainWindow._factories 懒加载；依赖 ThemeManager 玻璃画刷与 LocExtension 多语言；清理逻辑见 Cleaner 库。</summary>
 public partial class SystemCleanerPage : UserControl
 {
     /// <summary>单个清理类别（临时文件 / 回收站 / 浏览器缓存 / 更新缓存 / 缩略图缓存）</summary>
@@ -689,11 +689,22 @@ public partial class SystemCleanerPage : UserControl
         return (size, count);
     }
 
+    /// <summary>判断路径是否为重解析点（junction / 符号链接），防止递归删除跟随链接删除目标真实数据（安全审计建议 P2）。</summary>
+    private static bool IsReparsePoint(string path)
+    {
+        try
+        {
+            return (File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0;
+        }
+        catch { return false; }
+    }
+
     private static void DeleteDirs(IEnumerable<string> dirs, SearchOption opt)
     {
         foreach (var dir in dirs)
         {
             if (!Directory.Exists(dir)) continue;
+            if (IsReparsePoint(dir)) continue;
             try
             {
                 foreach (var f in Directory.EnumerateFiles(dir, "*", opt))
@@ -706,6 +717,7 @@ public partial class SystemCleanerPage : UserControl
             {
                 foreach (var d in Directory.EnumerateDirectories(dir, "*", SearchOption.TopDirectoryOnly))
                 {
+                    if (IsReparsePoint(d)) continue;
                     try { Directory.Delete(d, true); } catch { }
                 }
             }
@@ -718,6 +730,7 @@ public partial class SystemCleanerPage : UserControl
         foreach (var dir in dirs)
         {
             if (!Directory.Exists(dir)) continue;
+            if (IsReparsePoint(dir)) continue;
             try
             {
                 foreach (var f in Directory.EnumerateFiles(dir, pattern, SearchOption.TopDirectoryOnly))

@@ -9,7 +9,8 @@ using System.Windows.Media;
 namespace WINHELP
 {
     /// <summary>
-    /// SettingsPage.xaml — 软件设置（内嵌为右侧页面）
+    /// SettingsPage.xaml — 软件设置（导航 key="settings"，内嵌为右侧页面）
+    /// 由 MainWindow._factories 懒加载；依赖 SettingsManager 与 ThemeManager 玻璃画刷。
     /// </summary>
     public partial class SettingsPage : UserControl
     {

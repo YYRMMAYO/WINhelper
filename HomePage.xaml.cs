@@ -9,8 +9,11 @@ namespace WINHELP
 {
     /// <summary>
     /// 全新首页（内嵌在 MainWindow 右侧内容区）：分组功能入口 + 搜索筛选
-    /// 侧栏精简后所有功能模块均通过首页卡片访问，分为三组：系统工具 / 效率工具 / 助手与信息
+    /// 侧栏精简后所有功能模块均通过首页卡片访问，分为三组：系统工具 / 效率工具 / 助手与信息。
     /// 新增（P0-3）：智能排序（收藏优先 + 使用频率）、收藏星标、状态徽标（推荐 / NEW）。
+    /// <para>导航模块 key="home"（由 MainWindow._factories 注册）；首页卡片由 ModuleRegistry
+    /// （C# 实例）驱动，BuildCards 在构造函数里生成卡片并注入星标 / NEW 徽标；
+    /// 依赖 ThemeManager 玻璃画刷与 LocExtension 多语言。</para>
     /// </summary>
     public partial class HomePage : UserControl
     {
@@ -29,39 +32,12 @@ namespace WINHELP
 
         // 推荐 / 新品徽标集合（可按运营节奏调整）
         private static readonly HashSet<string> Recommended = new() { "clean", "startup", "system", "agent", "snapshot" };
-        private static readonly HashSet<string> NewModules = new() { "recorder", "notes", "report", "uninstall" };
-
-        // 卡片标题 / 副标题的中英对照（按 Tag 索引）
-        private static readonly Dictionary<string, (string ZhT, string EnT, string ZhS, string EnS)> CardDict = new()
-        {
-            // ===== 系统工具（主级卡片） =====
-            ["clean"]    = ("系统清理", "System Cleaner", "垃圾 / 大文件 / 磁盘可视化", "Junk / large files / disk treemap"),
-            ["startup"]  = ("启动项", "Startup", "禁用开机自启 · 影响评估", "Disable autostart · impact check"),
-            ["system"]   = ("系统状况", "System Status", "设备检测 · 进程 · 智能诊断", "Device · processes · smart diagnosis"),
-            ["net"]      = ("网络诊断", "Network Diagnostics", "连通性检测与测速", "Connectivity test & speed"),
-            // ===== 效率工具 =====
-            ["wizard"]   = ("故障向导", "Troubleshoot Wizard", "向导式排查常见问题", "Step-by-step troubleshooting"),
-            ["shred"]    = ("文件粉碎", "File Shredder", "安全彻底删除敏感文件", "Securely delete sensitive files"),
-            ["snapshot"] = ("截图标注", "Screenshot", "截图并标注编辑", "Capture & annotate"),
-            ["uninstall"] = ("卸载残留", "Uninstall Leftovers", "清理软件卸载后的残留", "Clean up leftover files after uninstall"),
-            ["notes"]     = ("便签", "Notes", "桌面便签快速记录", "Quick desktop notes"),
-            ["recorder"]  = ("录音录像", "Recorder", "麦克风录音与屏幕录像", "Mic recording & screen capture"),
-            // ===== 助手与信息 =====
-            ["agent"]    = ("Agent 助手", "Agent Assistant", "接入 API 获取 AI 帮助", "Connect API for AI help"),
-            ["site"]     = ("网站与官网", "Sites & Official", "常用网站 + 软件官网", "Common sites & official links"),
-            ["tool"]     = ("WIN 助手", "WIN Helper", "实用软件官方下载", "Official downloads"),
-            ["help"]     = ("电脑帮助", "PC Help", "系统工具与使用技巧", "Tools & tips"),
-            ["report"]   = ("月度报告", "Monthly Report", "使用统计与成就", "Usage stats & achievements"),
-            ["novice"]   = ("新手导览", "Beginner Guide", "小白也能懂的功能", "Features for beginners"),
-            ["tutorial"] = ("AI 密钥教程", "AI Key Tutorial", "申请并填入 AI 密钥", "Get & enter your AI key"),
-            ["bug"]      = ("BUG 反馈", "Bug Report", "问题反馈与建议提交", "Report issues & suggestions"),
-            ["setup"]    = ("装机助手", "Setup Assistant", "常用软件安装推荐", "Recommended software installer"),
-        };
+        private static readonly HashSet<string> NewModules = new() { "issue", "report", "uninstall" };
 
         public HomePage()
         {
             InitializeComponent();
-            CollectCards();
+            BuildCards();
             ApplySort();
             Localize();
             ThemeCardAccent();
@@ -69,27 +45,78 @@ namespace WINHELP
             ThemeManager.ThemeChanged += () => Dispatcher.Invoke(ThemeCardAccent);
         }
 
-        private void CollectCards()
+        /// <summary>依据 ModuleRegistry 生成首页模块卡片（取代原先写在 XAML 的 Border）。</summary>
+        private void BuildCards()
         {
-            CollectFromPanel(CardsWrapSystem);
-            CollectFromPanel(CardsWrapTools);
-            CollectFromPanel(CardsWrapAssist);
-        }
-
-        private void CollectFromPanel(WrapPanel panel)
-        {
-            int order = 0;
-            foreach (UIElement child in panel.Children)
+            _cards.Clear();
+            var panels = new Dictionary<string, WrapPanel?>
             {
-                if (child is Border b && b.Tag is string key)
-                {
-                    WrapCardContent(b, key);
-                    _cards.Add((b, key, panel, order++));
-                }
+                ["system"] = CardsWrapSystem,
+                ["tools"] = CardsWrapTools,
+                ["assist"] = CardsWrapAssist,
+            };
+            int orderSys = 0, orderTools = 0, orderAssist = 0;
+            foreach (var m in ModuleRegistry.All)
+            {
+                if (m.HomeGroup == null) continue;
+                if (!panels.TryGetValue(m.HomeGroup, out var panel) || panel == null) continue;
+
+                var card = BuildCard(m);
+                WrapCardContent(card, m.Key);
+
+                int order = m.HomeGroup == "system" ? orderSys++
+                           : m.HomeGroup == "tools" ? orderTools++
+                           : orderAssist++;
+                _cards.Add((card, m.Key, panel, order));
+                panel.Children.Add(card);
             }
         }
 
-        /// <summary>把卡片原始 StackPanel 内容包进 Grid，叠加「收藏星标」与「状态徽标」。</summary>
+        /// <summary>生成单张首页卡片（主级 / 常规两套样式），结构与原有 XAML 卡片一致。</summary>
+        private Border BuildCard(ModuleDefinition m)
+        {
+            var sp = new StackPanel();
+            TextBlock title, sub;
+
+            if (m.IsPrimary)
+            {
+                var chip = new Border { Style = (Style)FindResource("IconChip") };
+                chip.Child = new TextBlock
+                {
+                    Text = m.Icon,
+                    FontSize = 22,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                sp.Children.Add(chip);
+                title = new TextBlock { FontSize = 15, FontWeight = FontWeights.Bold, Margin = new Thickness(0, 10, 0, 2) };
+                sub = new TextBlock { FontSize = 12 };
+            }
+            else
+            {
+                sp.Children.Add(new TextBlock { Text = m.Icon, FontSize = 22, Margin = new Thickness(0, 0, 0, 8) });
+                title = new TextBlock { FontSize = 14, FontWeight = FontWeights.Bold };
+                sub = new TextBlock { FontSize = 12, Margin = new Thickness(0, 2, 0, 0) };
+            }
+
+            // 用 DynamicResource 引用文字画刷，主题切换时实时同步（等价于原 XAML 的 {DynamicResource ...}）
+            title.SetResourceReference(TextBlock.ForegroundProperty, "TextPrimaryBrush");
+            sub.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
+            sp.Children.Add(title);
+            sp.Children.Add(sub);
+
+            var border = new Border
+            {
+                Tag = m.Key,
+                Style = (Style)FindResource(m.IsPrimary ? "HomeCardPrimary" : "HomeCard")
+            };
+            border.MouseLeftButtonDown += Card_Click;
+            border.Child = sp;
+            return border;
+        }
+
+        /// <summary>把卡片原始 StackPanel 内容包进 Grid，叠加「收藏星标」与「状态徽标」。
+        /// 约定：传入 Border 的 Child 必须是承载图标与文字的 StackPanel。</summary>
         private void WrapCardContent(Border b, string key)
         {
             if (b.Child is not StackPanel sp) return;
@@ -127,8 +154,8 @@ namespace WINHELP
             // NEW 徽标仅在用户尚未点击 dismiss 时显示（点击一次即永久隐藏，跨版本保留）。
             bool showNew = NewModules.Contains(key) && !SettingsManager.IsNewDismissed(key);
             string? badge = showNew ? "NEW"
-                          : (!NewModules.Contains(key) && Recommended.Contains(key)) ? UiLanguage.L("推荐", "Recommended")
-                          : null;
+                              : (!NewModules.Contains(key) && Recommended.Contains(key)) ? UiLanguage.L("推荐", "Recommended")
+                              : null;
             if (badge != null)
             {
                 var badgeBorder = new Border
@@ -164,7 +191,7 @@ namespace WINHELP
             var groups = new[] { CardsWrapSystem, CardsWrapTools, CardsWrapAssist };
             foreach (var panel in groups)
             {
-                // 保留非卡片子元素（如一键优化卡）的原始相对位置
+                // 保留非卡片子元素（如一键优化卡 CardOptimize）的原始相对位置
                 var fixedChildren = panel.Children.Cast<UIElement>()
                     .Where(c => !_cards.Any(x => x.card == c)).ToList();
                 var sortable = _cards.Where(c => c.panel == panel).ToList();
@@ -203,10 +230,11 @@ namespace WINHELP
 
             foreach (var (card, key, _, _) in _cards)
             {
-                if (!CardDict.TryGetValue(key, out var c)) continue;
+                var m = ModuleRegistry.Find(key);
+                if (m == null) continue;
                 GetCardTexts(card, out var title, out var sub);
-                if (title != null) title.Text = UiLanguage.L(c.ZhT, c.EnT);
-                if (sub != null) sub.Text = UiLanguage.L(c.ZhS, c.EnS);
+                if (title != null) title.Text = UiLanguage.L(m.TitleZh, m.TitleEn);
+                if (sub != null) sub.Text = UiLanguage.L(m.SubtitleZh, m.SubtitleEn);
             }
         }
 

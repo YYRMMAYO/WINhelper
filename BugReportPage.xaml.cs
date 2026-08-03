@@ -7,7 +7,9 @@ using System.Windows.Media;
 namespace WINHELP
 {
     /// <summary>
-    /// BugReportPage.xaml 交互逻辑 — BUG 反馈页面
+    /// BugReportPage.xaml 交互逻辑 — BUG 反馈（导航 key="bug"）
+    /// 腾讯文档表单 / GitHub Issues / 本地 crash.log 三种渠道。
+    /// 由 MainWindow._factories 懒加载；依赖 ThemeManager 玻璃画刷与 LocExtension 多语言。
     /// </summary>
     public partial class BugReportPage : UserControl
     {

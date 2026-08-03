@@ -84,11 +84,24 @@ namespace WINHELP
             return (size, count);
         }
 
+        /// <summary>判断路径是否为重解析点（junction / 符号链接 / 挂载点），是则返回 true —— 安全：删除前必须跳过，
+        /// 否则递归删除会跟随链接删除目标目录中的真实文件（安全审计建议 P2）。</summary>
+        private static bool IsReparsePoint(string path)
+        {
+            try
+            {
+                return (File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0;
+            }
+            catch { return false; }
+        }
+
         public static void DeleteDirs(IEnumerable<string> dirs, SearchOption opt)
         {
             foreach (var dir in dirs)
             {
                 if (!Directory.Exists(dir)) continue;
+                // 目标目录本身是重解析点 → 跳过，不跟随删除目标内容
+                if (IsReparsePoint(dir)) continue;
                 try
                 {
                     foreach (var f in Directory.EnumerateFiles(dir, "*", opt))
@@ -101,6 +114,8 @@ namespace WINHELP
                 {
                     foreach (var d in Directory.EnumerateDirectories(dir, "*", SearchOption.TopDirectoryOnly))
                     {
+                        // 跳过子目录中的重解析点（junction / 符号链接），避免删除链接指向的真实数据
+                        if (IsReparsePoint(d)) continue;
                         try { Directory.Delete(d, true); } catch { }
                     }
                 }
@@ -113,6 +128,7 @@ namespace WINHELP
             foreach (var dir in dirs)
             {
                 if (!Directory.Exists(dir)) continue;
+                if (IsReparsePoint(dir)) continue;
                 try
                 {
                     foreach (var f in Directory.EnumerateFiles(dir, pattern, SearchOption.TopDirectoryOnly))
@@ -150,6 +166,8 @@ namespace WINHELP
                     }
                     foreach (var d in Directory.EnumerateDirectories(dir, "*", SearchOption.TopDirectoryOnly))
                     {
+                        // 跳过重解析点（junction / 符号链接），避免递归删除链接指向的真实数据
+                        if (IsReparsePoint(d)) continue;
                         try
                         {
                             long ds = DirSize(d);

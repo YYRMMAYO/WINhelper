@@ -11,7 +11,7 @@ using System.Windows.Media;
 
 namespace WINHELP;
 
-/// <summary>网络诊断页：网络连通性检测与网速测试。</summary>
+/// <summary>网络诊断页（导航 key="net"）：网络连通性检测与网速测试。由 MainWindow._factories 懒加载；依赖 ThemeManager 玻璃画刷与 LocExtension 多语言。</summary>
 public partial class NetworkDiagnosticsPage : UserControl
 {
     public NetworkDiagnosticsPage()

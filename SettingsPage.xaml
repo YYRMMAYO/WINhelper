@@ -1,4 +1,5 @@
-﻿<UserControl x:Class="WINHELP.SettingsPage"
+﻿<!-- 导航模块 key="settings"：对应 SettingsPage.xaml.cs，由 MainWindow._factories 注册。详见 MODULES.md -->
+<UserControl x:Class="WINHELP.SettingsPage"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:loc="clr-namespace:WINHELP"

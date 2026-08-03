@@ -403,6 +403,20 @@ namespace WINHELP
 
         // ===== 受控写操作（白名单 + 人工确认，绝不暴露裸 shell） =====
 
+        /// <summary>受保护的关键系统进程名（禁止结束，避免系统崩溃/安全软件失效）。</summary>
+        private static readonly HashSet<string> ProtectedProcesses = new(StringComparer.OrdinalIgnoreCase)
+        {
+            // Windows 核心
+            "svchost", "csrss", "wininit", "winlogon", "services", "lsass", "smss",
+            "dwm", "explorer", "taskhost", "taskhostw", "fontdrvhost", "spoolsv",
+            "system", "registry", "memory compression", "SearchIndexer", "SearchHost",
+            // 安全软件（结束杀毒 = 解除系统防护）
+            "MsMpEng", "MsSense", "SecurityHealthService", "NisSrv",
+            "avp", "avgnt", "avguard", "ekrn", "bdagent", "ccSvcHst",
+            "360tray", "360Safe", "QQPCTray", "kxescore", "kxetray",
+            "Defender", "Mcshield", "NortonSecurity", "Kaspersky"
+        };
+
         private static ToolResult RunKillProcess(JsonElement args)
         {
             var name = Arg(args, "process_name").Trim();
@@ -414,9 +428,35 @@ namespace WINHELP
             if (name.Equals(self, StringComparison.OrdinalIgnoreCase))
                 return new ToolResult { Description = "结束进程", Text = "出于安全考虑，不能结束本程序自身。" };
 
+            // 系统关键进程 / 安全软件保护：结束会造成系统崩溃或安全防护失效（安全审计建议 P1）
+            if (ProtectedProcesses.Contains(name))
+                return new ToolResult
+                {
+                    Description = $"结束进程「{name}」",
+                    Text = $"出于安全考虑，不能结束系统关键进程或安全软件「{name}」。"
+                };
+
             var procs = System.Diagnostics.Process.GetProcessesByName(name);
             if (procs.Length == 0)
                 return new ToolResult { Description = $"结束进程「{name}」", Text = $"未找到名为「{name}」的运行中进程。" };
+
+            // 附加防护：如果命中的进程是系统关键路径下的（如 System32），也拒绝结束
+            foreach (var p in procs)
+            {
+                try
+                {
+                    var exe = p.MainModule?.FileName;
+                    if (string.IsNullOrEmpty(exe)) continue;
+                    var sysDir = Environment.GetFolderPath(Environment.SpecialFolder.System);
+                    if (exe.StartsWith(sysDir, StringComparison.OrdinalIgnoreCase))
+                        return new ToolResult
+                        {
+                            Description = $"结束进程「{name}」",
+                            Text = $"出于安全考虑，不能结束系统目录中的进程「{name}」（{exe}）。"
+                        };
+                }
+                catch { /* 无权限读模块路径则跳过附加检查 */ }
+            }
 
             int killed = 0;
             foreach (var p in procs)

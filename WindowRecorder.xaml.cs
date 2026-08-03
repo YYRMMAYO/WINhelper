@@ -11,9 +11,10 @@ using Microsoft.Win32;
 namespace WINHELP;
 
 /// <summary>
-/// 录音录像模块（V4.5.0 重写）：
+/// 录音录像模块（导航 key="recorder"，V4.5.0 重写）：
 /// 本软件不自带录音录像功能。该页面在加载时扫描电脑中已安装的录屏 / 录音软件，
 /// 若检测到则提供「打开」按钮一键启动；若未安装则提示用户前往官网下载。
+/// 由 MainWindow._factories 懒加载；依赖 ThemeManager 玻璃画刷与 LocExtension 多语言。
 /// </summary>
 public partial class WindowRecorder : UserControl
 {

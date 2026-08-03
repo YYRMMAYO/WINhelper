@@ -17,9 +17,10 @@ using System.Windows.Media;
 namespace WINHELP
 {
     /// <summary>
-    /// AgentAssistantPage.xaml 交互逻辑 — Agent 助手（自主接入网络 API 的 AI 对话）
+    /// AgentAssistantPage.xaml 交互逻辑 — Agent 助手（导航 key="agent"，自主接入网络 API 的 AI 对话）
     /// 协议：OpenAI 兼容的 /chat/completions（支持流式 SSE，兼容本地模型如 Ollama）
     /// 新增：常用服务预设（含本地模型端口）、连接/端口测试，以及更清晰的错误分类。
+    /// 由 MainWindow._factories 懒加载；依赖 AiClient / ToolRegistry / AgentSettingsManager 与 ThemeManager 玻璃画刷。
     /// </summary>
     public partial class AgentAssistantPage : UserControl
     {

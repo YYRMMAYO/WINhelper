@@ -16,8 +16,9 @@ using System.Windows.Input;
 namespace WINHELP
 {
     /// <summary>
-    /// SystemStatusPage.xaml 交互逻辑 — 设备检测与优化（硬件识别 + 完整性检测 + 优化建议）
+    /// SystemStatusPage.xaml 交互逻辑 — 设备检测与优化（导航 key="system"：硬件识别 + 完整性检测 + 优化建议）
     /// 支持 中/EN 语言切换：切换后重新渲染所有文本，避免中文缺字/乱码。
+    /// 由 MainWindow._factories 懒加载；依赖 HardwareInfo / HealthScoreService 与 ThemeManager 玻璃画刷。
     /// </summary>
     public partial class SystemStatusPage : UserControl
     {

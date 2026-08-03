@@ -8,7 +8,8 @@ using System.Windows.Media.Effects;
 namespace WINHELP
 {
     /// <summary>
-    /// 新手教程：引导不熟悉电脑的用户申请各大 AI 平台的 API 密钥，并一键填入。
+    /// 新手教程（导航 key="tutorial"）：引导不熟悉电脑的用户申请各大 AI 平台的 API 密钥，并一键填入。
+    /// 由 MainWindow._factories 懒加载；依赖 AgentSettingsManager 与 ThemeManager 玻璃画刷。
     /// </summary>
     public partial class WindowTutorial : UserControl
     {
@@ -65,7 +66,7 @@ namespace WINHELP
             },
             new()
             {
-                Name = "通义千问（阿里云百炼）",
+                Name = "通义千问（阿里云百炼）建议选择，有免费额度",
                 Emoji = "🐼",
                 Description = "阿里云出品，国内访问稳定",
                 SignupUrl = "https://dashscope.console.aliyun.com/apiKey",

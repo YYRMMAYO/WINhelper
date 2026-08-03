@@ -7,7 +7,7 @@ using System.Windows.Media;
 
 namespace WINHELP;
 
-/// <summary>系统报告页：生成系统信息报告。</summary>
+/// <summary>系统报告页（导航 key="report"）：生成系统信息报告（使用统计与成就）。由 MainWindow._factories 懒加载；依赖 Cleaner 统计与 SettingsManager。</summary>
 public partial class WindowReport : UserControl
 {
     // ===== 按月统计存储（独立文件，避免改动 SettingsManager） =====

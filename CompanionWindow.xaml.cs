@@ -11,7 +11,8 @@ using System.Windows.Threading;
 namespace WINHELP
 {
     /// <summary>
-    /// 陪伴运行小窗 — 图形框 + 北京时间 + 返回正常程序 + 左下角设置
+    /// 陪伴运行小窗（独立窗体）— 图形框 + 北京时间 + 返回正常程序 + 左下角设置。
+    /// 由 CompanionPage / 托盘菜单启动；依赖 CompanionManager 与 ThemeManager 玻璃画刷。
     /// </summary>
     public partial class CompanionWindow : Window
     {
@@ -163,7 +164,9 @@ namespace WINHELP
             ImgPlaceholder.Visibility = Visibility.Visible;
         }
 
-        /// <summary>通过 http://time.syiban.com/ 的响应头同步北京时间</summary>
+        /// <summary>通过 HTTPS 时间服务器响应头同步北京时间。
+        /// 安全说明：原实现使用明文 http://time.syiban.com/，存在中间人篡改风险（安全审计建议 P1），
+        /// 已改用 HTTPS 端点；若 HTTPS 失败则回退到本地时间。</summary>
         private async Task SyncTimeAsync()
         {
             if (!CompanionSettingsManager.Current.SyncBeijingTime)
@@ -173,9 +176,9 @@ namespace WINHELP
             }
             try
             {
-                // 只读响应头，避免下载整个 HTML
+                // 只读响应头，避免下载整个 HTML；使用 HTTPS 避免中间人篡改时间
                 using var resp = await _http.GetAsync(
-                    "http://time.syiban.com/", HttpCompletionOption.ResponseHeadersRead);
+                    "https://time.syiban.com/", HttpCompletionOption.ResponseHeadersRead);
                 if (resp.Headers.Date is DateTimeOffset d)
                 {
                     var beijing = d.UtcDateTime.AddHours(8); // UTC + 8 = 北京时间

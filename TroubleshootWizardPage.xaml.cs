@@ -6,7 +6,7 @@ using System.Windows.Media;
 
 namespace WINHELP;
 
-/// <summary>故障排查向导页：分步诊断与修复。</summary>
+/// <summary>故障排查向导页（导航 key="wizard"）：分步诊断与修复。由 MainWindow._factories 懒加载；依赖 ThemeManager 玻璃画刷与 LocExtension 多语言。</summary>
 public partial class TroubleshootWizardPage : UserControl
 {
     private static readonly Dictionary<string, List<string>> Solutions = new()
@@ -210,6 +210,9 @@ public partial class TroubleshootWizardPage : UserControl
     private string _solCat = "";
     private string[]? _evHint;
 
+    /// <summary>导航请求（由 MainWindow 注入，参数为页面 key）。用于在方案底部跳转到「问题解决」模块做一键修复。</summary>
+    public Action<string>? OnNavigate;
+
     public TroubleshootWizardPage()
     {
         InitializeComponent();
@@ -361,6 +364,26 @@ public partial class TroubleshootWizardPage : UserControl
             i++;
         }
         Body.Children.Add(panel);
+
+        // 跳转到「问题解决」模块做一键修复（仅在已注入导航时显示）
+        if (OnNavigate != null)
+        {
+            var fixBtn = new Button
+            {
+                Content = "⚡ " + UiLanguage.L("去一键修复", "Go to one-click fix"),
+                Height = 40,
+                Margin = new Thickness(0, 0, 0, 12),
+                FontSize = 14,
+                FontWeight = FontWeights.SemiBold,
+                Foreground = new SolidColorBrush(Colors.White),
+                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#E67E22")),
+                BorderThickness = new Thickness(0),
+                Cursor = System.Windows.Input.Cursors.Hand,
+                HorizontalAlignment = HorizontalAlignment.Left
+            };
+            fixBtn.Click += (s, ev) => OnNavigate?.Invoke("issue");
+            Body.Children.Add(fixBtn);
+        }
 
         // N8 相关事件日志提示：跳转到概览并滚动定位相关来源
         if (CategoryEventSources.TryGetValue(cat, out var sources))

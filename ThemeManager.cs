@@ -189,11 +189,9 @@ namespace WINHELP
             AccentColor = (Color)ColorConverter.ConvertFromString(preset.ColorHex);
             ActivePresetKey = preset.Key;
             IsStarryActive = preset.IsStarry;
-            // 星空模式下清除已有背景图，使用渐变作主背景
-            if (IsStarryActive)
-            {
-                BackgroundImagePath = "";
-            }
+            // 注意：进入星空模式「不再」清空 BackgroundImagePath，仅由 RebuildBackgroundBrush
+            // 在 IsStarryActive 时改用渐变背景。保留图片路径，以便切回非星空预设时自动恢复自定义壁纸
+            // （修复：原逻辑会把已保存的自定义背景图彻底清除，导致"星空→自定义"后壁纸丢失）。
             SyncBrushes();
             RebuildBackgroundBrush();
             ApplyGlass();
@@ -737,7 +735,10 @@ namespace WINHELP
                 {
                     FontFamilyName = config.FontFamilyName;
                 }
-                if (!IsStarryActive && !string.IsNullOrEmpty(config.BackgroundImagePath) && File.Exists(config.BackgroundImagePath))
+                // 始终恢复已保存的自定义背景图路径（即使当前预设为星空）。
+                // 星空模式下 RebuildBackgroundBrush 会忽略该路径改用渐变背景；
+                // 用户切回非星空预设时即可自动恢复壁纸（修复重启后壁纸丢失）。
+                if (!string.IsNullOrEmpty(config.BackgroundImagePath) && File.Exists(config.BackgroundImagePath))
                 {
                     BackgroundImagePath = config.BackgroundImagePath;
                 }

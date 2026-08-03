@@ -12,7 +12,7 @@ using System.Drawing.Imaging;
 
 namespace WINHELP;
 
-/// <summary>截图 / 快照页：区域截图与标注。</summary>
+/// <summary>截图 / 快照页（导航 key="snapshot"）：区域截图与标注。由 MainWindow._factories 懒加载；依赖 ThemeManager 玻璃画刷与 LocExtension 多语言。</summary>
 public partial class WindowSnapshot : UserControl
 {
     private enum Tool { None, Arrow, Text, Mosaic, Picker }

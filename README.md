@@ -1,6 +1,6 @@
 # 司南工具箱 (WINHELP)
 先前公示：本软件使用AI技术进行开发，人工进行维护
-![License](https://img.shields.io/badge/license-免费非商业-blue.svg)
+![License](https://img.shields.io/badge/license-GPL%20v2-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%20x64-lightgrey.svg)
 
 > 一款完全免费、非盈利的 Windows 电脑辅助工具，专注于系统检测、清理优化、网络诊断与故障排查。
@@ -85,9 +85,10 @@ WINHELP/
 
 ## 📄 许可证
 
-本软件为 **完全免费、非盈利** 的工具，仅供个人学习与交流使用，请勿用于商业用途。
-详见 [LICENSE](LICENSE)。在不违反许可协议的前提下，你可自由复制、传播本软件，
-但不得用于商业牟利。
+本软件以 **GNU 通用公共许可证第 2 版（GPL v2）** 发布。
+你可以自由地使用、复制、修改和分发本软件，包括用于商业用途；若分发修改版本，
+必须以同样的 GPL v2 协议开源并保留本协议。本软件按“现状”提供，不含任何担保。
+详见 [LICENSE](LICENSE) 与 [license.txt](license.txt)。
 
 ---
 

@@ -34,7 +34,7 @@ namespace WINHELP
     /// Interaction logic for MainWindow.xaml — 主窗口（侧边栏导航主页）
     /// 左侧 9 个导航项点击后在右侧内容区切换 UserControl，不再弹窗。
     /// </summary>
-    public partial class MainWindow : Window
+    public partial class MainWindow : Window, INavigationHost
     {
         private string? _downloadUrl;
         private bool _forceClose = false;
@@ -262,89 +262,17 @@ namespace WINHELP
             }
         }
 
-        /// <summary>注册所有页面的工厂与标题</summary>
+        /// <summary>注册所有页面的工厂与标题。
+        /// 导航 key → 页面类 的映射集中在此；完整模块清单见项目根 MODULES.md。</summary>
         private void InitPages()
         {
-            _titles["home"] = ("主界面", "Home");
-            _titles["clean"] = ("系统清理", "System Cleaner");
-            _titles["startup"] = ("启动项", "Startup");
-            _titles["net"] = ("网络诊断", "Network Diagnostics");
-            _titles["wizard"] = ("故障向导", "Troubleshoot Wizard");
-            _titles["novice"] = ("新手导览", "Beginner Guide");
-            _titles["setup"] = ("装机助手", "Setup Assistant");
-            _titles["settings"] = ("软件设置", "Settings");
-            _titles["theme"] = ("个性装扮", "Appearance");
-            _titles["companion"] = ("陪伴运行", "Companion");
-            _titles["site"] = ("网站与官网", "Sites & Official");
-            _titles["tool"] = ("WIN 助手", "WIN Helper");
-            _titles["bug"] = ("BUG 反馈", "Bug Report");
-            _titles["help"] = ("电脑帮助", "PC Help");
-            _titles["agent"] = ("Agent 助手", "Agent Assistant");
-            _titles["system"] = ("系统状况", "System Status");
-            _titles["tutorial"] = ("AI 密钥获取教程", "AI Key Tutorial");
-            _titles["shred"] = ("文件粉碎", "File Shredder");
-            _titles["snapshot"] = ("截图标注", "Screenshot");
-            _titles["uninstall"] = ("卸载残留", "Uninstall Leftovers");
-            _titles["report"] = ("月度报告", "Monthly Report");
-            _titles["notes"] = ("便签", "Notes");
-            _titles["recorder"] = ("录音录像", "Recorder");
-
-            _factories["home"] = () =>
+            // 模块定义集中维护在 ModuleRegistry.cs（C# 实例），此处仅映射到内部字典，
+            // 页面实例化统一走 ModuleRegistry.CreatePage（含导航宿主接线）。
+            foreach (var m in ModuleRegistry.All)
             {
-                var p = new HomePage();
-                p.OnNavigate = NavigateByKey;
-                p.OnOptimize = () => BtnOptimize_Click(BtnOptimize, new RoutedEventArgs());
-                return p;
-            };
-            _factories["clean"] = () => new SystemCleanerPage();
-            _factories["startup"] = () => new StartupPage();
-            _factories["net"] = () => new NetworkDiagnosticsPage();
-            _factories["wizard"] = () => new TroubleshootWizardPage();
-            _factories["novice"] = () => new BeginnerGuidePage();
-            _factories["setup"] = () => new SetupPage();
-            _factories["settings"] = () =>
-            {
-                var p = new SettingsPage();
-                p.OnCloseRequest = () => SetActiveNav("home", NavHome);
-                return p;
-            };
-            _factories["theme"] = () =>
-            {
-                var p = new AppearancePage();
-                p.OnCloseRequest = () => SetActiveNav("home", NavHome);
-                return p;
-            };
-            _factories["companion"] = () => new CompanionPage();
-            _factories["site"] = () => new SiteFinderPage();
-            _factories["tool"] = () => new WinHelperPage();
-            _factories["bug"] = () => new BugReportPage();
-            _factories["help"] = () => new PcHelpPage();
-            _factories["agent"] = () =>
-            {
-                var p = new AgentAssistantPage();
-                p.OnCloseRequest = () => SetActiveNav("home", NavHome);
-                p.OnOpenTutorial = () => SetActiveNav("tutorial", null);
-                return p;
-            };
-            _factories["system"] = () =>
-            {
-                var p = new SystemStatusPage();
-                p.OnNavigate = NavigateByKey;
-                return p;
-            };
-            _factories["tutorial"] = () =>
-            {
-                var p = new WindowTutorial();
-                p.OnCloseRequest = () => SetActiveNav("home", NavHome);
-                p.OnOpenAgent = () => SetActiveNav("agent", null);
-                return p;
-            };
-            _factories["shred"] = () => new WindowShredder();
-            _factories["snapshot"] = () => new WindowSnapshot();
-            _factories["uninstall"] = () => new WindowUninstaller();
-            _factories["report"] = () => new WindowReport();
-            _factories["notes"] = () => new NotesPage();
-            _factories["recorder"] = () => new WindowRecorder();
+                _titles[m.Key] = (m.TitleZh, m.TitleEn);
+                _factories[m.Key] = () => ModuleRegistry.CreatePage(m.Key, this);
+            }
         }
 
         // ===== 导航切换 =====
@@ -458,6 +386,13 @@ namespace WINHELP
             };
             SetActiveNav(key, btn);
         }
+
+        // ===== INavigationHost 实现（供 ModuleRegistry.CreatePage 注入导航 / 关闭 / 优化行为） =====
+        void INavigationHost.Navigate(string key) => NavigateByKey(key);
+        void INavigationHost.Optimize() => BtnOptimize_Click(BtnOptimize, new RoutedEventArgs());
+        void INavigationHost.CloseToHome() => SetActiveNav("home", NavHome);
+        void INavigationHost.OpenTutorial() => SetActiveNav("tutorial", null);
+        void INavigationHost.OpenAgent() => SetActiveNav("agent", null);
 
         private void NavHome_Click(object sender, RoutedEventArgs e) => SetActiveNav("home", NavHome);
         private void NavTroubleshoot_Click(object sender, RoutedEventArgs e) => SetActiveNav("wizard", NavTroubleshoot);
@@ -878,26 +813,16 @@ namespace WINHELP
         private List<CommandItem> BuildCommandItems()
         {
             var list = new List<CommandItem>();
-            var iconMap = new Dictionary<string, string>
+            // 模块项直接取自 ModuleRegistry（图标 / 标题已集中维护），与导航、首页卡片同源
+            foreach (var m in ModuleRegistry.All)
             {
-                ["home"] = "🏠", ["clean"] = "🧹", ["startup"] = "🚀", ["net"] = "🌐",
-                ["wizard"] = "🛠️", ["novice"] = "📘", ["setup"] = "📦", ["settings"] = "⚙️",
-                ["theme"] = "🎨", ["companion"] = "🐾", ["site"] = "🔎", ["tool"] = "🧰",
-                ["bug"] = "🐞", ["help"] = "❓", ["agent"] = "🤖",                 ["system"] = "💻",
-                ["tutorial"] = "🔑", ["shred"] = "🗑️", ["snapshot"] = "✂️",
-                ["uninstall"] = "♻️", ["report"] = "📊", ["notes"] = "📝", ["recorder"] = "🎥",
-            };
-            foreach (var kv in _titles)
-            {
-                string key = kv.Key;
-                var (zh, en) = kv.Value;
                 list.Add(new CommandItem
                 {
-                    Key = key,
-                    Icon = iconMap.TryGetValue(key, out var ic) ? ic : "📦",
+                    Key = m.Key,
+                    Icon = m.Icon,
                     Group = UiLanguage.L("模块", "Module"),
-                    TitleZh = zh, TitleEn = en,
-                    Execute = () => NavigateByKey(key),
+                    TitleZh = m.TitleZh, TitleEn = m.TitleEn,
+                    Execute = () => NavigateByKey(m.Key),
                 });
             }
             var actG = UiLanguage.L("动作", "Action");

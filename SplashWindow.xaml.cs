@@ -4,10 +4,11 @@ using System.Windows.Media.Animation;
 namespace WINHELP
 {
     /// <summary>
-    /// 启动动画窗口（Splash）。
+    /// 启动动画窗口（独立窗体，Splash）。
     /// 职责：用户点击软件后第一时间呈现，播放淡入 + 罗盘旋转 + 进度条动画，
     /// 让"启动响应慢"在感知上大幅改善；主窗口就绪后由 App 调用 FadeOutAndClose 淡出关闭。
     /// 该窗口不依赖任何主题/玻璃资源（自建纯色样式），确保最早时刻即可显示。
+    /// 由 App 启动流程 Show，非导航页。
     /// </summary>
     public partial class SplashWindow : Window
     {

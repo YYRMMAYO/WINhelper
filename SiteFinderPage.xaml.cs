@@ -8,7 +8,9 @@ using System.Windows.Media;
 namespace WINHELP
 {
     /// <summary>
-    /// SiteFinderPage.xaml 的交互逻辑 — 网站检索助手
+    /// SiteFinderPage.xaml 的交互逻辑 — 网站与官网（导航 key="site"）
+    /// 左侧常用网站 + 下方软件官网卡片网格；v4.3.1 由「网站检索助手」合并「官网导航」而来。
+    /// 由 MainWindow._factories 懒加载；依赖 ThemeManager 玻璃画刷与 LocExtension 多语言。
     /// </summary>
     public partial class SiteFinderPage : UserControl
     {

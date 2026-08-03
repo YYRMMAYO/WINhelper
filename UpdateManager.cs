@@ -74,9 +74,6 @@ namespace WINHELP
             }
         }
 
-        /// <summary>获取编译时间戳（每次构建自动更新，用于人工更新时区分构建版本）</summary>
-        public static string BuildTime => BuildInfo.BuildTimestamp;
-
         /// <summary>获取完整版本标识（仅版本号，不含构建时间）</summary>
         public static string FullVersion => $"v{LocalVersion}";
 

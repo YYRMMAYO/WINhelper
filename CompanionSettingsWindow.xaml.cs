@@ -7,7 +7,8 @@ using System.Windows.Media.Imaging;
 namespace WINHELP
 {
     /// <summary>
-    /// 小窗设置 — 用户自定义小窗图片 + 链接北京时间开关
+    /// 小窗设置（独立窗体）— 用户自定义小窗图片 + 链接北京时间开关。
+    /// 由 CompanionWindow 启动；依赖 CompanionSettingsManager 与 ThemeManager 玻璃画刷。
     /// </summary>
     public partial class CompanionSettingsWindow : Window
     {

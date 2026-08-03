@@ -1,3 +1,4 @@
+<!-- 导航模块 key="clean"：对应 SystemCleanerPage.xaml.cs，由 MainWindow._factories 注册。详见 MODULES.md -->
 <UserControl x:Class="WINHELP.SystemCleanerPage"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"

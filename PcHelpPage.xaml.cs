@@ -8,7 +8,8 @@ using System.Windows.Media;
 namespace WINHELP
 {
     /// <summary>
-    /// PcHelpPage.xaml 交互逻辑 — 电脑帮助
+    /// PcHelpPage.xaml 交互逻辑 — 电脑帮助（导航 key="help"）
+    /// 由 MainWindow._factories 懒加载；依赖 ThemeManager 玻璃画刷与 LocExtension 多语言。
     /// </summary>
     public partial class PcHelpPage : UserControl
     {
