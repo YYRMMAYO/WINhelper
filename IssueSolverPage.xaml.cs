@@ -48,6 +48,7 @@ namespace WINHELP
             BtnClearConsole.Click += BtnClearConsole_Click;
             TxtSearch.TextChanged += TxtSearch_TextChanged;
             Unloaded += Page_Unloaded;
+            Loaded += Page_Loaded;
         }
 
         // ===== 主题 / 语言 =====
@@ -459,13 +460,25 @@ namespace WINHELP
             ConsoleCard.Visibility = Visibility.Collapsed;
         }
 
+        private void Page_Loaded(object sender, RoutedEventArgs e)
+        {
+            // 切标签页回来后，若修复仍在运行，恢复计时刷新（避免修复在后台继续但计时冻结）
+            if (_sw.IsRunning && !_timer.IsEnabled)
+                _timer.Start();
+        }
+
         private void Page_Unloaded(object sender, RoutedEventArgs e)
         {
-            // 页面被 MainWindow 缓存，仅 Unloaded 不销毁；离开时复位，避免回来按钮卡死
-            _runCts?.Cancel();
+            // 页面被 MainWindow 缓存：切标签页（窗口仍可见）不中断正在执行的修复（安全审计建议 P2），
+            // 仅停止计时刷新；窗口真正销毁/隐藏时才取消修复任务，避免回来按钮卡死。
             _timer.Stop();
-            _runCts = null;
-            SetRunning(false);
+            var win = Window.GetWindow(this);
+            if (win == null || !win.IsVisible)
+            {
+                _runCts?.Cancel();
+                _runCts = null;
+                SetRunning(false);
+            }
         }
     }
 }

@@ -1,0 +1,177 @@
+<UserControl x:Class="WINHELP.RescuePage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:loc="clr-namespace:WINHELP"
+             mc:Ignorable="d"
+             Background="Transparent">
+    <Grid x:Name="RootGrid" Margin="18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="56"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- 顶栏 -->
+        <Border Grid.Row="0" Style="{StaticResource GlassCard}">
+            <Grid Margin="14,0,14,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="🚑" FontSize="22" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="{loc:Loc 系统急救|System Rescue}" FontSize="15" FontWeight="Bold"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"/>
+                        <TextBlock Text="{loc:Loc 蓝屏分析 · 电池 · 端口 · 驱动备份|BSOD / battery / ports / driver backup}"
+                                   FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                    </StackPanel>
+                </StackPanel>
+                <!-- 管理员状态徽标 -->
+                <Border x:Name="AdminBadge" Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center"
+                        CornerRadius="6" Padding="8,4">
+                    <TextBlock x:Name="AdminBadgeText" FontSize="11" FontWeight="SemiBold" Foreground="White"/>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- 内容区：四张功能卡 -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0,12,0,0">
+            <StackPanel>
+
+                <!-- 1. 蓝屏分析 -->
+                <Border Style="{StaticResource GlassCard}" Margin="0,0,0,10">
+                    <Grid Margin="14">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="💥" FontSize="18"/>
+                        <StackPanel Grid.Row="0" Grid.Column="0" Margin="30,0,0,0" VerticalAlignment="Center">
+                            <TextBlock Text="{loc:Loc 蓝屏分析|BSOD analysis}" FontSize="14" FontWeight="Bold"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"/>
+                            <TextBlock Text="{loc:Loc 列出蓝屏转储文件并提取崩溃事件|List minidumps and extract crash events}"
+                                       FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                        </StackPanel>
+                        <Button x:Name="BtnBsod" Grid.Row="0" Grid.Column="1" Content="{loc:Loc 开始分析|Analyze}"
+                                Padding="14,6" VerticalAlignment="Center" Click="BtnBsod_Click"/>
+                        <TextBlock x:Name="TxtMinidumps" Grid.Row="1" Grid.ColumnSpan="2"
+                                   TextWrapping="Wrap" FontSize="12" Margin="30,8,0,0"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+                        <TextBox x:Name="TxtBsodOut" Grid.Row="2" Grid.ColumnSpan="2"
+                                 Background="#1E1E1E" Foreground="#DCDCDC" FontFamily="Consolas" FontSize="12"
+                                 TextWrapping="Wrap" IsReadOnly="True" IsUndoEnabled="False"
+                                 BorderThickness="0" Padding="8" Margin="30,8,0,0"
+                                 MinHeight="90" MaxHeight="160" VerticalScrollBarVisibility="Auto"/>
+                        <TextBlock x:Name="TxtBsodHint" Grid.Row="3" Grid.ColumnSpan="2"
+                                   TextWrapping="Wrap" FontSize="11" Margin="30,6,0,0"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+                    </Grid>
+                </Border>
+
+                <!-- 2. 电池健康 -->
+                <Border x:Name="BatteryCard" Style="{StaticResource GlassCard}" Margin="0,0,0,10">
+                    <Grid Margin="14">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="🔋" FontSize="18" VerticalAlignment="Top"/>
+                        <StackPanel Grid.Row="0" Grid.Column="0" Margin="30,0,0,0">
+                            <TextBlock Text="{loc:Loc 电池健康|Battery health}" FontSize="14" FontWeight="Bold"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"/>
+                            <TextBlock Text="{loc:Loc 生成电池容量与循环报告并打开|Generate battery capacity report and open it}"
+                                       FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                        </StackPanel>
+                        <Button x:Name="BtnBattery" Grid.Row="0" Grid.Column="1" Content="{loc:Loc 生成报告|Generate}"
+                                Padding="14,6" VerticalAlignment="Center" Click="BtnBattery_Click"/>
+                        <TextBlock x:Name="TxtBatteryHint" Grid.Row="1" Grid.ColumnSpan="2"
+                                   TextWrapping="Wrap" FontSize="12" Margin="30,8,0,0"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+                    </Grid>
+                </Border>
+
+                <!-- 3. 端口占用 -->
+                <Border Style="{StaticResource GlassCard}" Margin="0,0,0,10">
+                    <Grid Margin="14">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="🔌" FontSize="18" VerticalAlignment="Top"/>
+                        <StackPanel Grid.Row="0" Grid.Column="0" Margin="30,0,0,0">
+                            <TextBlock Text="{loc:Loc 端口占用|Port usage}" FontSize="14" FontWeight="Bold"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"/>
+                            <TextBlock Text="{loc:Loc 扫描 netstat 端口与进程映射|Scan netstat ports and map processes}"
+                                       FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                        </StackPanel>
+                        <Button x:Name="BtnPorts" Grid.Row="0" Grid.Column="1" Content="{loc:Loc 扫描|Scan}"
+                                Padding="14,6" VerticalAlignment="Center" Click="BtnPorts_Click"/>
+                        <TextBox x:Name="TxtPortFilter" Grid.Row="0" Grid.Column="2" Width="110"
+                                 Margin="8,0,0,0" VerticalAlignment="Center" Padding="6,4"
+                                 ToolTip="{loc:Loc 按端口号过滤|Filter by port number}"/>
+                        <TextBox x:Name="TxtPortsOut" Grid.Row="1" Grid.ColumnSpan="3"
+                                 Background="#1E1E1E" Foreground="#DCDCDC" FontFamily="Consolas" FontSize="12"
+                                 TextWrapping="NoWrap" IsReadOnly="True" IsUndoEnabled="False"
+                                 BorderThickness="0" Padding="8" Margin="30,8,0,0"
+                                 MinHeight="120" MaxHeight="220" VerticalScrollBarVisibility="Auto"/>
+                        <TextBlock x:Name="TxtPortsHint" Grid.Row="2" Grid.ColumnSpan="3"
+                                   TextWrapping="Wrap" FontSize="11" Margin="30,6,0,0"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+                    </Grid>
+                </Border>
+
+                <!-- 4. 驱动备份 -->
+                <Border Style="{StaticResource GlassCard}">
+                    <Grid Margin="14">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="💾" FontSize="18" VerticalAlignment="Top"/>
+                        <StackPanel Grid.Row="0" Grid.Column="0" Margin="30,0,0,0">
+                            <TextBlock Text="{loc:Loc 驱动备份|Driver backup}" FontSize="14" FontWeight="Bold"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"/>
+                            <TextBlock Text="{loc:Loc 导出全部驱动到桌面 DriverBackup（需管理员）|Export all drivers to Desktop DriverBackup (admin)}"
+                                       FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                        </StackPanel>
+                        <Button x:Name="BtnDrivers" Grid.Row="0" Grid.Column="1" Content="{loc:Loc 开始备份|Backup}"
+                                Padding="14,6" VerticalAlignment="Center" Click="BtnDrivers_Click"/>
+                        <TextBox x:Name="TxtDriversOut" Grid.Row="1" Grid.ColumnSpan="2"
+                                 Background="#1E1E1E" Foreground="#DCDCDC" FontFamily="Consolas" FontSize="12"
+                                 TextWrapping="Wrap" IsReadOnly="True" IsUndoEnabled="False"
+                                 BorderThickness="0" Padding="8" Margin="30,8,0,0"
+                                 MinHeight="90" MaxHeight="180" VerticalScrollBarVisibility="Auto"/>
+                        <TextBlock x:Name="TxtDriversHint" Grid.Row="2" Grid.ColumnSpan="2"
+                                   TextWrapping="Wrap" FontSize="11" Margin="30,6,0,0"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+                    </Grid>
+                </Border>
+
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

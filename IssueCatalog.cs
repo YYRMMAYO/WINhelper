@@ -1,4 +1,10 @@
-﻿using System;
+﻿// 司南工具箱 (WINHELP)
+// Copyright (C) 2025-2026 YYRMM
+// 本程序为自由软件，在 GNU 通用公共许可证第 2 版（GPL v2）下发布。
+// 你可以自由使用、复制、修改和再分发，但须保留本协议且不附加任何限制。
+// 本程序按“现状”提供，不含任何担保。详见 LICENSE。
+
+using System;
 using System.Collections.Generic;
 using System.Text;
 

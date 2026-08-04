@@ -251,9 +251,17 @@ public partial class WindowShredder : UserControl
     private void ShredDirectory(ShredItem? item, string dir, int passes)
     {
         foreach (var file in Directory.EnumerateFiles(dir, "*", SearchOption.TopDirectoryOnly))
+        {
+            // 安全：跳过重解析点（junction / 符号链接 / 挂载点），避免粉碎链接指向的真实文件（安全审计建议 P1）
+            if (Cleaner.IsReparsePoint(file)) continue;
             ShredFile(null, file, passes);
+        }
         foreach (var sub in Directory.EnumerateDirectories(dir, "*", SearchOption.TopDirectoryOnly))
+        {
+            // 安全：重解析点子目录不递归进入、不删除（内容在链接目标中）
+            if (Cleaner.IsReparsePoint(sub)) continue;
             ShredDirectory(null, sub, passes);
+        }
         try { Directory.Delete(dir, false); } catch { /* 非空则忽略 */ }
     }
 

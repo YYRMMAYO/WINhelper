@@ -23,12 +23,6 @@ jobs:
       - name: Restore
         run: dotnet restore WINHELP.csproj
 
-      - name: Generate BuildInfo
-        shell: pwsh
-        run: |
-          $ts = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-          .\gen_buildinfo.ps1 -Timestamp $ts -OutputPath BuildInfo.g.cs
-
       - name: Publish (self-contained, single-file, win-x64)
         run: dotnet publish WINHELP.csproj -c Release -r win-x64 -o ./publish-out
 

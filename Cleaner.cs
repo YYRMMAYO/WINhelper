@@ -1,3 +1,9 @@
+// 司南工具箱 (WINHELP)
+// Copyright (C) 2025-2026 YYRMM
+// 本程序为自由软件，在 GNU 通用公共许可证第 2 版（GPL v2）下发布。
+// 你可以自由使用、复制、修改和再分发，但须保留本协议且不附加任何限制。
+// 本程序按“现状”提供，不含任何担保。详见 LICENSE。
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -85,8 +91,9 @@ namespace WINHELP
         }
 
         /// <summary>判断路径是否为重解析点（junction / 符号链接 / 挂载点），是则返回 true —— 安全：删除前必须跳过，
-        /// 否则递归删除会跟随链接删除目标目录中的真实文件（安全审计建议 P2）。</summary>
-        private static bool IsReparsePoint(string path)
+        /// 否则递归删除会跟随链接删除目标目录中的真实文件（安全审计建议 P2）。
+        /// public：供 WindowShredder 等外部模块复用。</summary>
+        public static bool IsReparsePoint(string path)
         {
             try
             {

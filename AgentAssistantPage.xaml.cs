@@ -44,8 +44,8 @@ namespace WINHELP
         private static readonly string HistoryPath =
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "WINHELP", "agent_history.json");
 
-        // API 客户端（生成可能较慢，超时设长一些）
-        private static readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(180) };
+        // API 客户端：统一走 HttpClientProvider 共享实例，超时用 per-request CTS（对话 180s）
+        //private static readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(180) };
 
         private sealed record ChatTurn(string Role, string Content);
 
@@ -75,7 +75,11 @@ namespace WINHELP
             }
         }
 
-        /// <summary>把当前多轮对话保存到 agent_history.json（仅 role/content）。</summary>
+        /// <summary>把当前多轮对话保存到 agent_history.json（仅 role/content）。
+        /// v4.9.0：内容经 DPAPI 加密落盘，避免明文对话历史泄露（安全审计建议 P2）。
+        /// 熵标签独立于 AgentSettings 的标签，互不干扰。</summary>
+        private const string HistoryEntropyTag = "WINHELP.AgentHistory.v1";
+
         private void SaveHistory()
         {
             try
@@ -83,18 +87,27 @@ namespace WINHELP
                 var dir = Path.GetDirectoryName(HistoryPath);
                 if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
                 var json = JsonSerializer.Serialize(_messages, new JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText(HistoryPath, json);
+                var cipher = DpapiProtector.Encrypt(json, HistoryEntropyTag);
+                File.WriteAllText(HistoryPath, cipher);
             }
             catch (Exception ex) { App.LogCrash(ex, "AgentHistorySave"); /* 持久化失败不应影响对话 */ }
         }
 
-        /// <summary>从 agent_history.json 恢复上次对话；有内容返回 true，否则 false。</summary>
+        /// <summary>从 agent_history.json 恢复上次对话；有内容返回 true，否则 false。
+        /// 兼容迁移：老版本明文 JSON 历史 → 尝试按明文解析并立即重写为密文（老用户历史不丢）。</summary>
         private bool LoadHistory()
         {
             try
             {
                 if (!File.Exists(HistoryPath)) return false;
-                var json = File.ReadAllText(HistoryPath);
+                var raw = File.ReadAllText(HistoryPath);
+                var json = raw;
+                // 已加密 → 解密；非加密（明文 JSON）→ 保留原文，并在解析成功后立即迁移为密文
+                if (DpapiProtector.LooksEncrypted(raw))
+                {
+                    json = DpapiProtector.Decrypt(raw, HistoryEntropyTag);
+                    if (string.IsNullOrEmpty(json)) return false; // 密文无法解密（密钥环境变化）→ 视为无历史
+                }
                 var list = JsonSerializer.Deserialize<List<ChatTurn>>(json);
                 if (list == null || list.Count == 0) return false;
                 foreach (var m in list)
@@ -103,6 +116,9 @@ namespace WINHELP
                     _messages.Add(m);
                     AddMessageBubble(m.Role, m.Content);
                 }
+                // 明文历史自动迁移为密文（幂等，老用户首次加载即生效）
+                if (!DpapiProtector.LooksEncrypted(raw))
+                    SaveHistory();
                 return true;
             }
             catch (Exception ex) { App.LogCrash(ex, "AgentHistoryLoad"); return false; }
@@ -254,6 +270,15 @@ namespace WINHELP
             return (baseUrl, apiKey, model, temperature, systemPrompt);
         }
 
+        /// <summary>
+        /// 校验 API 基地址（SSRF 防护，安全审计建议 P1）：
+        /// 1. 仅接受 http/https 绝对地址；
+        /// 2. 显式拒绝云元数据服务地址 169.254.169.254（防止 SSRF 窃取云凭据）；
+        /// 3. 非本机回环地址（localhost/127.x/::1）强制 https，防止 API 令牌经明文 HTTP 外泄。
+        /// 返回修正后的地址；地址无效返回 null（调用方应阻断连接）。
+        /// </summary>
+        private static string? ValidateApiBase(string baseUrl) => SafeUrl.ValidateApiBase(baseUrl);
+
         private void Button_Tutorial_Click(object sender, RoutedEventArgs e)
             => OnOpenTutorial?.Invoke();
 
@@ -312,6 +337,13 @@ namespace WINHELP
                 SetTest(false, "地址无效：需以 http:// 或 https:// 开头");
                 return;
             }
+            // SSRF 防护：拒绝云元数据地址；非回环地址强制 https
+            if (ValidateApiBase(baseUrl) is not string safeUrl)
+            {
+                SetTest(false, "地址无效：不支持非 http(s) 或云元数据服务地址（169.254.169.254）");
+                return;
+            }
+            baseUrl = safeUrl;
             if (!Uri.TryCreate(baseUrl, UriKind.Absolute, out var uri) ||
                 (uri.Scheme != "http" && uri.Scheme != "https"))
             {
@@ -364,7 +396,7 @@ namespace WINHELP
                     req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
                 req.Content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                using var resp = await _http.SendAsync(req, cts.Token);
+                using var resp = await HttpClientProvider.Shared.SendAsync(req, cts.Token);
                 if (resp.IsSuccessStatusCode)
                 {
                     SetTest(true, $"连接成功：已用模型「{model}」完成一次真实对话测试");
@@ -512,6 +544,10 @@ namespace WINHELP
         {
             // 与“测试连接”使用同一来源（UI 当前值），保证“测试成功即对话可用”，避免保存前后不一致
             var (baseUrl, apiKey, model, temperature, systemPrompt) = ReadUiSettings();
+            // SSRF 防护：地址无效（含云元数据地址）直接阻断，不发起请求
+            if (ValidateApiBase(baseUrl) is not string safeUrl)
+                throw new Exception("API 地址无效：非 http(s) 或为云元数据服务地址，已阻止连接。请在「设置」中修正。");
+            baseUrl = safeUrl;
             var endpoint = baseUrl.TrimEnd('/') + "/chat/completions";
 
             var msgs = new List<object>();
@@ -539,7 +575,9 @@ namespace WINHELP
             HttpResponseMessage resp;
             try
             {
-                resp = await _http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead);
+                using var streamCts = HttpClientProvider.Timeout(180); // 保持原 180s 生成超时语义
+                resp = await HttpClientProvider.Shared.SendAsync(req,
+                    HttpCompletionOption.ResponseHeadersRead, streamCts.Token);
             }
             catch (HttpRequestException hx) when (hx.InnerException is SocketException sx)
             {
@@ -663,7 +701,8 @@ namespace WINHELP
             HttpResponseMessage resp;
             try
             {
-                resp = await _http.SendAsync(req);
+                using var cts = HttpClientProvider.Timeout(180); // 保持原 180s 超时语义
+                resp = await HttpClientProvider.Shared.SendAsync(req, cts.Token);
             }
             catch (HttpRequestException hx) when (hx.InnerException is SocketException sx)
             {
@@ -704,6 +743,10 @@ namespace WINHELP
         private async Task<string> AgentLoopAsync(string userText, Action<string> onDelta)
         {
             var (baseUrl, apiKey, model, temperature, systemPrompt) = ReadUiSettings();
+            // SSRF 防护：地址无效（含云元数据地址）直接阻断，不发起请求
+            if (ValidateApiBase(baseUrl) is not string safeUrl)
+                return "API 地址无效：非 http(s) 或为云元数据服务地址，已阻止连接。请在「设置」中修正。";
+            baseUrl = safeUrl;
             var endpoint = baseUrl.TrimEnd('/') + "/chat/completions";
 
             var apiMessages = new List<object>();

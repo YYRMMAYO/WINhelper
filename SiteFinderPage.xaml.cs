@@ -122,21 +122,7 @@ namespace WINHELP
             ThemeManager.ApplyButtonTheme(BtnUpdate, ThemeManager.AccentColor);
         }
 
-        private static void OpenUrl(string url)
-        {
-            try
-            {
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = url,
-                    UseShellExecute = true
-                });
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"无法打开链接: {ex.Message}");
-            }
-        }
+        private static void OpenUrl(string url) => SafeUrl.Open(url);
 
         /// <summary>统一处理所有"打开官网"按钮：从 Tag 中读取 URL 并用默认浏览器打开（合并自官网导航模块）。</summary>
         private void OpenSite_Click(object sender, RoutedEventArgs e)
@@ -214,6 +200,6 @@ namespace WINHELP
 
         // ===== 右侧面板 =====
         private void Button_Click_1(object sender, RoutedEventArgs e)   => OpenUrl("https://steampp.net/");
-        private void Button_Click_5(object sender, RoutedEventArgs e)   => OpenUrl("https://wwbpq.lanzouu.com/b01d71xtzg");
+        private void Button_Click_5(object sender, RoutedEventArgs e)   => SafeUrl.Open(UpdateManager.BackupDownloadUrl);
     }
 }

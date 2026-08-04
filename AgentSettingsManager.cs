@@ -1,5 +1,10 @@
-﻿using System.IO;
-using System.Security.Cryptography;
+﻿// 司南工具箱 (WINHELP)
+// Copyright (C) 2025-2026 YYRMM
+// 本程序为自由软件，在 GNU 通用公共许可证第 2 版（GPL v2）下发布。
+// 你可以自由使用、复制、修改和再分发，但须保留本协议且不附加任何限制。
+// 本程序按“现状”提供，不含任何担保。详见 LICENSE。
+
+using System.IO;
 using System.Text;
 using System.Text.Json;
 
@@ -38,7 +43,8 @@ namespace WINHELP
         private static readonly string ConfigPath = Path.Combine(ConfigDir, "agent.json");
 
         // DPAPI 附加熵：即使其它进程能读取同一用户的数据，没有此熵也无法解密
-        private static readonly byte[] Entropy = Encoding.UTF8.GetBytes("WINHELP.AgentSettings.v1");
+        // 注意：此值严禁改动 —— 改动会导致老用户已保存的 API 密钥无法解密（解密失败被清空）
+        private const string EntropyTag = "WINHELP.AgentSettings.v1";
 
         public static AgentSettings Current { get; private set; } = new();
 
@@ -84,28 +90,10 @@ namespace WINHELP
 
         /// <summary>使用 DPAPI 加密（仅当前 Windows 用户可解密）。空值原样返回。</summary>
         private static string Encrypt(string plain)
-        {
-            if (string.IsNullOrEmpty(plain)) return "";
-            try
-            {
-                var data = ProtectedData.Protect(
-                    Encoding.UTF8.GetBytes(plain), Entropy, DataProtectionScope.CurrentUser);
-                return Convert.ToBase64String(data);
-            }
-            catch { return ""; } // DPAPI 失败时宁可丢弃密钥也不明文保存
-        }
+            => DpapiProtector.Encrypt(plain, EntropyTag);
 
         /// <summary>使用 DPAPI 解密；失败返回空字符串（由调用方回写清空）。</summary>
         private static string Decrypt(string cipher)
-        {
-            if (string.IsNullOrEmpty(cipher)) return "";
-            try
-                {
-                var data = ProtectedData.Unprotect(
-                    Convert.FromBase64String(cipher), Entropy, DataProtectionScope.CurrentUser);
-                return Encoding.UTF8.GetString(data);
-            }
-            catch { return ""; }
-        }
+            => DpapiProtector.Decrypt(cipher, EntropyTag);
     }
 }

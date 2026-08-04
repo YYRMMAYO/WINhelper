@@ -16,8 +16,6 @@ namespace WINHELP
     /// </summary>
     public static class AiClient
     {
-        private static readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(20) };
-
         /// <summary>
         /// 发起一次非流式对话。返回模型文本；若未配置密钥返回 null。
         /// 出错抛出 Exception（含友好提示），调用方需自行 try/catch 降级。
@@ -31,6 +29,10 @@ namespace WINHELP
             var baseUrl = string.IsNullOrWhiteSpace(settings.ApiBaseUrl)
                 ? "https://api.openai.com/v1"
                 : settings.ApiBaseUrl.TrimEnd('/');
+            // SSRF 防护：地址无效（含云元数据地址）阻断；非回环地址强制 https
+            if (SafeUrl.ValidateApiBase(baseUrl) is not string safeUrl)
+                throw new Exception("AI 服务地址无效：非 http(s) 或为云元数据服务地址，已阻止连接。");
+            baseUrl = safeUrl;
             var endpoint = baseUrl + "/chat/completions";
             var model = string.IsNullOrWhiteSpace(settings.Model) ? "gpt-4o-mini" : settings.Model;
 
@@ -55,7 +57,9 @@ namespace WINHELP
             HttpResponseMessage resp;
             try
             {
-                resp = await _http.SendAsync(req, ct);
+                using var cts = HttpClientProvider.Timeout(20); // 保持原 20s 超时语义
+                using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, cts.Token);
+                resp = await HttpClientProvider.Shared.SendAsync(req, linked.Token);
             }
             catch (Exception ex)
             {

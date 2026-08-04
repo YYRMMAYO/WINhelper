@@ -1,16 +1,23 @@
 ﻿using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Management;
+using System.Security.Cryptography.X509Certificates;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 
 namespace WINHELP;
 
-/// <summary>启动项管理页（导航 key="startup"）：管理开机自启程序。由 MainWindow._factories 懒加载；依赖 ThemeManager 玻璃画刷与 LocExtension 多语言。</summary>
+/// <summary>启动项管理页（导航 key="startup"）：管理开机自启程序。
+/// v4.9.0 增强：扫描面扩展（RunOnce / Wow6432Node / Policies）+ 原生 StartupApproved 禁用机制
+/// （与任务管理器双向同步，保留旧 WINHELP_Disabled 读取兼容与手动迁移）+ 发布者/数字签名列 + 计划任务只读展示。
+/// 由 MainWindow._factories 懒加载；依赖 ThemeManager 玻璃画刷与 LocExtension 多语言。</summary>
 public partial class StartupPage : UserControl
 {
     private enum Impact { High, Medium, Low }
@@ -26,6 +33,14 @@ public partial class StartupPage : UserControl
         public string FilePath = "";
         public bool Enabled;
         public bool IsStartupFolder;
+        // v4.9.0：旧版禁用标记（来自 WINHELP_Disabled 子键）
+        public bool LegacyDisabled;
+        // v4.9.0：只读项（计划任务 / 非提权 HKLM）
+        public bool ReadOnly;
+        public string ReadOnlyNote = "";
+        // v4.9.0：发布者 / 数字签名
+        public string Publisher = "";
+        public string SignedState = "";
         // N6 影响评估（只读，不影响禁用逻辑）
         public Impact ImpactLevel = Impact.Low;
         public double BootSeconds;
@@ -42,6 +57,14 @@ public partial class StartupPage : UserControl
     private readonly List<Entry> _entries = new();
     private BootInfo? _bootInfo;
 
+    // v4.9.0：原生 StartupApproved 路径（与任务管理器共用）
+    private const string ApprovedRun =
+        @"Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run";
+    private const string ApprovedRun32 =
+        @"Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run32";
+    private const string RunPath =
+        @"Software\Microsoft\Windows\CurrentVersion\Run";
+
     public StartupPage()
     {
         InitializeComponent();
@@ -50,6 +73,8 @@ public partial class StartupPage : UserControl
         UiLanguage.Changed += () => Dispatcher.Invoke(Render);
         LoadAll();
         Render();
+        // 计划任务扫描较慢，异步执行，完成后重绘
+        _ = LoadScheduledTasksAsync();
     }
 
     private void LoadAll()
@@ -72,11 +97,29 @@ public partial class StartupPage : UserControl
         TxtStatus.Text = UiLanguage.L($"已加载 {_entries.Count} 个启动项", $"Loaded {_entries.Count} startup items");
     }
 
+    // ===== 扫描面（v4.9.0 扩展）=====
+
     private void LoadEntries()
     {
-        const string run = "Software\\Microsoft\\Windows\\CurrentVersion\\Run";
-        TryLoadRegistry(Registry.CurrentUser, run, "当前用户");
-        TryLoadRegistry(Registry.LocalMachine, run, "所有用户（需管理员权限）");
+        // 1) 注册表 Run（当前用户 / 所有用户）
+        TryLoadRegistry(Registry.CurrentUser, RunPath, "当前用户");
+        TryLoadRegistry(Registry.LocalMachine, RunPath, "所有用户（需管理员权限）");
+
+        // 2) RunOnce（一次性自启，通常用于安装程序）
+        TryLoadRegistry(Registry.CurrentUser,
+            @"Software\Microsoft\Windows\CurrentVersion\RunOnce", "当前用户 RunOnce");
+        TryLoadRegistry(Registry.LocalMachine,
+            @"Software\Microsoft\Windows\CurrentVersion\RunOnce", "所有用户 RunOnce（需管理员权限）");
+
+        // 3) Wow6432Node Run（32 位程序在 64 位系统中的注册位置）
+        TryLoadRegistry(Registry.LocalMachine,
+            @"Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Run", "32 位程序（Wow6432Node）");
+
+        // 4) 组策略 Run（Policies\Explorer\Run）
+        TryLoadRegistry(Registry.LocalMachine,
+            @"Software\Microsoft\Windows\CurrentVersion\Policies\Explorer\Run", "组策略 Run（所有用户）");
+        TryLoadRegistry(Registry.CurrentUser,
+            @"Software\Microsoft\Windows\CurrentVersion\Policies\Explorer\Run", "组策略 Run（当前用户）");
 
         // 启动文件夹
         var startupDir = Environment.GetFolderPath(Environment.SpecialFolder.Startup);
@@ -88,38 +131,51 @@ public partial class StartupPage : UserControl
 
     private void TryLoadRegistry(RegistryKey baseKey, string runPath, string source)
     {
+        bool isHklm = baseKey == Registry.LocalMachine;
+        bool adminOnly = isHklm && !CommandRunner.IsElevated; // 非提权 HKLM 只读
+
         try
         {
             using var key = baseKey.OpenSubKey(runPath, false);
             if (key != null)
                 foreach (var name in key.GetValueNames())
-                    _entries.Add(new Entry
-                    {
-                        Name = name,
-                        Command = key.GetValue(name)?.ToString() ?? "",
-                        Source = source,
-                        Base = baseKey,
-                        RunPath = runPath,
-                        Enabled = true
-                    });
+                    _entries.Add(BuildRegistryEntry(baseKey, runPath, source, name,
+                        key.GetValue(name)?.ToString() ?? "", adminOnly));
 
+            // 旧版禁用子键（兼容：老用户已禁用项必须继续显示为禁用，否则会静默复活）
             using var dis = baseKey.OpenSubKey(runPath + "\\WINHELP_Disabled", false);
             if (dis != null)
                 foreach (var name in dis.GetValueNames())
-                    _entries.Add(new Entry
-                    {
-                        Name = name,
-                        Command = dis.GetValue(name)?.ToString() ?? "",
-                        Source = source,
-                        Base = baseKey,
-                        RunPath = runPath,
-                        Enabled = false
-                    });
+                    _entries.Add(BuildRegistryEntry(baseKey, runPath, source, name,
+                        dis.GetValue(name)?.ToString() ?? "", adminOnly, legacyDisabled: true));
         }
-            catch (Exception ex)
-            {
-                TxtStatus.Text = UiLanguage.L("读取启动项出错（部分项需管理员权限）：", "Error reading startup items (some need admin): ") + ex.Message;
-            }
+        catch (Exception ex)
+        {
+            TxtStatus.Text = UiLanguage.L("读取启动项出错（部分项需管理员权限）：", "Error reading startup items (some need admin): ") + ex.Message;
+        }
+    }
+
+    private Entry BuildRegistryEntry(RegistryKey baseKey, string runPath, string source,
+        string name, string command, bool readOnly, bool legacyDisabled = false)
+    {
+        // 原生 StartupApproved 状态（与任务管理器一致）：0x03=禁用 / 0x02=启用 / 无记录=启用
+        bool? approved = ReadApproved(baseKey, name);
+        // 语义：legacyDisabled=true → 禁用；approved==true → 禁用；其余 → 启用
+        bool enabled = !legacyDisabled && approved != true;
+
+        return new Entry
+        {
+            Name = name,
+            Command = command,
+            Source = source,
+            Base = baseKey,
+            RunPath = runPath,
+            Enabled = enabled,
+            LegacyDisabled = legacyDisabled,
+            ReadOnly = readOnly,
+            ReadOnlyNote = readOnly ? UiLanguage.L("HKLM 项：请以管理员身份重启本程序后可修改",
+                "HKLM item: restart as admin to modify") : ""
+        };
     }
 
     private void TryLoadStartupFolder(string dir, string source)
@@ -136,8 +192,95 @@ public partial class StartupPage : UserControl
                     Source = source,
                     FilePath = file,
                     IsStartupFolder = true,
-                    Enabled = true
+                    Enabled = !file.EndsWith(".lnk.disabled", StringComparison.OrdinalIgnoreCase)
                 });
+            }
+        }
+        catch { }
+    }
+
+    // ===== 原生 StartupApproved（v4.9.0）=====
+
+    /// <summary>读取原生禁用状态：true=原生禁用，false=原生启用，null=无记录。</summary>
+    private static bool? ReadApproved(RegistryKey baseKey, string name)
+    {
+        try
+        {
+            foreach (var path in new[] { ApprovedRun, ApprovedRun32 })
+            {
+                using var k = baseKey.OpenSubKey(path);
+                if (k?.GetValue(name) is byte[] b && b.Length >= 1)
+                {
+                    if (b[0] == 0x03) return true;
+                    if (b[0] == 0x02) return false;
+                }
+            }
+        }
+        catch { }
+        return null;
+    }
+
+    /// <summary>写入原生禁用状态（12 字节二进制，与任务管理器格式一致）。</summary>
+    private static void WriteApproved(RegistryKey baseKey, string name, bool disabled)
+    {
+        var bytes = new byte[12];
+        bytes[0] = disabled ? (byte)0x03 : (byte)0x02;
+        long ft = DateTime.UtcNow.ToFileTimeUtc();
+        for (int i = 0; i < 8; i++) bytes[4 + i] = (byte)(ft >> (8 * i));
+        using var k = baseKey.CreateSubKey(ApprovedRun);
+        k?.SetValue(name, bytes, RegistryValueKind.Binary);
+    }
+
+    // ===== 计划任务（只读展示，v4.9.0）=====
+    // 任务名是用户数据，无法字面量白名单化，因此只读展示、不提供开关。
+
+    private async Task LoadScheduledTasksAsync()
+    {
+        try
+        {
+            CommandRunner.RegisterAllowed(new[] { "schtasks /query /xml" });
+            var r = await CommandRunner.RunAsync("schtasks /query /xml", timeoutSec: 40);
+            if (!r.Success || string.IsNullOrWhiteSpace(r.Output)) return;
+
+            // 输出为多个 <Task ...>...</Task> 拼接，逐个解析
+            foreach (Match m in Regex.Matches(r.Output, @"<Task\b[\s\S]*?</Task>"))
+            {
+                try
+                {
+                    var doc = System.Xml.Linq.XDocument.Parse(m.Value);
+                    var root = doc.Root;
+                    if (root == null) continue;
+                    bool logonOrBoot = false, enabled = false;
+                    foreach (var trig in root.Descendants("Triggers").SelectMany(t => t.Elements()))
+                    {
+                        var tname = trig.Name.LocalName;
+                        if (tname is "LogonTrigger" or "BootTrigger")
+                        {
+                            logonOrBoot = true;
+                            var en = trig.Element("Enabled");
+                            if (en == null || en.Value == "true") enabled = true;
+                        }
+                    }
+                    if (!logonOrBoot || !enabled) continue;
+                    var taskName = (string?)root.Attribute("URI") ?? "";
+                    var exec = root.Descendants("Command").FirstOrDefault()?.Value ?? "";
+                    var args = root.Descendants("Arguments").FirstOrDefault()?.Value ?? "";
+                    if (string.IsNullOrWhiteSpace(taskName)) continue;
+                    Dispatcher.Invoke(() =>
+                    {
+                        _entries.Add(new Entry
+                        {
+                            Name = taskName,
+                            Command = exec + " " + args,
+                            Source = "计划任务（只读）",
+                            Enabled = false,
+                            ReadOnly = true,
+                            ReadOnlyNote = UiLanguage.L("登录/启动时触发，只读展示", "Logon/boot triggered, read-only")
+                        });
+                        Render();
+                    });
+                }
+                catch { /* 单个任务解析失败跳过 */ }
             }
         }
         catch { }
@@ -193,6 +336,27 @@ public partial class StartupPage : UserControl
             e.ImpactLevel = Impact.Low;
             e.BootSeconds = 0.3;
         }
+
+        // v4.9.0：发布者 + 数字签名（失败静默降级为未签名）
+        if (path != null && File.Exists(path))
+        {
+            try
+            {
+                var vi = FileVersionInfo.GetVersionInfo(path);
+                e.Publisher = vi.CompanyName ?? "";
+                if (string.IsNullOrWhiteSpace(e.Publisher)) e.Publisher = vi.FileDescription ?? "";
+            }
+            catch { }
+            try
+            {
+                using var cert = System.Security.Cryptography.X509Certificates.X509CertificateLoader
+                    .LoadCertificateFromFile(path);
+                var subject = cert.Subject ?? "";
+                var cn = Regex.Match(subject, @"CN=([^,]+)").Groups[1].Value;
+                e.SignedState = string.IsNullOrWhiteSpace(cn) ? UiLanguage.L("已签名", "Signed") : cn;
+            }
+            catch { e.SignedState = UiLanguage.L("未签名", "Unsigned"); }
+        }
     }
 
     private static string? ExtractExePath(string command)
@@ -235,8 +399,6 @@ public partial class StartupPage : UserControl
         }
         catch { /* WMI 读取失败则留空，Render 中给出友好提示 */ }
 
-        // 可选：尝试从性能日志读取精确开机耗时；
-        // 该 ETW 日志通常不可经 Win32_NTLogEvent 查询，故默认标记为"需性能日志(可选)"。
         _bootInfo.HasPreciseDuration = false;
         try
         {
@@ -256,10 +418,18 @@ public partial class StartupPage : UserControl
         catch { /* 无权限或未开启：保持可选标记 */ }
     }
 
+    // ===== 启用 / 禁用（v4.9.0：优先原生 StartupApproved）=====
+
     private void Toggle(Entry e)
     {
         try
         {
+            if (e.ReadOnly)
+            {
+                TxtStatus.Text = UiLanguage.L("该项只读：", "Read-only item: ") + e.ReadOnlyNote;
+                return;
+            }
+
             if (e.IsStartupFolder)
             {
                 // 启动文件夹：重命名或移动来实现禁用/启用
@@ -292,27 +462,23 @@ public partial class StartupPage : UserControl
             }
             else
             {
+                // 旧版禁用项：先迁移到原生机制（恢复 Run 值 + 清除旧键），再按原生机制切换
+                if (e.LegacyDisabled)
+                {
+                    MigrateLegacyToNative(e, enableFirst: true);
+                    e.LegacyDisabled = false;
+                }
+
                 if (e.Enabled)
                 {
-                    using var run = e.Base?.OpenSubKey(e.RunPath, true);
-                    if (run == null) return;
-                    var val = run.GetValue(e.Name);
-                    if (val == null) return;
-                    using var dis = e.Base?.CreateSubKey(e.RunPath + "\\WINHELP_Disabled");
-                    dis?.SetValue(e.Name, val);
-                    run.DeleteValue(e.Name, false);
+                    // 禁用：写入原生 StartupApproved=0x03（与任务管理器一致，Run 值保留）
+                    WriteApproved(e.Base!, e.Name, disabled: true);
                     e.Enabled = false;
                     TxtStatus.Text = UiLanguage.L($"已禁用：{e.Name}", $"Disabled: {e.Name}");
                 }
                 else
                 {
-                    using var dis = e.Base?.OpenSubKey(e.RunPath + "\\WINHELP_Disabled", true);
-                    if (dis == null) return;
-                    var val = dis.GetValue(e.Name);
-                    if (val == null) return;
-                    using var run = e.Base?.CreateSubKey(e.RunPath);
-                    run?.SetValue(e.Name, val);
-                    dis.DeleteValue(e.Name, false);
+                    WriteApproved(e.Base!, e.Name, disabled: false);
                     e.Enabled = true;
                     TxtStatus.Text = UiLanguage.L($"已启用：{e.Name}", $"Enabled: {e.Name}");
                 }
@@ -325,11 +491,46 @@ public partial class StartupPage : UserControl
         Render();
     }
 
+    /// <summary>把旧版 WINHELP_Disabled 禁用项迁移到原生 StartupApproved 机制（手动触发，不批量自动迁移）。</summary>
+    private void MigrateLegacyToNative(Entry e, bool enableFirst)
+    {
+        // 从旧禁用子键读出值，写回 Run
+        using var dis = e.Base?.OpenSubKey(e.RunPath + "\\WINHELP_Disabled", true);
+        if (dis == null) return;
+        var val = dis.GetValue(e.Name);
+        if (val == null) return;
+        using var run = e.Base?.CreateSubKey(e.RunPath);
+        run?.SetValue(e.Name, val);
+        dis.DeleteValue(e.Name, false);
+        // 写入原生状态（启用=0x02；由调用方随后决定是否改为禁用）
+        WriteApproved(e.Base!, e.Name, disabled: !enableFirst);
+    }
+
+    /// <summary>手动迁移单个旧版禁用项到原生机制（保留禁用状态）。</summary>
+    private void MigrateOne(Entry e)
+    {
+        try
+        {
+            MigrateLegacyToNative(e, enableFirst: false);
+            e.LegacyDisabled = false;
+            e.Enabled = false;
+            TxtStatus.Text = UiLanguage.L($"已迁移到系统机制（保持禁用）：{e.Name}",
+                $"Migrated to native mechanism (kept disabled): {e.Name}");
+        }
+        catch (Exception ex)
+        {
+            TxtStatus.Text = UiLanguage.L("迁移失败：", "Migration failed: ") + ex.Message;
+        }
+        Render();
+    }
+
+    // ===== 渲染 =====
+
     private void Render()
     {
         TxtTitle.Text = UiLanguage.L("启动项管理", "Startup Manager");
-        TxtSubtitle.Text = UiLanguage.L("禁用不必要的开机自启项，加快开机速度",
-            "Disable unneeded startup items to speed up boot");
+        TxtSubtitle.Text = UiLanguage.L("禁用不必要的开机自启项，加快开机速度（与任务管理器同步）",
+            "Disable unneeded startup items to speed up boot (synced with Task Manager)");
         BtnRefresh.Content = UiLanguage.L("刷新", "Refresh");
 
         ListPanel.Children.Clear();
@@ -420,7 +621,7 @@ public partial class StartupPage : UserControl
                 Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#2C3E50"))
             });
 
-            // 影响评估徽章 + 开机耗时估算（颜色：高=橙红 / 中=黄 / 低=绿）
+            // 影响评估徽章 + 开机耗时估算
             var badgeRow = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
@@ -448,6 +649,48 @@ public partial class StartupPage : UserControl
                 Foreground = new SolidColorBrush(Colors.White)
             };
             badgeRow.Children.Add(badge);
+
+            // v4.9.0：旧版禁用徽标（橙色）
+            if (e.LegacyDisabled)
+            {
+                var legacy = new Border
+                {
+                    Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#E67E22")),
+                    CornerRadius = new CornerRadius(6),
+                    Padding = new Thickness(8, 2, 8, 2),
+                    Margin = new Thickness(6, 0, 0, 0),
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                legacy.Child = new TextBlock
+                {
+                    Text = UiLanguage.L("旧版禁用", "Legacy off"),
+                    FontSize = 11,
+                    FontWeight = FontWeights.SemiBold,
+                    Foreground = new SolidColorBrush(Colors.White)
+                };
+                badgeRow.Children.Add(legacy);
+            }
+            // v4.9.0：只读徽标（计划任务 / 非提权 HKLM）
+            if (e.ReadOnly)
+            {
+                var ro = new Border
+                {
+                    Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#95A5A6")),
+                    CornerRadius = new CornerRadius(6),
+                    Padding = new Thickness(8, 2, 8, 2),
+                    Margin = new Thickness(6, 0, 0, 0),
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                ro.Child = new TextBlock
+                {
+                    Text = UiLanguage.L("只读", "Read-only"),
+                    FontSize = 11,
+                    FontWeight = FontWeights.SemiBold,
+                    Foreground = new SolidColorBrush(Colors.White)
+                };
+                badgeRow.Children.Add(ro);
+            }
+
             badgeRow.Children.Add(new TextBlock
             {
                 Text = UiLanguage.L($"  影响评估 · 预计开机占用 ≈ {e.BootSeconds:F1}s",
@@ -458,6 +701,28 @@ public partial class StartupPage : UserControl
                 Margin = new Thickness(8, 0, 0, 0)
             });
             sp.Children.Add(badgeRow);
+
+            // v4.9.0：发布者 / 签名
+            if (!string.IsNullOrEmpty(e.Publisher))
+                sp.Children.Add(new TextBlock
+                {
+                    Text = UiLanguage.L("发布者：", "Publisher: ") + e.Publisher,
+                    FontSize = 11,
+                    Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#7F8C8D")),
+                    Margin = new Thickness(0, 3, 0, 0)
+                });
+            if (!string.IsNullOrEmpty(e.SignedState))
+            {
+                var signedColor = e.SignedState == UiLanguage.L("未签名", "Unsigned")
+                    ? "#E67E22" : "#27AE60";
+                sp.Children.Add(new TextBlock
+                {
+                    Text = UiLanguage.L("签名：", "Signature: ") + e.SignedState,
+                    FontSize = 11,
+                    Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(signedColor)),
+                    Margin = new Thickness(0, 2, 0, 0)
+                });
+            }
 
             sp.Children.Add(new TextBlock
             {
@@ -496,25 +761,75 @@ public partial class StartupPage : UserControl
                     Margin = new Thickness(0, 4, 0, 0)
                 });
             }
+            if (e.ReadOnly && !string.IsNullOrEmpty(e.ReadOnlyNote))
+            {
+                sp.Children.Add(new TextBlock
+                {
+                    Text = e.ReadOnlyNote,
+                    FontSize = 11,
+                    Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#95A5A6")),
+                    Margin = new Thickness(0, 4, 0, 0),
+                    TextWrapping = TextWrapping.Wrap
+                });
+            }
 
             grid.Children.Add(sp);
 
-            var btn = new Button
+            // 右侧操作列：启用/禁用按钮 + 可选迁移按钮
+            var actions = new StackPanel { Orientation = Orientation.Vertical, VerticalAlignment = VerticalAlignment.Center };
+            if (!e.ReadOnly)
             {
-                Content = e.Enabled ? UiLanguage.L("禁用", "Disable") : UiLanguage.L("启用", "Enable"),
-                Height = 32,
-                Width = 72,
-                FontSize = 13,
-                FontWeight = FontWeights.SemiBold,
-                Foreground = e.Enabled ? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#E74C3C")) : new SolidColorBrush((Color)ColorConverter.ConvertFromString("#27AE60")),
-                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F2F3F5")),
-                BorderThickness = new Thickness(0),
-                Cursor = System.Windows.Input.Cursors.Hand
-            };
-            var captured = e;
-            btn.Click += (s, ev) => Toggle(captured);
-            Grid.SetColumn(btn, 1);
-            grid.Children.Add(btn);
+                var btn = new Button
+                {
+                    Content = e.Enabled ? UiLanguage.L("禁用", "Disable") : UiLanguage.L("启用", "Enable"),
+                    Height = 32,
+                    Width = 72,
+                    FontSize = 13,
+                    FontWeight = FontWeights.SemiBold,
+                    Foreground = e.Enabled ? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#E74C3C")) : new SolidColorBrush((Color)ColorConverter.ConvertFromString("#27AE60")),
+                    Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F2F3F5")),
+                    BorderThickness = new Thickness(0),
+                    Cursor = System.Windows.Input.Cursors.Hand
+                };
+                var captured = e;
+                btn.Click += (s, ev) => Toggle(captured);
+                actions.Children.Add(btn);
+            }
+            else
+            {
+                var roBtn = new Button
+                {
+                    Content = UiLanguage.L("只读", "Read-only"),
+                    Height = 32,
+                    Width = 72,
+                    FontSize = 13,
+                    IsEnabled = false,
+                    BorderThickness = new Thickness(0)
+                };
+                actions.Children.Add(roBtn);
+            }
+
+            // v4.9.0：旧版禁用项提供「迁移到系统机制」按钮（手动，不自动批量迁移）
+            if (e.LegacyDisabled && !e.ReadOnly)
+            {
+                var mig = new Button
+                {
+                    Content = UiLanguage.L("迁移到系统机制", "Migrate to native"),
+                    Height = 28,
+                    Margin = new Thickness(0, 6, 0, 0),
+                    FontSize = 11,
+                    Padding = new Thickness(8, 0, 8, 0),
+                    Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFF3E0")),
+                    Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#E67E22")),
+                    BorderThickness = new Thickness(0),
+                    Cursor = System.Windows.Input.Cursors.Hand
+                };
+                var captured2 = e;
+                mig.Click += (s, ev) => MigrateOne(captured2);
+                actions.Children.Add(mig);
+            }
+            Grid.SetColumn(actions, 1);
+            grid.Children.Add(actions);
 
             row.Child = grid;
             ListPanel.Children.Add(row);

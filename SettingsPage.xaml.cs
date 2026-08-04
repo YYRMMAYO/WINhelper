@@ -258,13 +258,13 @@ namespace WINHELP
         /// <summary>GitHub 链接点击</summary>
         private void GitHubLink_Click(object sender, MouseButtonEventArgs e)
         {
-            UpdateManager.OpenDownloadUrl("https://github.com/YYRMMAYO/WINhelper");
+            UpdateManager.OpenDownloadUrl(UpdateManager.PrimaryDownloadUrl);
         }
 
-        /// <summary>下载链接点击</summary>
+        /// <summary>下载链接点击（蓝奏云备选源）</summary>
         private void DownloadLink_Click(object sender, MouseButtonEventArgs e)
         {
-            UpdateManager.OpenDownloadUrl("https://wwbpq.lanzouu.com/b01d71xtzg");
+            UpdateManager.OpenDownloadUrl(UpdateManager.BackupDownloadUrl);
         }
 
         /// <summary>关闭按钮</summary>

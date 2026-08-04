@@ -519,8 +519,8 @@ namespace WINHELP
                     {
                         try
                         {
-                            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
-                            var resp = await http.GetAsync("https://www.baidu.com");
+                            using var cts = HttpClientProvider.Timeout(5); // 保持原 5s 超时语义
+                            var resp = await HttpClientProvider.Shared.GetAsync("https://www.baidu.com", cts.Token);
                             var ok = resp.IsSuccessStatusCode;
                             _netOk = ok;
                             return ok
@@ -542,10 +542,9 @@ namespace WINHELP
                     {
                         try
                         {
-                            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(8) };
-                            http.DefaultRequestHeaders.UserAgent.Add(
-                                new System.Net.Http.Headers.ProductInfoHeaderValue("WINHELP-selftest", "1.0"));
-                            var resp = await http.GetAsync("https://api.github.com/repos/YYRMMAYO/WINhelper/tags");
+                            using var cts = HttpClientProvider.Timeout(8); // 保持原 8s 超时语义
+                            var resp = await HttpClientProvider.Shared.GetAsync(
+                                "https://api.github.com/repos/YYRMMAYO/WINhelper/tags", cts.Token);
                             var ok = resp.IsSuccessStatusCode;
                             _apiOk = ok;
                             return ok

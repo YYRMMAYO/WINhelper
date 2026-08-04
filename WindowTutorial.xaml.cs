@@ -261,11 +261,8 @@ namespace WINHELP
 
         private void OpenUrl(string url)
         {
-            try
-            {
-                Process.Start(new ProcessStartInfo { FileName = url, UseShellExecute = true });
-            }
-            catch
+            // 仅接受 http/https；失败时保留原有“请手动复制”提示，方便用户手动访问
+            if (!SafeUrl.Open(url, "提示") && !string.IsNullOrWhiteSpace(url))
             {
                 MessageBox.Show(Window.GetWindow(this), "无法打开链接，请手动复制：\n" + url, "提示",
                     MessageBoxButton.OK, MessageBoxImage.Warning);

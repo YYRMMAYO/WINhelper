@@ -1,4 +1,10 @@
-﻿using System;
+﻿// 司南工具箱 (WINHELP)
+// Copyright (C) 2025-2026 YYRMM
+// 本程序为自由软件，在 GNU 通用公共许可证第 2 版（GPL v2）下发布。
+// 你可以自由使用、复制、修改和再分发，但须保留本协议且不附加任何限制。
+// 本程序按“现状”提供，不含任何担保。详见 LICENSE。
+
+using System;
 using System.Collections.Generic;
 using System.Windows.Controls;
 
@@ -77,6 +83,7 @@ namespace WINHELP
             new("system",   "系统状况",   "System Status",         "💻", "system", true,  "设备检测 · 进程 · 诊断",      "Device · processes · smart diagnosis"),
             new("net",      "网络诊断",   "Network Diagnostics",   "📡", "system", true,  "连通性检测与测速",           "Connectivity test & speed"),
             new("issue",    "问题解决",   "Issue Solver",          "🩺", "system", true,  "常见故障速查 · 一键修复",     "Common issues & one-click fix"),
+            new("rescue",   "系统急救",   "System Rescue",         "🚑", "system", true,  "蓝屏 · 电池 · 端口 · 驱动备份", "BSOD / battery / ports / driver backup"),
 
             // ===== 效率工具（首页常规卡片） =====
             new("wizard",   "故障向导",   "Troubleshoot Wizard",   "🔧", "tools",  false, "向导式排查常见问题",          "Step-by-step troubleshooting"),
@@ -85,6 +92,8 @@ namespace WINHELP
             new("uninstall", "卸载残留",  "Uninstall Leftovers",   "🧨", "tools",  false, "清理软件卸载后的残留",        "Clean up leftover files after uninstall"),
             new("notes",    "便签",       "Notes",                 "📝", "tools",  false, "桌面便签快速记录",            "Quick desktop notes"),
             new("recorder", "录音录像",   "Recorder",              "🎙️", "tools",  false, "麦克风录音与屏幕录像",        "Mic recording & screen capture"),
+            new("tweak",    "个性化调校", "Windows Tweaks",        "🎛️", "tools",  false, "任务栏 · 右键菜单 · Hosts",   "Taskbar / context menu / hosts"),
+            new("checkup",  "一键体检",   "PC Checkup",            "📋", "tools",  false, "生成可导出体检报告",          "Generate exportable health report"),
 
             // ===== 助手与信息（首页常规卡片） =====
             new("agent",    "Agent 助手", "Agent Assistant",       "🤖", "assist", false, "接入 API 获取 AI 帮助",       "Connect API for AI help"),
@@ -96,6 +105,7 @@ namespace WINHELP
             new("tutorial", "AI 密钥教程", "AI Key Tutorial",      "🔑", "assist", false, "申请并填入 AI 密钥",          "Get & enter your AI key"),
             new("bug",      "BUG 反馈",   "Bug Report",            "🐞", "assist", false, "问题反馈与建议提交",          "Report issues & suggestions"),
             new("setup",    "装机助手",   "Setup Assistant",       "💿", "assist", false, "常用软件安装推荐",            "Recommended software installer"),
+            new("protool",  "专业工具",   "Pro Tools",             "🧰", "assist", false, "绿色免安装专业工具官方下载",  "Portable pro tools official downloads"),
 
             // ===== 仅导航 / 侧栏入口（不在首页显示） =====
             new("home",      "主界面",     "Home",                  "🏠"),
@@ -127,6 +137,7 @@ namespace WINHELP
                 case "net":      return new NetworkDiagnosticsPage();
                 case "issue":    return new IssueSolverPage();
                 case "system":   return new SystemStatusPage { OnNavigate = host.Navigate };
+                case "rescue":   return new RescuePage();
                 // —— 效率工具 ——
                 case "shred":    return new WindowShredder();
                 case "snapshot": return new WindowSnapshot();
@@ -134,6 +145,8 @@ namespace WINHELP
                 case "notes":    return new NotesPage();
                 case "recorder": return new WindowRecorder();
                 case "wizard":   return new TroubleshootWizardPage { OnNavigate = host.Navigate };
+                case "tweak":    return new TweakPage();
+                case "checkup":  return new CheckupPage();
                 // —— 助手与信息 ——
                 case "site":     return new SiteFinderPage();
                 case "tool":     return new WinHelperPage();
@@ -144,6 +157,7 @@ namespace WINHELP
                 case "tutorial": return new WindowTutorial { OnCloseRequest = host.CloseToHome, OnOpenAgent = host.OpenAgent };
                 case "bug":      return new BugReportPage();
                 case "setup":    return new SetupPage();
+                case "protool":  return new ProToolPage { OnNavigate = host.Navigate };
                 // —— 设置 / 装扮 / 陪伴 / 首页 ——
                 case "settings":   return new SettingsPage { OnCloseRequest = host.CloseToHome };
                 case "theme":      return new AppearancePage { OnCloseRequest = host.CloseToHome };

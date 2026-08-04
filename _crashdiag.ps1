@@ -1,5 +1,5 @@
-$exe = "F:\new\WINHELP\dist\WINHELP.exe"
-Get-Process WINHELP -ErrorAction SilentlyContinue | Stop-Process -Force
+$exe = "F:\new\WINHELP\dist\司南工具箱.exe"
+Get-Process -Name "司南工具箱" -ErrorAction SilentlyContinue | Stop-Process -Force
 Start-Sleep -Seconds 1
 $before = Get-Date
 $p = Start-Process -FilePath $exe -PassThru

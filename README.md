@@ -72,7 +72,7 @@ WINHELP/
 ├─ HomePage / CompanionPage / Window* …  # 各功能页
 ├─ Cleaner.cs / HardwareInfo.cs …        # 核心逻辑
 ├─ GlassTheme.xaml / ClickAnim.cs        # 主题与点击动画
-├─ 1.9.0pre01.iss          # Inno Setup 安装脚本（含本机绝对路径）
+├─ 1.9.0pre01.iss          # Inno Setup 安装脚本（含本机绝对路径；v2.2.0 遗留的 WINHELP_Installer.iss 已废弃，勿用）
 ├─ license.txt             # 许可协议（与根 LICENSE 内容一致）
 ├─ .github/                # Issue/PR 模板、贡献指南、CI 工作流
 └─ dist/                   # 交付产物（已被 .gitignore 忽略）

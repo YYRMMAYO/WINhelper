@@ -95,20 +95,6 @@ namespace WINHELP
             }
         }
 
-        private static void OpenUrl(string url)
-        {
-            try
-            {
-                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = url,
-                    UseShellExecute = true
-                });
-            }
-            catch (System.Exception ex)
-            {
-                MessageBox.Show($"无法打开链接: {ex.Message}", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
-            }
-        }
+        private static void OpenUrl(string url) => SafeUrl.Open(url);
     }
 }

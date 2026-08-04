@@ -128,6 +128,33 @@ namespace WINHELP
                     if (!string.IsNullOrEmpty(hk) && _mainWindow != null)
                         _mainWindow.NavCompanion.ToolTip = $"陪伴运行小窗（{hk} 或 F11）";
 
+                    // 9. 冒烟测试钩子：WINHELP_HOTKEY_DEBUG=1 → 写入热键注册 marker 文件
+                    if (Environment.GetEnvironmentVariable("WINHELP_HOTKEY_DEBUG") == "1")
+                    {
+                        try
+                        {
+                            var marker = Path.Combine(Path.GetTempPath(), "winhelp_hotkey_debug.txt");
+                            File.WriteAllText(marker, CompanionManager.HotkeyLabel ?? "registered");
+                        }
+                        catch { }
+                    }
+
+                    // 10. 冒烟测试钩子：WINHELP_COMPANION_AUTO=enter-exit → 自动进入陪伴模式数秒后退出
+                    if (Environment.GetEnvironmentVariable("WINHELP_COMPANION_AUTO") == "enter-exit")
+                    {
+                        Dispatcher.BeginInvoke(DispatcherPriority.Background, async () =>
+                        {
+                            try
+                            {
+                                await Task.Delay(800);
+                                CompanionManager.Enter();
+                                await Task.Delay(4500);
+                                CompanionManager.Exit();
+                            }
+                            catch { }
+                        });
+                    }
+
                 }
                 catch (Exception ex)
                 {

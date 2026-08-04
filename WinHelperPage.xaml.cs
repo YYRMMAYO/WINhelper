@@ -27,21 +27,7 @@ namespace WINHELP
                 hoverColor: Color.FromRgb(0x7F, 0x8C, 0x8D));
         }
 
-        private static void OpenUrl(string url)
-        {
-            try
-            {
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = url,
-                    UseShellExecute = true
-                });
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"无法打开链接: {ex.Message}");
-            }
-        }
+        private static void OpenUrl(string url) => SafeUrl.Open(url);
 
         private void Button_Click_Compress(object sender, RoutedEventArgs e)   => OpenUrl("https://www.7-zip.org/");
         private void Button_Click_Record(object sender, RoutedEventArgs e)     => OpenUrl("https://www.audacityteam.org/");

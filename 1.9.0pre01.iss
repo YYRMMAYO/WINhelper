@@ -4,7 +4,7 @@
 ; 注：Inno Setup 6 的 [Messages] 标识符以下方为准（参考 Default.isl 6.5.0）。
 
 #define MyAppName "司南工具箱"
-#define MyAppVersion "4.8.0"
+#define MyAppVersion "4.9.0"
 #define MyAppPublisher "YYRMM"
 #define MyAppURL "【完全免费的电脑助手!可以实现官网跳转,电脑帮助等功能】 https://www.bilibili.com/video/BV1gk3g6yEXp/?share_source=copy_web&vd_source=c804f5334fbb4541224a8910a55f757d"
 #define MyAppExeName "司南工具箱.exe"
@@ -38,7 +38,7 @@ CloseApplications=yes
 RestartApplications=yes
 DisableDirPage=auto
 PrivilegesRequiredOverridesAllowed=dialog
-OutputBaseFilename=司南工具箱_Setup_v4.8.0
+OutputBaseFilename=司南工具箱_Setup_v{#MyAppVersion}
 OutputDir=F:\new\WINHELP\dist\BAND
 SetupIconFile=F:\new\WINHELP\AppIcon.ico
 SolidCompression=yes
@@ -46,12 +46,11 @@ WizardStyle=modern
 ; 中文优美界面（安装背景图：采用软件图标 AppIcon.ico，置于品牌蓝渐变上）
 WizardImageFile=F:\new\WINHELP\setup_bg.bmp
 WizardImageStretch=True
+; GPL v2 许可协议（v4.9.0：从非法的 [License] 段移入 [Setup]，安装向导将显示许可页）
+LicenseFile=F:\new\WINHELP\license.txt
 
 [Languages]
 Name: "chinese"; MessagesFile: "compiler:Default.isl"
-
-[License]
-LicenseFile=F:\new\WINHELP\license.txt
 
 [Messages]
 ; ===== 欢迎页 =====

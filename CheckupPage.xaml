@@ -1,0 +1,81 @@
+<UserControl x:Class="WINHELP.CheckupPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:loc="clr-namespace:WINHELP"
+             mc:Ignorable="d"
+             Background="Transparent">
+    <Grid x:Name="RootGrid" Margin="18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="56"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- 顶栏 -->
+        <Border Grid.Row="0" Style="{StaticResource GlassCard}">
+            <Grid Margin="14,0,14,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="📋" FontSize="22" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="{loc:Loc 一键体检|PC Checkup}" FontSize="15" FontWeight="Bold"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"/>
+                        <TextBlock Text="{loc:Loc 生成可导出体检报告|Generate exportable health report}"
+                                   FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                    </StackPanel>
+                </StackPanel>
+                <Button x:Name="BtnRun" Grid.Column="2" Content="{loc:Loc 开始体检|Start checkup}"
+                        Padding="16,7" VerticalAlignment="Center" Click="BtnRun_Click"/>
+            </Grid>
+        </Border>
+
+        <!-- 状态行 -->
+        <Border Grid.Row="1" Style="{StaticResource GlassCard}" Margin="0,10,0,0" Padding="14,8">
+            <TextBlock x:Name="TxtStatus"
+                       Text="{loc:Loc 点击「开始体检」生成综合健康报告（可导出分享）。|Click Start to generate a health report (exportable).}"
+                       FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap"/>
+        </Border>
+
+        <!-- 结果区 -->
+        <Border Grid.Row="2" Style="{StaticResource GlassCard}" Margin="0,10,0,0">
+            <Grid Margin="14">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <!-- 分数横条 -->
+                <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
+                    <TextBlock x:Name="TxtScore" FontSize="30" FontWeight="Bold" VerticalAlignment="Center"
+                               Foreground="{DynamicResource TextPrimaryBrush}"/>
+                    <TextBlock x:Name="TxtGrade" FontSize="15" VerticalAlignment="Center" Margin="10,4,0,0"
+                               Foreground="{DynamicResource TextSecondaryBrush}"/>
+                </StackPanel>
+                <ProgressBar x:Name="ScoreBar" Grid.Row="0" Height="8" Minimum="0" Maximum="100" Margin="180,0,0,0"
+                             VerticalAlignment="Bottom" Foreground="{DynamicResource AccentBrush}"
+                             Background="#22000000"/>
+                <!-- 报告正文 -->
+                <TextBox x:Name="TxtReport" Grid.Row="1"
+                         Background="#1E1E1E" Foreground="#DCDCDC" FontFamily="Consolas" FontSize="12"
+                         TextWrapping="Wrap" IsReadOnly="True" IsUndoEnabled="False"
+                         BorderThickness="0" Padding="10" VerticalScrollBarVisibility="Auto"
+                         MinHeight="220"/>
+                <!-- 操作按钮 -->
+                <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+                    <Button x:Name="BtnSave" Content="{loc:Loc 保存报告到桌面|Save report to Desktop}"
+                            Padding="14,6" Margin="0,0,8,0" Click="BtnSave_Click"/>
+                    <Button x:Name="BtnOpen" Content="{loc:Loc 打开报告|Open report}"
+                            Padding="14,6" Margin="0,0,8,0" IsEnabled="False" Click="BtnOpen_Click"/>
+                    <Button x:Name="BtnCopy" Content="{loc:Loc 复制文本|Copy text}"
+                            Padding="14,6" Click="BtnCopy_Click"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

@@ -224,8 +224,7 @@ public partial class NetworkDiagnosticsPage : UserControl
     /// <summary>依次尝试多个测速端点，返回下行速率(Mbps)；全部失败返回 null。</summary>
     private async Task<double?> MeasureDownloadSpeed()
     {
-        using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(20) };
-        try { client.DefaultRequestHeaders.UserAgent.ParseAdd("司南工具箱"); } catch { }
+        // 收敛到共享 HttpClient，per-request 20s 超时（保持原语义）
         var urls = new[]
         {
             "https://speed.cloudflare.com/__down?bytes=8000000",
@@ -235,8 +234,9 @@ public partial class NetworkDiagnosticsPage : UserControl
         {
             try
             {
+                using var cts = HttpClientProvider.Timeout(20);
                 var sw = Stopwatch.StartNew();
-                var data = await client.GetByteArrayAsync(url);
+                var data = await HttpClientProvider.Shared.GetByteArrayAsync(url, cts.Token);
                 sw.Stop();
                 double sec = sw.Elapsed.TotalSeconds;
                 if (sec <= 0 || data.Length == 0) continue;

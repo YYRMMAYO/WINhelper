@@ -16,8 +16,6 @@ namespace WINHELP
     /// </summary>
     public partial class CompanionWindow : Window
     {
-        private static readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(8) };
-
         private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromSeconds(1) };
         private TimeSpan _serverOffset = TimeSpan.Zero; // 北京时间 - 本地时间
         private bool _synced = false;
@@ -177,8 +175,9 @@ namespace WINHELP
             try
             {
                 // 只读响应头，避免下载整个 HTML；使用 HTTPS 避免中间人篡改时间
-                using var resp = await _http.GetAsync(
-                    "https://time.syiban.com/", HttpCompletionOption.ResponseHeadersRead);
+                using var cts = HttpClientProvider.Timeout(8); // 保持原 8s 超时语义
+                using var resp = await HttpClientProvider.Shared.GetAsync(
+                    "https://time.syiban.com/", HttpCompletionOption.ResponseHeadersRead, cts.Token);
                 if (resp.Headers.Date is DateTimeOffset d)
                 {
                     var beijing = d.UtcDateTime.AddHours(8); // UTC + 8 = 北京时间

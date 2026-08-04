@@ -67,6 +67,19 @@ namespace WINHELP
             }
         }
 
+        /// <summary>直接打开 ms-settings 等系统协议 URI（去掉 cmd /c start 中转，安全审计建议 P3）。</summary>
+        private static void RunUri(string uri)
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo(uri) { UseShellExecute = true });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"无法打开: {ex.Message}", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
         // ===== 系统工具入口 =====
         private void Btn_ControlPanel(object sender, RoutedEventArgs e) => RunCommand("control.exe");
         private void Btn_TaskMgr(object sender, RoutedEventArgs e) => RunCommand("taskmgr.exe");
@@ -74,19 +87,19 @@ namespace WINHELP
         private void Btn_DiskMgmt(object sender, RoutedEventArgs e) => RunCommand("diskmgmt.msc");
         private void Btn_DevMgr(object sender, RoutedEventArgs e) => RunCommand("devmgmt.msc");
         private void Btn_Network(object sender, RoutedEventArgs e) => RunCommand("ncpa.cpl");
-        private void Btn_Clipboard(object sender, RoutedEventArgs e) => RunCommand("cmd.exe", "/c start ms-settings:clipboard");
+        private void Btn_Clipboard(object sender, RoutedEventArgs e) => RunUri("ms-settings:clipboard");
         private void Btn_Power(object sender, RoutedEventArgs e) => RunCommand("powercfg.cpl");
         private void Btn_Mouse(object sender, RoutedEventArgs e) => RunCommand("main.cpl");
-        private void Btn_Display(object sender, RoutedEventArgs e) => RunCommand("cmd.exe", "/c start ms-settings:display");
-        private void Btn_Sound(object sender, RoutedEventArgs e) => RunCommand("cmd.exe", "/c start ms-settings:sound");
+        private void Btn_Display(object sender, RoutedEventArgs e) => RunUri("ms-settings:display");
+        private void Btn_Sound(object sender, RoutedEventArgs e) => RunUri("ms-settings:sound");
         private void Btn_DateTime(object sender, RoutedEventArgs e) => RunCommand("timedate.cpl");
-        private void Btn_Input(object sender, RoutedEventArgs e) => RunCommand("cmd.exe", "/c start ms-settings:regionlanguage");
+        private void Btn_Input(object sender, RoutedEventArgs e) => RunUri("ms-settings:regionlanguage");
         private void Btn_Programs(object sender, RoutedEventArgs e) => RunCommand("appwiz.cpl");
-        private void Btn_Security(object sender, RoutedEventArgs e) => RunCommand("cmd.exe", "/c start windowsdefender:");
+        private void Btn_Security(object sender, RoutedEventArgs e) => RunUri("windowsdefender:");
         private void Btn_SysInfo(object sender, RoutedEventArgs e) => RunCommand("msinfo32.exe");
         private void Btn_OSK(object sender, RoutedEventArgs e) => RunCommand("osk.exe");
         private void Btn_Magnifier(object sender, RoutedEventArgs e) => RunCommand("magnify.exe");
-        private void Btn_Snipping(object sender, RoutedEventArgs e) => RunCommand("cmd.exe", "/c start ms-screenclip:");
-        private void Btn_Mail(object sender, RoutedEventArgs e) => RunCommand("cmd.exe", "/c start outlookmail:");
+        private void Btn_Snipping(object sender, RoutedEventArgs e) => RunUri("ms-screenclip:");
+        private void Btn_Mail(object sender, RoutedEventArgs e) => RunUri("outlookmail:");
     }
 }

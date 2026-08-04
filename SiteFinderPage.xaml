@@ -452,7 +452,7 @@
                                    Foreground="#2C3E50" Margin="0,0,0,6"/>
                         <TextBlock x:Name="TxtSoftwareVersion" FontSize="13"
                                    Foreground="#7F8C8D" Margin="0,0,0,8"
-                                   ><Run Text="{loc:Loc 软件版本 V4.8.0|Software Version V4.8.0}"/></TextBlock>
+                                   ><Run Text="{loc:Loc 软件版本 V4.9.0|Software Version V4.9.0}"/></TextBlock>
                         <Button Name="BtnUpdate" Height="38" Width="220"
                                 FontSize="13" FontWeight="SemiBold"
                                 Foreground="White" BorderThickness="0" Cursor="Hand"
@@ -460,6 +460,9 @@
                                 Click="Button_Click_5"/>
                         <TextBlock x:Name="TxtPwd" Text="{loc:Loc 密码：YYRMM|Password: YYRMM}" FontSize="12"
                                    Foreground="#BDC3C7" Margin="0,8,0,0"/>
+                        <!-- v4.9.0：GPL v2 开源声明 -->
+                        <TextBlock FontSize="11" Foreground="#7F8C8D" Margin="0,4,0,0" TextWrapping="Wrap"
+                                   Text="{loc:Loc 本软件基于 GPL v2 开源协议发布，源码见 github.com/YYRMMAYO/WINhelper|Licensed under GPL v2. Source: github.com/YYRMMAYO/WINhelper}"/>
                     </StackPanel>
                 </Border>
             </StackPanel>

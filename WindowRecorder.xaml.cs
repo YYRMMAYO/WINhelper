@@ -138,12 +138,7 @@ public partial class WindowRecorder : UserControl
     {
         if (sender is Button b && b.Tag is string url)
         {
-            try { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); }
-            catch (Exception ex)
-            {
-                MessageBox.Show(UiLanguage.L($"无法打开网页：{ex.Message}", $"Cannot open page: {ex.Message}"),
-                    UiLanguage.L("打开失败", "Launch failed"), MessageBoxButton.OK, MessageBoxImage.Warning);
-            }
+            SafeUrl.Open(url, "提示");
         }
     }
 

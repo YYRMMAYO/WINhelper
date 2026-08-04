@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -194,8 +193,8 @@ public partial class SystemCleanerPage : UserControl
             };
             cat.Scan = async () =>
             {
-                var dirs = TempDirs();
-                var (size, count) = await Task.Run(() => SumMatching(dirs, "*", SearchOption.TopDirectoryOnly));
+                var dirs = Cleaner.TempDirs();
+                var (size, count) = await Task.Run(() => Cleaner.SumMatching(dirs, "*", SearchOption.TopDirectoryOnly));
                 _tempFiles.Clear();
                 foreach (var d in dirs)
                 {
@@ -225,10 +224,10 @@ public partial class SystemCleanerPage : UserControl
             };
             cat.Scan = async () =>
             {
-                var (size, count) = await Task.Run(QueryRecycleBin);
+                var (size, count) = await Task.Run(Cleaner.QueryRecycleBin);
                 cat.Size = size; cat.Count = (int)count;
             };
-            cat.Clean = () => EmptyRecycleBin();
+            cat.Clean = () => Cleaner.EmptyRecycleBin(); // Cleaner 版返回 long，丢弃即可
             RegisterCategory(cat);
         }
 
@@ -241,11 +240,11 @@ public partial class SystemCleanerPage : UserControl
             };
             cat.Scan = async () =>
             {
-                var dirs = BrowserCacheDirs();
-                var (size, count) = await Task.Run(() => SumMatching(dirs, "*", SearchOption.AllDirectories));
+                var dirs = Cleaner.BrowserCacheDirs(); // 统一到 8 目录版（含 GPUCache），清理更彻底
+                var (size, count) = await Task.Run(() => Cleaner.SumMatching(dirs, "*", SearchOption.AllDirectories));
                 cat.Size = size; cat.Count = count;
             };
-            cat.Clean = () => DeleteDirs(BrowserCacheDirs(), SearchOption.AllDirectories);
+            cat.Clean = () => Cleaner.DeleteDirs(Cleaner.BrowserCacheDirs(), SearchOption.AllDirectories);
             RegisterCategory(cat);
         }
 
@@ -259,10 +258,10 @@ public partial class SystemCleanerPage : UserControl
             var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "SoftwareDistribution", "Download")!;
             cat.Scan = async () =>
             {
-                var (size, count) = await Task.Run(() => SumMatching(new[] { dir }, "*", SearchOption.AllDirectories));
+                var (size, count) = await Task.Run(() => Cleaner.SumMatching(new[] { dir }, "*", SearchOption.AllDirectories));
                 cat.Size = size; cat.Count = count;
             };
-            cat.Clean = () => DeleteDirs(new[] { dir }, SearchOption.AllDirectories);
+            cat.Clean = () => Cleaner.DeleteDirs(new[] { dir }, SearchOption.AllDirectories);
             RegisterCategory(cat);
         }
 
@@ -276,10 +275,10 @@ public partial class SystemCleanerPage : UserControl
             var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Microsoft", "Windows", "Explorer")!;
             cat.Scan = async () =>
             {
-                var (size, count) = await Task.Run(() => SumMatching(new[] { dir }, "thumbcache_*.db", SearchOption.TopDirectoryOnly));
+                var (size, count) = await Task.Run(() => Cleaner.SumMatching(new[] { dir }, "thumbcache_*.db", SearchOption.TopDirectoryOnly));
                 cat.Size = size; cat.Count = count;
             };
-            cat.Clean = () => DeleteMatching(new[] { dir }, "thumbcache_*.db");
+            cat.Clean = () => Cleaner.DeleteMatching(new[] { dir }, "thumbcache_*.db");
             RegisterCategory(cat);
         }
 
@@ -643,139 +642,6 @@ public partial class SystemCleanerPage : UserControl
                     UseShellExecute = true
                 });
             }
-        }
-        catch { }
-    }
-
-    // ===== 路径与大小工具 =====
-
-    private static IEnumerable<string> TempDirs()
-    {
-        yield return Path.GetTempPath();
-        yield return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "Temp");
-        yield return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Temp");
-    }
-
-    private static IEnumerable<string> BrowserCacheDirs()
-    {
-        var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        yield return Path.Combine(local, "Google", "Chrome", "User Data", "Default", "Cache");
-        yield return Path.Combine(local, "Google", "Chrome", "User Data", "Default", "Code Cache");
-        yield return Path.Combine(local, "Microsoft", "Edge", "User Data", "Default", "Cache");
-        yield return Path.Combine(local, "Microsoft", "Edge", "User Data", "Default", "Code Cache");
-        yield return Path.Combine(local, "BraveSoftware", "Brave-Browser", "User Data", "Default", "Cache");
-    }
-
-    private static (long size, int count) SumMatching(IEnumerable<string> dirs, string pattern, SearchOption opt)
-    {
-        long size = 0; int count = 0;
-        foreach (var dir in dirs)
-        {
-            if (!Directory.Exists(dir)) continue;
-            try
-            {
-                foreach (var f in Directory.EnumerateFiles(dir, pattern, opt))
-                {
-                    try
-                    {
-                        var fi = new FileInfo(f);
-                        if (fi.Exists) { size += fi.Length; count++; }
-                    }
-                    catch { }
-                }
-            }
-            catch { }
-        }
-        return (size, count);
-    }
-
-    /// <summary>判断路径是否为重解析点（junction / 符号链接），防止递归删除跟随链接删除目标真实数据（安全审计建议 P2）。</summary>
-    private static bool IsReparsePoint(string path)
-    {
-        try
-        {
-            return (File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0;
-        }
-        catch { return false; }
-    }
-
-    private static void DeleteDirs(IEnumerable<string> dirs, SearchOption opt)
-    {
-        foreach (var dir in dirs)
-        {
-            if (!Directory.Exists(dir)) continue;
-            if (IsReparsePoint(dir)) continue;
-            try
-            {
-                foreach (var f in Directory.EnumerateFiles(dir, "*", opt))
-                {
-                    try { var fi = new FileInfo(f); if (fi.Exists) fi.Delete(); } catch { }
-                }
-            }
-            catch { }
-            try
-            {
-                foreach (var d in Directory.EnumerateDirectories(dir, "*", SearchOption.TopDirectoryOnly))
-                {
-                    if (IsReparsePoint(d)) continue;
-                    try { Directory.Delete(d, true); } catch { }
-                }
-            }
-            catch { }
-        }
-    }
-
-    private static void DeleteMatching(IEnumerable<string> dirs, string pattern)
-    {
-        foreach (var dir in dirs)
-        {
-            if (!Directory.Exists(dir)) continue;
-            if (IsReparsePoint(dir)) continue;
-            try
-            {
-                foreach (var f in Directory.EnumerateFiles(dir, pattern, SearchOption.TopDirectoryOnly))
-                {
-                    try { File.Delete(f); } catch { }
-                }
-            }
-            catch { }
-        }
-    }
-
-    // ===== 回收站（Shell32） =====
-
-    [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
-    private static extern int SHQueryRecycleBin(string? pszRootPath, ref SHQUERYRBINFO pinfo);
-
-    [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
-    private static extern int SHEmptyRecycleBin(IntPtr hwnd, string? pszRootPath, uint dwFlags);
-
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-    private struct SHQUERYRBINFO
-    {
-        public int cbSize;
-        public long i64Size;
-        public long i64NumItems;
-    }
-
-    private static (long size, long count) QueryRecycleBin()
-    {
-        try
-        {
-            var info = new SHQUERYRBINFO { cbSize = Marshal.SizeOf<SHQUERYRBINFO>() };
-            if (SHQueryRecycleBin(null, ref info) == 0)
-                return (info.i64Size, info.i64NumItems);
-        }
-        catch { }
-        return (0, 0);
-    }
-
-    private static void EmptyRecycleBin()
-    {
-        try
-        {
-            // 0x1=不确认 / 0x2=无进度条 / 0x4=无提示音；清理前已在软件内二次确认
-            SHEmptyRecycleBin(IntPtr.Zero, null, 0x1 | 0x2 | 0x4);
         }
         catch { }
     }

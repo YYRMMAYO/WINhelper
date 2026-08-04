@@ -1,3 +1,9 @@
+// 司南工具箱 (WINHELP)
+// Copyright (C) 2025-2026 YYRMM
+// 本程序为自由软件，在 GNU 通用公共许可证第 2 版（GPL v2）下发布。
+// 你可以自由使用、复制、修改和再分发，但须保留本协议且不附加任何限制。
+// 本程序按“现状”提供，不含任何担保。详见 LICENSE。
+
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -440,31 +446,42 @@ namespace WINHELP
             if (procs.Length == 0)
                 return new ToolResult { Description = $"结束进程「{name}」", Text = $"未找到名为「{name}」的运行中进程。" };
 
-            // 附加防护：如果命中的进程是系统关键路径下的（如 System32），也拒绝结束
+            // 附加防护：逐进程判断 —— 仅跳过系统目录（System32）中的实例，
+            // 其余正常结束；读不到模块路径的进程也保守跳过（安全审计建议 P1）。
+            var sysDir = Path.GetFullPath(Environment.GetFolderPath(Environment.SpecialFolder.System))
+                .TrimEnd('\\') + "\\";
+            int killed = 0, skipped = 0;
             foreach (var p in procs)
             {
+                bool skip = false;
                 try
                 {
                     var exe = p.MainModule?.FileName;
-                    if (string.IsNullOrEmpty(exe)) continue;
-                    var sysDir = Environment.GetFolderPath(Environment.SpecialFolder.System);
-                    if (exe.StartsWith(sysDir, StringComparison.OrdinalIgnoreCase))
-                        return new ToolResult
-                        {
-                            Description = $"结束进程「{name}」",
-                            Text = $"出于安全考虑，不能结束系统目录中的进程「{name}」（{exe}）。"
-                        };
+                    if (string.IsNullOrEmpty(exe))
+                    {
+                        // 已退出或无权限读取模块路径 → 保守跳过，不 Kill
+                        skip = true;
+                    }
+                    else
+                    {
+                        // Path.GetFullPath 规范化（防 "C:\Windows\System32..\X" 等变体）+ "\" 分隔符边界（防 System32X 误判）
+                        var full = Path.GetFullPath(exe);
+                        if (full.StartsWith(sysDir, StringComparison.OrdinalIgnoreCase))
+                            skip = true;
+                    }
                 }
-                catch { /* 无权限读模块路径则跳过附加检查 */ }
-            }
+                catch { skip = true; } // 读不到模块路径 → 保守跳过该进程
 
-            int killed = 0;
-            foreach (var p in procs)
-            {
+                if (skip) { skipped++; continue; }
                 try { p.Kill(); killed++; }
                 catch { /* 部分进程无权限，跳过 */ }
             }
-            return new ToolResult { Description = $"结束进程「{name}」", Text = $"已结束 {killed} 个「{name}」进程。" };
+            return new ToolResult
+            {
+                Description = $"结束进程「{name}」",
+                Text = $"已结束 {killed} 个「{name}」进程" +
+                       (skipped > 0 ? $"，跳过 {skipped} 个系统目录实例" : "") + "。"
+            };
         }
 
         private static ToolResult RunOpenFolder(JsonElement args)

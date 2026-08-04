@@ -64,6 +64,7 @@ public static class NotesStore
         string filePath;
         do { filePath = Path.Combine(NotesDir, $"note_{stamp}_{seq:D3}.txt"); seq++; }
         while (File.Exists(filePath));
+        int usedSeq = seq - 1; // 循环内自增，实际占用的是 seq-1
 
         File.WriteAllText(filePath, text, Encoding.UTF8);
 
@@ -72,7 +73,8 @@ public static class NotesStore
         {
             try
             {
-                desktopPath = Path.Combine(DesktopDir, $"WINHELP_{stamp}.txt");
+                // 桌面副本带与 notes 文件一致的序号（seq），同一秒内多条便签互不覆盖（安全审计建议 P2）
+                desktopPath = Path.Combine(DesktopDir, $"WINHELP_{stamp}_{usedSeq:D3}.txt");
                 File.WriteAllText(desktopPath, text, Encoding.UTF8);
             }
             catch { desktopPath = null; }
@@ -100,7 +102,9 @@ public static class NotesStore
         Changed?.Invoke();
     }
 
-    /// <summary>从 notes 文件名反推桌面副本路径（文件名规则：note_yyyyMMdd_HHmmss_seq.txt）</summary>
+    /// <summary>从 notes 文件名反推桌面副本路径（文件名规则：note_yyyyMMdd_HHmmss_seq.txt）。
+    /// 兼容两种命名：新格式 WINHELP_{stamp}_{seq}.txt（带序号），
+    /// 以及老格式 WINHELP_{stamp}.txt（无序号，老用户桌面副本必须能找到，否则“打开桌面副本”失效）。</summary>
     private static string? FindDesktopCopy(string noteFilePath)
     {
         var name = Path.GetFileNameWithoutExtension(noteFilePath);
@@ -108,8 +112,15 @@ public static class NotesStore
         if (parts.Length >= 3 && parts[0] == "note")
         {
             var stamp = $"{parts[1]}_{parts[2]}";
-            var desk = Path.Combine(DesktopDir, $"WINHELP_{stamp}.txt");
-            return File.Exists(desk) ? desk : null;
+            // 新格式：带序号（note_yyyyMMdd_HHmmss_seq）
+            if (parts.Length >= 4)
+            {
+                var deskSeq = Path.Combine(DesktopDir, $"WINHELP_{stamp}_{parts[3]}.txt");
+                if (File.Exists(deskSeq)) return deskSeq;
+            }
+            // 老格式兼容：不带序号
+            var deskLegacy = Path.Combine(DesktopDir, $"WINHELP_{stamp}.txt");
+            if (File.Exists(deskLegacy)) return deskLegacy;
         }
         return null;
     }

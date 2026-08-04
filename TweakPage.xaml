@@ -1,0 +1,50 @@
+<UserControl x:Class="WINHELP.TweakPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:loc="clr-namespace:WINHELP"
+             mc:Ignorable="d"
+             Background="Transparent">
+    <Grid x:Name="RootGrid" Margin="18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="56"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- 顶栏 -->
+        <Border Grid.Row="0" Style="{StaticResource GlassCard}">
+            <Grid Margin="14,0,14,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="🎛️" FontSize="22" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="{loc:Loc 个性化调校|Windows Tweaks}" FontSize="15" FontWeight="Bold"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"/>
+                        <TextBlock Text="{loc:Loc 任务栏 · 右键菜单 · Hosts · 安全回退|Taskbar / context menu / hosts / safe restore}"
+                                   FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                    </StackPanel>
+                </StackPanel>
+                <!-- 全部还原按钮 -->
+                <Button x:Name="BtnRestoreAll" Grid.Column="2" Content="{loc:Loc 全部还原|Restore all}"
+                        Padding="14,6" VerticalAlignment="Center" Click="BtnRestoreAll_Click"/>
+            </Grid>
+        </Border>
+
+        <!-- 安全提示条 -->
+        <Border Grid.Row="1" Style="{StaticResource GlassCard}" Margin="0,10,0,0" Padding="14,8">
+            <TextBlock Text="{loc:Loc 安全提示：每次修改前会自动备份原值到 AppData\WINHELP\backup；如遇问题可逐项「恢复默认」或「全部还原」。部分项需重启资源管理器生效。|Safety: each change is backed up to AppData\WINHELP\backup before writing. Use Restore if anything looks wrong. Some items need Explorer restart.}"
+                       FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap"/>
+        </Border>
+
+        <!-- 调校卡片区 -->
+        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Margin="0,10,0,0">
+            <WrapPanel x:Name="CardsPanel" HorizontalAlignment="Left"/>
+        </ScrollViewer>
+    </Grid>
+</UserControl>
