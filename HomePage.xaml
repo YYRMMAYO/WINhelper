@@ -1,20 +1,21 @@
-﻿<!-- 导航模块 key="home"：对应 HomePage.xaml.cs，由 MainWindow._factories 注册。详见 MODULES.md -->
+﻿<!-- 导航模块 key="home"：对应 HomePage.xaml.cs，由 MainWindow 注册。详见 MODULES.md -->
 <UserControl x:Class="WINHELP.HomePage"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:WINHELP"
+             xmlns:loc="clr-namespace:WINHELP"
              Background="Transparent">
     <UserControl.Resources>
-        <!-- 次级卡片：常规大小（v5.1.0：圆角 12、实边框、轻阴影） -->
+        <!-- 功能卡片（v5.3.0：统一尺寸、实心白底、轻边框、宽松内边距） -->
         <Style x:Key="HomeCard" TargetType="Border">
-            <Setter Property="Width" Value="222"/>
-            <Setter Property="Height" Value="120"/>
+            <Setter Property="Width" Value="236"/>
+            <Setter Property="Height" Value="128"/>
             <Setter Property="Background" Value="{DynamicResource GlassCardBrush}"/>
-            <Setter Property="BorderBrush" Value="#E3E8EF"/>
+            <Setter Property="BorderBrush" Value="#E6E9EF"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="12"/>
-            <Setter Property="Margin" Value="0,0,14,14"/>
-            <Setter Property="Padding" Value="14,12"/>
+            <Setter Property="Margin" Value="0,0,16,16"/>
+            <Setter Property="Padding" Value="18,14"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="local:ClickAnim.IsEnabled" Value="True"/>
             <Setter Property="local:ClickAnim.HoverScale" Value="1.02"/>
@@ -25,78 +26,84 @@
             </Setter>
         </Style>
 
-        <!-- 主级卡片：更大、带强调色图标底，体现主次层级 -->
-        <Style x:Key="HomeCardPrimary" TargetType="Border" BasedOn="{StaticResource HomeCard}">
-            <Setter Property="Width" Value="300"/>
-            <Setter Property="Height" Value="142"/>
-            <Setter Property="Padding" Value="16,14"/>
-        </Style>
-
-        <!-- 一键优化卡片：与普通主级卡片同尺寸，强调色底 + 白字（不再独占整行，降低占比） -->
-        <Style x:Key="HomeCardOptimize" TargetType="Border">
-            <Setter Property="Width" Value="300"/>
-            <Setter Property="Height" Value="142"/>
-            <Setter Property="CornerRadius" Value="12"/>
-            <Setter Property="Margin" Value="0,0,14,14"/>
-            <Setter Property="Padding" Value="16,14"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="local:ClickAnim.IsEnabled" Value="True"/>
-            <Setter Property="local:ClickAnim.HoverScale" Value="1.02"/>
-            <Setter Property="Effect">
-                <Setter.Value>
-                    <DropShadowEffect BlurRadius="14" ShadowDepth="1" Direction="270" Opacity="0.08" Color="#2E86C1"/>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <!-- 图标底（主级卡片用，强调色淡底） -->
+        <!-- 首字徽标底盘（强调色淡底圆角块） -->
         <Style x:Key="IconChip" TargetType="Border">
-            <Setter Property="Width" Value="42"/>
-            <Setter Property="Height" Value="42"/>
-            <Setter Property="CornerRadius" Value="11"/>
-            <Setter Property="Background" Value="#1A4A90D9"/>
+            <Setter Property="Width" Value="38"/>
+            <Setter Property="Height" Value="38"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="Background" Value="{DynamicResource GlassNavActiveBrush}"/>
             <Setter Property="HorizontalAlignment" Value="Left"/>
             <Setter Property="VerticalAlignment" Value="Top"/>
         </Style>
 
-        <!-- 分组标题样式（v5.1.0：更精致，小字号 + 主色小竖条） -->
+        <!-- 分组标题 -->
         <Style x:Key="SectionHeader" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontSize" Value="13.5"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Foreground" Value="{DynamicResource TextOnDarkBrush}"/>
-            <Setter Property="Margin" Value="2,4,0,10"/>
+            <Setter Property="Margin" Value="2,6,0,12"/>
+        </Style>
+
+        <!-- 欢迎条内的小状态块 -->
+        <Style x:Key="WelcomePill" TargetType="Border">
+            <Setter Property="Background" Value="#F2F4F7"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="Margin" Value="0,0,10,0"/>
         </Style>
     </UserControl.Resources>
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="4">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="2">
         <StackPanel>
-            <!-- ===== 系统工具分组 ===== -->
-            <TextBlock x:Name="SecSystem" Text="系统工具" Style="{StaticResource SectionHeader}"/>
-            <WrapPanel x:Name="CardsWrapSystem" Orientation="Horizontal">
 
-                <!-- 一键优化：与普通卡片同尺寸，不再独占整行（需求 #4）。
-                     其余系统工具卡片由 HomePage.xaml.cs 依据 ModuleRegistry 动态生成。 -->
-                <Border Style="{StaticResource HomeCardOptimize}" Name="CardOptimize" Tag="optimize" MouseLeftButtonDown="Card_Click">
-                    <Grid>
-                        <StackPanel VerticalAlignment="Center" Margin="4,0,86,0">
-                            <TextBlock Text="一键优化" FontSize="18" FontWeight="Bold" Foreground="White"/>
-                            <TextBlock Text="清理临时文件 · 释放空间" FontSize="12.5" Foreground="#E8F1FB" Margin="0,8,0,0" TextWrapping="Wrap"/>
-                            <TextBlock Text="点此立即优化" FontSize="11.5" Foreground="#CFE3F7" Margin="0,4,0,0"/>
+            <!-- ===== 欢迎条（轻量：问候 + 日期 + 统计 + 一键优化） ===== -->
+            <Border Style="{StaticResource GlassCard}" Padding="20,16" Margin="0,0,0,22">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- 日期块 -->
+                    <Border Grid.Column="0" Width="52" Height="52" CornerRadius="12"
+                            Background="{DynamicResource GlassNavActiveBrush}" VerticalAlignment="Center">
+                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                            <TextBlock x:Name="TxtHeroDay" Text="--" FontSize="19" FontWeight="Bold"
+                                       Foreground="{DynamicResource AccentTextBrush}" HorizontalAlignment="Center"/>
+                            <TextBlock x:Name="TxtHeroMonth" Text="--" FontSize="10"
+                                       Foreground="{DynamicResource TextMutedBrush}" HorizontalAlignment="Center" Margin="0,1,0,0"/>
                         </StackPanel>
-                        <Border Width="64" Height="64" CornerRadius="18" Background="#26FFFFFF"
-                                HorizontalAlignment="Right" VerticalAlignment="Center">
-                            <TextBlock Text="🚀" FontSize="34" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                    </Grid>
-                </Border>
-            </WrapPanel>
+                    </Border>
 
-            <!-- ===== 效率工具分组（卡片由 ModuleRegistry 动态生成） ===== -->
-            <TextBlock x:Name="SecTools" Text="效率工具" Style="{StaticResource SectionHeader}" Margin="4,18,0,10"/>
+                    <!-- 问候 + 统计 -->
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="16,0,12,0">
+                        <TextBlock x:Name="TxtHeroGreeting" FontSize="16" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"/>
+                        <TextBlock x:Name="TxtHeroExtra" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Margin="0,5,0,0" TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+
+                    <!-- 一键优化按钮 -->
+                    <Button Grid.Column="2" x:Name="BtnWelcomeOptimize" Height="36" Padding="20,0"
+                            FontSize="13" FontWeight="SemiBold" Foreground="White"
+                            BorderThickness="0" Cursor="Hand"
+                            Content="{loc:Loc 一键优化|One-Click Optimize}"
+                            Click="BtnWelcomeOptimize_Click"
+                            VerticalAlignment="Center"/>
+                </Grid>
+            </Border>
+
+            <!-- ===== 系统工具分组 ===== -->
+            <TextBlock x:Name="SecSystem" Style="{StaticResource SectionHeader}"/>
+            <WrapPanel x:Name="CardsWrapSystem" Orientation="Horizontal"/>
+
+            <!-- ===== 效率工具分组 ===== -->
+            <TextBlock x:Name="SecTools" Style="{StaticResource SectionHeader}" Margin="2,20,0,12"/>
             <WrapPanel x:Name="CardsWrapTools" Orientation="Horizontal"/>
 
-            <!-- ===== 助手与信息分组（卡片由 ModuleRegistry 动态生成） ===== -->
-            <TextBlock x:Name="SecAssist" Text="助手与信息" Style="{StaticResource SectionHeader}" Margin="4,18,0,10"/>
+            <!-- ===== 助手与信息分组 ===== -->
+            <TextBlock x:Name="SecAssist" Style="{StaticResource SectionHeader}" Margin="2,20,0,12"/>
             <WrapPanel x:Name="CardsWrapAssist" Orientation="Horizontal"/>
         </StackPanel>
     </ScrollViewer>

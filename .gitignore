@@ -32,7 +32,12 @@ winhelp_navsmoke.txt
 
 # ===== 本地数据 / 缓存（含项目记忆，不应上传） =====
 .workbuddy/
+.reasonix/
 *.log
+
+# 截图调试工具与临时截图（v5.3.0 开发用，不进仓库）
+_shot/
+_shot_*.png
 
 # ===== 系统 / OS 文件 =====
 Thumbs.db

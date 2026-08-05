@@ -84,7 +84,10 @@ namespace WINHELP
         /// 全局共享的主题色画刷（可变）。所有引用它的控件会随颜色变化"即时"同步，
         /// 无需依赖事件分发 —— 这是修复"换色后只有单一模块生效"的核心机制。
         /// </summary>
-        public static SolidColorBrush AccentBrush { get; } = new SolidColorBrush(AccentColor);
+        public static SolidColorBrush AccentBrush { get; set; } = new SolidColorBrush(AccentColor);
+
+        /// <summary>强调色文字画刷（激活导航文字等，v5.3.0）</summary>
+        public static SolidColorBrush AccentTextBrush { get; set; } = new SolidColorBrush(AccentColor);
 
         /// <summary>主题色 hover 画刷（共享，可变）</summary>
         public static SolidColorBrush DarkerBrush { get; } = new SolidColorBrush(DarkerColor);
@@ -541,6 +544,10 @@ namespace WINHELP
             GlassNavHoverBrush  = new SolidColorBrush(Color.FromArgb(0x1C, AccentColor.R, AccentColor.G, AccentColor.B));
             GlassNavActiveBrush = new SolidColorBrush(Color.FromArgb(0x2E, AccentColor.R, AccentColor.G, AccentColor.B));
 
+            // v5.3.0：强调色相关（品牌徽标 / 激活导航文字 / 指示条 / 焦点色）
+            AccentBrush     = new SolidColorBrush(AccentColor);
+            AccentTextBrush = new SolidColorBrush(AccentColor);
+
             // 重新注册到 Application.Resources（覆盖冻结的旧实例，触发 DynamicResource 重新解析）
             if (Application.Current != null)
             {
@@ -553,6 +560,10 @@ namespace WINHELP
                 res["GlassSearchBrush"]  = GlassSearchBrush;
                 res["GlassNavHoverBrush"]   = GlassNavHoverBrush;
                 res["GlassNavActiveBrush"]  = GlassNavActiveBrush;
+                res["AccentBrush"]          = AccentBrush;
+                res["AccentTextBrush"]      = AccentTextBrush;
+                res["AccentColor"]          = AccentColor;   // Color（供渐变 / 形状填充）
+                res["DarkerColor"]          = DarkerColor;   // Color
                 res["TextPrimaryBrush"]   = TextPrimaryBrush;
                 res["TextSecondaryBrush"] = TextSecondaryBrush;
                 res["TextMutedBrush"]     = TextMutedBrush;

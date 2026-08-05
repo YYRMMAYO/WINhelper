@@ -46,6 +46,12 @@
     <SolidColorBrush x:Key="GlassNavHoverBrush" Color="#224A90D9"/>
     <SolidColorBrush x:Key="GlassNavActiveBrush" Color="#404AD0F5"/>
 
+    <!-- v5.3.0 强调色兜底（ThemeManager.RegisterGlassResources 会在启动时注册实时刷新单例覆盖） -->
+    <SolidColorBrush x:Key="AccentBrush" Color="#4A90D9"/>
+    <SolidColorBrush x:Key="AccentTextBrush" Color="#4A90D9"/>
+    <Color x:Key="AccentColor">#4A90D9</Color>
+    <Color x:Key="DarkerColor">#3B77B5</Color>
+
     <!-- 语义文字画刷（O2 深色主题文字对比度）：随明暗主题自动反色。
          默认深色值（浅色玻璃表面上清晰可读）；星空/极光深色模式下由 ThemeManager.ApplyGlass
          翻为浅色。XAML 通过 DynamicResource 引用，切换主题即时刷新。 -->

@@ -45,7 +45,8 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="{Binding Icon}" FontSize="20" VerticalAlignment="Center" Margin="8,0,12,0"/>
+                <TextBlock Grid.Column="0" Text="{Binding Icon}" FontSize="14" FontWeight="Bold"
+                           Foreground="{DynamicResource PalFg}" VerticalAlignment="Center" Margin="8,0,12,0"/>
                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
                     <TextBlock Text="{Binding Title}" FontWeight="Bold" FontSize="14" Foreground="{DynamicResource PalFg}"/>
                     <TextBlock Text="{Binding Sub}" FontSize="11" Foreground="{DynamicResource PalSub}" Margin="0,2,0,0"/>
@@ -84,7 +85,11 @@
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0" Text="🔍" FontSize="18" VerticalAlignment="Center" Margin="6,0,8,0"/>
+                    <Path Grid.Column="0" Width="14" Height="14" Stretch="Uniform" Margin="8,0,10,0"
+                          VerticalAlignment="Center"
+                          Data="M9,9 L14,14 M10.5,6 A4.5,4.5 0 1,1 1.5,6 A4.5,4.5 0 1,1 10.5,6"
+                          Stroke="{DynamicResource PalFg}" StrokeThickness="1.5"
+                          StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
                     <TextBox x:Name="TxtQuery" Grid.Column="1" Height="34" BorderThickness="0"
                              Background="Transparent" Foreground="{DynamicResource PalFg}"
                              FontSize="15" VerticalContentAlignment="Center"

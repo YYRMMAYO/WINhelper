@@ -33,6 +33,8 @@ namespace WINHELP
     /// 把原先散落在 MainWindow.InitPages（_titles / _factories）、
     /// HomePage.xaml（卡片 Border）与 BuildCommandItems（图标映射）里的模块元数据，
     /// 集中为 C# 实例，便于人工增删改模块。
+    /// <para>v5.3.0：图标字段不再承载 emoji（UI 全面去表情化），
+    /// 统一由 UI 层按模块标题首字生成「首字徽标」；Icon 保留为空串占位。</para>
     /// </summary>
     public class ModuleDefinition
     {
@@ -42,18 +44,18 @@ namespace WINHELP
         public string TitleZh { get; }
         /// <summary>英文标题</summary>
         public string TitleEn { get; }
-        /// <summary>图标（emoji），用于首页卡片与命令面板</summary>
+        /// <summary>图标（已弃用，v5.3.0 起恒为空，UI 使用首字徽标）</summary>
         public string Icon { get; }
-        /// <summary>首页所属分组：system / tools / assist；null 表示不在首页显示（如 home/settings/theme/companion）</summary>
+        /// <summary>首页所属分组：system / tools / assist；null 表示不在首页显示（如 home/settings/theme/companion/tutorial）</summary>
         public string? HomeGroup { get; }
-        /// <summary>是否为主级卡片（更大尺寸 + 图标底盘）</summary>
+        /// <summary>是否为主级卡片（更大尺寸 + 首字徽标底盘）</summary>
         public bool IsPrimary { get; }
         /// <summary>首页卡片副标题（中文）</summary>
         public string SubtitleZh { get; }
         /// <summary>首页卡片副标题（英文）</summary>
         public string SubtitleEn { get; }
 
-        public ModuleDefinition(string key, string titleZh, string titleEn, string icon,
+        public ModuleDefinition(string key, string titleZh, string titleEn, string icon = "",
             string? homeGroup = null, bool isPrimary = false,
             string? subtitleZh = null, string? subtitleEn = null)
         {
@@ -72,46 +74,48 @@ namespace WINHELP
     /// 全部功能模块注册表（C# 实例数据）。
     /// <para>新增 / 调整模块只需编辑此文件：补充一条 ModuleDefinition，
     /// 并在 CreatePage 的 switch 中加上对应页面实例化分支即可。</para>
+    /// <para>v5.3.0：已删除冗余模块 wizard（故障向导，并入 issue 问题解决）与
+    /// novice（新手导览，内容并入 help 电脑帮助）；tutorial 仅作内部跳转入口（不出现在首页）。</para>
     /// </summary>
     public static class ModuleRegistry
     {
         public static readonly IReadOnlyList<ModuleDefinition> All = new ModuleDefinition[]
         {
             // ===== 系统工具（首页主级卡片） =====
-            new("clean",    "系统清理",   "System Cleaner",        "🧹", "system", true,  "垃圾 / 大文件 / 磁盘可视化", "Junk / large files / disk treemap"),
-            new("startup",  "启动项",     "Startup",               "🚀", "system", true,  "禁用开机自启 · 影响评估",     "Disable autostart · impact check"),
-            new("system",   "系统状况",   "System Status",         "💻", "system", true,  "设备检测 · 进程 · 诊断",      "Device · processes · smart diagnosis"),
-            new("net",      "网络诊断",   "Network Diagnostics",   "📡", "system", true,  "连通性检测与测速",           "Connectivity test & speed"),
-            new("issue",    "问题解决",   "Issue Solver",          "🩺", "system", true,  "常见故障速查 · 一键修复",     "Common issues & one-click fix"),
-            new("rescue",   "系统急救",   "System Rescue",         "🚑", "system", true,  "蓝屏 · 电池 · 端口 · 驱动备份", "BSOD / battery / ports / driver backup"),
+            new("clean",    "系统清理",   "System Cleaner",        homeGroup: "system", isPrimary: true,  subtitleZh: "垃圾 / 大文件 / 磁盘可视化", subtitleEn: "Junk / large files / disk treemap"),
+            new("startup",  "启动项",     "Startup",               homeGroup: "system", isPrimary: true,  subtitleZh: "禁用开机自启 · 影响评估",     subtitleEn: "Disable autostart · impact check"),
+            new("system",   "系统状况",   "System Status",         homeGroup: "system", isPrimary: true,  subtitleZh: "设备检测 · 进程 · 诊断",      subtitleEn: "Device · processes · smart diagnosis"),
+            new("net",      "网络诊断",   "Network Diagnostics",   homeGroup: "system", isPrimary: true,  subtitleZh: "连通性检测与测速",           subtitleEn: "Connectivity test & speed"),
+            new("issue",    "问题解决",   "Issue Solver",          homeGroup: "system", isPrimary: true,  subtitleZh: "常见故障速查 · 一键修复",     subtitleEn: "Common issues & one-click fix"),
+            new("rescue",   "系统急救",   "System Rescue",         homeGroup: "system", isPrimary: true,  subtitleZh: "蓝屏 · 电池 · 端口 · 驱动备份", subtitleEn: "BSOD / battery / ports / driver backup"),
 
             // ===== 效率工具（首页常规卡片） =====
-            new("wizard",   "故障向导",   "Troubleshoot Wizard",   "🔧", "tools",  false, "向导式排查常见问题",          "Step-by-step troubleshooting"),
-            new("shred",    "文件粉碎",   "File Shredder",         "🗜️", "tools",  false, "安全彻底删除敏感文件",        "Securely delete sensitive files"),
-            new("snapshot", "截图标注",   "Screenshot",            "📷", "tools",  false, "截图并标注编辑",              "Capture & annotate"),
-            new("uninstall", "卸载残留",  "Uninstall Leftovers",   "🧨", "tools",  false, "清理软件卸载后的残留",        "Clean up leftover files after uninstall"),
-            new("notes",    "便签",       "Notes",                 "📝", "tools",  false, "桌面便签快速记录",            "Quick desktop notes"),
-            new("recorder", "录音录像",   "Recorder",              "🎙️", "tools",  false, "麦克风录音与屏幕录像",        "Mic recording & screen capture"),
-            new("tweak",    "个性化调校", "Windows Tweaks",        "🎛️", "tools",  false, "任务栏 · 右键菜单 · Hosts",   "Taskbar / context menu / hosts"),
-            new("checkup",  "一键体检",   "PC Checkup",            "📋", "tools",  false, "生成可导出体检报告",          "Generate exportable health report"),
+            new("shred",    "文件粉碎",   "File Shredder",         homeGroup: "tools", subtitleZh: "安全彻底删除敏感文件",        subtitleEn: "Securely delete sensitive files"),
+            new("snapshot", "截图标注",   "Screenshot",            homeGroup: "tools", subtitleZh: "截图并标注编辑",              subtitleEn: "Capture & annotate"),
+            new("uninstall", "卸载残留",  "Uninstall Leftovers",   homeGroup: "tools", subtitleZh: "清理软件卸载后的残留",        subtitleEn: "Clean up leftover files after uninstall"),
+            new("duplicate", "重复文件",  "Duplicate Files",       homeGroup: "tools", subtitleZh: "查找并清理重复大文件（入回收站）", subtitleEn: "Find & remove duplicate files (to recycle bin)"),
+            new("notes",    "便签",       "Notes",                 homeGroup: "tools", subtitleZh: "桌面便签快速记录",            subtitleEn: "Quick desktop notes"),
+            new("recorder", "录音录像",   "Recorder",              homeGroup: "tools", subtitleZh: "麦克风录音与屏幕录像",        subtitleEn: "Mic recording & screen capture"),
+            new("tweak",    "个性化调校", "Windows Tweaks",        homeGroup: "tools", subtitleZh: "任务栏 · 右键菜单 · Hosts",   subtitleEn: "Taskbar / context menu / hosts"),
+            new("checkup",  "一键体检",   "PC Checkup",            homeGroup: "tools", subtitleZh: "生成可导出体检报告",          subtitleEn: "Generate exportable health report"),
 
             // ===== 助手与信息（首页常规卡片） =====
-            new("agent",    "Agent 助手", "Agent Assistant",       "🤖", "assist", false, "接入 API 获取 AI 帮助",       "Connect API for AI help"),
-            new("site",     "网站与官网", "Sites & Official",      "🌐", "assist", false, "常用网站 + 软件官网",         "Common sites & official links"),
-            new("tool",     "WIN 助手",   "WIN Helper",            "🛠️", "assist", false, "实用软件官方下载",            "Official downloads"),
-            new("help",     "电脑帮助",   "PC Help",               "💻", "assist", false, "系统工具与使用技巧",          "Tools & tips"),
-            new("report",   "月度报告",   "Monthly Report",        "📊", "assist", false, "使用统计与成就",              "Usage stats & achievements"),
-            new("novice",   "新手导览",   "Beginner Guide",        "📘", "assist", false, "小白也能懂的功能",            "Features for beginners"),
-            new("tutorial", "AI 密钥教程", "AI Key Tutorial",      "🔑", "assist", false, "申请并填入 AI 密钥",          "Get & enter your AI key"),
-            new("bug",      "BUG 反馈",   "Bug Report",            "🐞", "assist", false, "问题反馈与建议提交",          "Report issues & suggestions"),
-            new("setup",    "装机助手",   "Setup Assistant",       "💿", "assist", false, "常用软件安装推荐",            "Recommended software installer"),
-            new("protool",  "专业工具",   "Pro Tools",             "🧰", "assist", false, "绿色免安装专业工具官方下载",  "Portable pro tools official downloads"),
+            new("agent",    "Agent 助手", "Agent Assistant",       homeGroup: "assist", subtitleZh: "接入 API 获取 AI 帮助",       subtitleEn: "Connect API for AI help"),
+            new("site",     "网站与官网", "Sites & Official",      homeGroup: "assist", subtitleZh: "常用网站 + 软件官网",         subtitleEn: "Common sites & official links"),
+            new("tool",     "WIN 助手",   "WIN Helper",            homeGroup: "assist", subtitleZh: "实用软件官方下载",            subtitleEn: "Official downloads"),
+            new("help",     "电脑帮助",   "PC Help",               homeGroup: "assist", subtitleZh: "系统工具与使用技巧",          subtitleEn: "Tools & tips"),
+            new("report",   "月度报告",   "Monthly Report",        homeGroup: "assist", subtitleZh: "使用统计与成就",              subtitleEn: "Usage stats & achievements"),
+            new("bug",      "BUG 反馈",   "Bug Report",            homeGroup: "assist", subtitleZh: "问题反馈与建议提交",          subtitleEn: "Report issues & suggestions"),
+            new("setup",    "装机助手",   "Setup Assistant",       homeGroup: "assist", subtitleZh: "常用软件安装推荐",            subtitleEn: "Recommended software installer"),
+            new("protool",  "专业工具",   "Pro Tools",             homeGroup: "assist", subtitleZh: "绿色免安装专业工具官方下载",  subtitleEn: "Portable pro tools official downloads"),
 
             // ===== 仅导航 / 侧栏入口（不在首页显示） =====
-            new("home",      "主界面",     "Home",                  "🏠"),
-            new("settings",  "软件设置",   "Settings",              "⚙️"),
-            new("theme",     "个性装扮",   "Appearance",            "🎨"),
-            new("companion", "陪伴运行",   "Companion",             "🐾"),
+            new("home",      "主界面",     "Home"),
+            new("settings",  "软件设置",   "Settings"),
+            new("theme",     "个性装扮",   "Appearance"),
+            new("companion", "陪伴运行",   "Companion"),
+            // tutorial：内部跳转入口（Agent 助手页「密钥教程」按钮），不显示在首页与侧栏
+            new("tutorial",  "AI 密钥教程", "AI Key Tutorial"),
         };
 
         /// <summary>按 key 查找模块定义；不存在返回 null。</summary>
@@ -142,9 +146,9 @@ namespace WINHELP
                 case "shred":    return new WindowShredder();
                 case "snapshot": return new WindowSnapshot();
                 case "uninstall": return new WindowUninstaller();
+                case "duplicate": return new DuplicateFilePage();
                 case "notes":    return new NotesPage();
                 case "recorder": return new WindowRecorder();
-                case "wizard":   return new TroubleshootWizardPage { OnNavigate = host.Navigate };
                 case "tweak":    return new TweakPage();
                 case "checkup":  return new CheckupPage();
                 // —— 助手与信息 ——
@@ -153,15 +157,14 @@ namespace WINHELP
                 case "help":     return new PcHelpPage();
                 case "agent":    return new AgentAssistantPage { OnCloseRequest = host.CloseToHome, OnOpenTutorial = host.OpenTutorial };
                 case "report":   return new WindowReport();
-                case "novice":   return new BeginnerGuidePage();
-                case "tutorial": return new WindowTutorial { OnCloseRequest = host.CloseToHome, OnOpenAgent = host.OpenAgent };
                 case "bug":      return new BugReportPage();
                 case "setup":    return new SetupPage();
                 case "protool":  return new ProToolPage { OnNavigate = host.Navigate };
-                // —— 设置 / 装扮 / 陪伴 / 首页 ——
+                // —— 设置 / 装扮 / 陪伴 / 教程 / 首页 ——
                 case "settings":   return new SettingsPage { OnCloseRequest = host.CloseToHome };
                 case "theme":      return new AppearancePage { OnCloseRequest = host.CloseToHome };
                 case "companion":  return new CompanionPage();
+                case "tutorial":   return new WindowTutorial { OnCloseRequest = host.CloseToHome, OnOpenAgent = host.OpenAgent };
                 case "home":
                     return new HomePage { OnNavigate = host.Navigate, OnOptimize = host.Optimize };
                 default:

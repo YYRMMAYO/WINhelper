@@ -2,16 +2,26 @@
 
 > 用途：本文件是项目的**总索引**。当你在 VS 里"只看到部分代码、找不到某个模块"时，先查这里。
 > 维护约定：新增/合并模块后，请同步更新本文件与 `ModuleRegistry.cs`（模块元数据单一来源），`MainWindow.InitPages()` 会自动遍历注册。
-> 版本：随主程序 5.2.0。命名空间统一为 `WINHELP`；程序集名/EXE 名为「司南工具箱」（AppData 数据目录仍为 `WINHELP`）。
+> 版本：随主程序 5.3.0。命名空间统一为 `WINHELP`；程序集名/EXE 名为「司南工具箱」（AppData 数据目录仍为 `WINHELP`）。
 
-## UI 规范（v5.2.0，更新）
+## v5.3.0 UI 全面重写（重大变更）
 
-- **高危操作 5 连确认（v5.2.0）**：磁盘修复、防火墙重置、清空打印队列、文件粉碎、UAC 级别修改等
+- **去掉 QQ 风格蓝渐变标题栏**：改为纯白色玻璃主题栏，与 Win11 设计风格一致；窗口按钮按 Win11 浅色规范实现。
+- **侧栏导航数据驱动**：移除 v5.2.0 的 7 个硬编码按钮与 7 个 Click 处理器，`MainWindow.NavSpec` 静态配置 → `BuildNav()` 自动生成按钮 + 分组标题；新增 / 删除模块只需改 `ModuleRegistry.All`。
+- **去 emoji 化**：所有模块图标不再使用 emoji，改为「标题首字徽标」—— 圆角强调色浅底 + 中文首字（如 `清/启/网/截/卸`）。命令面板与首页卡片统一改用首字显示。
+- **首页重设计**：仅保留 19 张功能卡片 + 顶部轻量欢迎条（问候 + 上次优化 + 可清理统计 + 一键优化）；移除原「每日贴士卡」「英雄横幅」「系统状况状态条」等冗余装饰；卡片改为统一尺寸、实色白底、轻边框。
+- **新增模块**：`duplicate` 重复文件查找（按文件名 + 大小分组 → SHA-256 校验 → 全部移入回收站 + 双重确认，常规 `FileSystem.DeleteFile` 不可逆风险彻底规避）。
+- **删除模块**：`wizard` 故障向导（与 `issue` 问题解决功能重叠，删除其页与类）、`novice` 新手导览（内容并入 `help` 电脑帮助页）。`tutorial` AI 密钥教程保留为 Agent 内部跳转入口。
+- **侧栏 `系统工具` 组**（v5.3.0）：clean / startup / system / net / issue / rescue（6 项，最常用入口）；其余模块（重复文件、截图、便签、装机等）经首页卡片 / Ctrl+K 命令面板直达。
+
+## UI 规范（v5.2.0 → v5.3.0 更新）
+
+- **高危操作 5 连确认（v5.2.0 沿用）**：磁盘修复、防火墙重置、清空打印队列、文件粉碎、UAC 级别修改等
   「高危代码执行项」必须走 `RiskGuard.ConfirmHighRisk()`（默认 5 连确认，任一轮点「否」立即中止）；
   普通删除/覆盖类操作至少 1~2 次确认（`ConfirmTwice`）。禁止新增跳过确认的高危执行项。
 - **术语解释**：统一走 `Glossary.cs` 词典（term → 一句话中英解释），`Glossary.Hint(raw)` 始终生效（面向新手，无专业模式）。
-- **emoji 使用规则**：emoji 仅允许作为**模块/功能/分类图标**（如 ModuleRegistry 图标、导航图标、分类卡片图标、命令面板图标）；
-  **禁止**作为文字装饰前缀（按钮、标题、提示行首的 ▶ ↻ ⛔ ✨ ✅ 💡 等一律删除）。新代码按此规则评审。
+- **emoji 使用规则（v5.3.0 收紧）**：emoji 仅允许作为**模块/功能/分类图标**（如导航、命令面板中极少数语义符号）；
+  **禁止**作为首页卡片图标 / 按钮 / 标题 / 提示行首的装饰前缀。新模块默认走「中文首字徽标」chip。
 - **面向新手**：面向电脑新手用户，界面保持朴素简洁；操作前必须给通俗说明与安全确认。
 - **界面风格（v5.1.0）**：整体简洁浅色设计，统一卡片圆角（10px）/间距（8px 网格）；命令输出区不使用纯黑控制台，
   采用浅色等宽面板 + 彩色状态徽章；具体视觉规范见 `GlassTheme.xaml`。
@@ -44,11 +54,11 @@
 | `startup` | StartupPage | `StartupPage.xaml` | `StartupPage.xaml.cs` | Page | 系统工具 | 开机自启项管理 | 注册表 |
 | `net` | NetworkDiagnosticsPage | `NetworkDiagnosticsPage.xaml` | `NetworkDiagnosticsPage.xaml.cs` | Page | 系统工具 | 网络连通性检测 + 网速测试 | `System.Net.*` |
 | `issue` | IssueSolverPage | `IssueSolverPage.xaml` | `IssueSolverPage.xaml.cs` | Page | 系统工具 | 问题解决：常见故障知识库（6 大类）+ 白名单命令一键修复（实时回显） | `IssueCatalog`（问题条目）、`CommandRunner`（白名单执行） |
-| `wizard` | TroubleshootWizardPage | `TroubleshootWizardPage.xaml` | `TroubleshootWizardPage.xaml.cs` | Page | 系统工具 | 分步故障排查向导 | 内置方案字典 |
 | `system` | SystemStatusPage | `SystemStatusPage.xaml` | `SystemStatusPage.xaml.cs` | Page | 系统工具 | 设备检测 + 完整性检测 + 优化建议 | `HardwareInfo`、`HealthScoreService` |
 | `shred` | WindowShredder | `WindowShredder.xaml` | `WindowShredder.xaml.cs` | Page | 效率工具 | 文件安全擦除（不可恢复） | `System.Security.Cryptography` |
 | `snapshot` | WindowSnapshot | `WindowSnapshot.xaml` | `WindowSnapshot.xaml.cs` | Page | 效率工具 | 区域截图 + 标注编辑 | GDI+ `CopyFromScreen` |
 | `uninstall` | WindowUninstaller | `WindowUninstaller.xaml` | `WindowUninstaller.xaml.cs` | Page | 效率工具 | 卸载残留清理 | 注册表 |
+| `duplicate` | DuplicateFilePage | `DuplicateFilePage.xaml` | `DuplicateFilePage.xaml.cs` | Page | 效率工具 | 重复文件查找：按文件名+大小分组 → SHA-256 校验 → 全部移入回收站（双重确认） | `Microsoft.VisualBasic.FileIO.FileSystem.DeleteFile(SendToRecycleBin)`、`RiskGuard.ConfirmTwice` |
 | `notes` | NotesPage | `NotesPage.xaml` | `NotesPage.xaml.cs` | Page | 效率工具 | 桌面便签 | `NotesStore`（与陪伴窗实时同步） |
 | `recorder` | WindowRecorder | `WindowRecorder.xaml` | `WindowRecorder.xaml.cs` | Page | 效率工具 | 录音录像（扫描本机已装录屏软件并一键启动） | — |
 | `site` | SiteFinderPage | `SiteFinderPage.xaml` | `SiteFinderPage.xaml.cs` | Page | 助手与信息 | 网站与官网（常用网站 + 软件官网；v4.3.1 由「网站检索助手」合并「官网导航」而来） | — |
@@ -56,8 +66,7 @@
 | `help` | PcHelpPage | `PcHelpPage.xaml` | `PcHelpPage.xaml.cs` | Page | 助手与信息 | 电脑帮助：系统工具与使用技巧 | — |
 | `agent` | AgentAssistantPage | `AgentAssistantPage.xaml` | `AgentAssistantPage.xaml.cs` | Page | 助手与信息 | Agent 助手：接入 OpenAI 兼容 API 的 AI 对话（流式 SSE） | `AiClient`、`ToolRegistry`、`AgentSettingsManager` |
 | `report` | WindowReport | `WindowReport.xaml` | `WindowReport.xaml.cs` | Page | 助手与信息 | 月度报告：使用统计与成就 | `Cleaner` 统计、`SettingsManager` |
-| `novice` | BeginnerGuidePage | `BeginnerGuidePage.xaml` | `BeginnerGuidePage.xaml.cs` | Page | 助手与信息 | 新手导览：使用技巧 | — |
-| `tutorial` | WindowTutorial | `WindowTutorial.xaml` | `WindowTutorial.xaml.cs` | Page | 助手与信息 | AI 密钥获取教程：引导申请各平台 API Key 并填入 | `AgentSettingsManager` |
+| `tutorial` | WindowTutorial | `WindowTutorial.xaml` | `WindowTutorial.xaml.cs` | Page | （内部跳转入口） | AI 密钥获取教程：引导申请各平台 API Key 并填入 | `AgentSettingsManager` |
 | `bug` | BugReportPage | `BugReportPage.xaml` | `BugReportPage.xaml.cs` | Page | 助手与信息 | BUG 反馈（腾讯文档表单 / GitHub Issues / 崩溃日志） | `crash.log` |
 | `setup` | SetupPage | `SetupPage.xaml` | `SetupPage.xaml.cs` | Page | 助手与信息 | 装机助手：新电脑常用软件官网导航 | `SiteCatalog.Groups` 驱动 `BuildCatalog()`（代码生成卡片） |
 | `settings` | SettingsPage | `SettingsPage.xaml` | `SettingsPage.xaml.cs` | Page | 设置类 | 软件设置（开机启动、语言等） | `SettingsManager` |

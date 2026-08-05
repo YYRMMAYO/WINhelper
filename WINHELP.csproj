@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
-    <Version>5.2.0</Version>
+    <Version>5.3.0</Version>
     <Copyright>Copyright (C) 2025-2026 YYRMM. Licensed under GPL-2.0</Copyright>
     <PackageLicenseExpression>GPL-2.0-only</PackageLicenseExpression>
     <AssemblyName>司南工具箱</AssemblyName>
@@ -16,7 +16,7 @@
     <PublishReadyToRun>true</PublishReadyToRun>
     <ApplicationIcon>AppIcon.ico</ApplicationIcon>
     <!-- 排除构建副本目录，避免重复源文件导致编译冲突 -->
-    <DefaultItemExcludes>$(DefaultItemExcludes);_build\**\*;_smoketest\**\*;.obj2\**\*;_install\**\*</DefaultItemExcludes>
+    <DefaultItemExcludes>$(DefaultItemExcludes);_build\**\*;_smoketest\**\*;.obj2\**\*;_install\**\*;_shot\**\*</DefaultItemExcludes>
     <!-- DPI 感知：高 DPI 屏幕下按显示器分辨率渲染，避免模糊/变小 -->
     <WindowsPerMonitorDpiAware>true</WindowsPerMonitorDpiAware>
   </PropertyGroup>

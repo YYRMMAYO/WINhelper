@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
@@ -8,12 +9,11 @@ using System.Windows.Media;
 namespace WINHELP
 {
     /// <summary>
-    /// 全新首页（内嵌在 MainWindow 右侧内容区）：分组功能入口 + 搜索筛选
-    /// 侧栏精简后所有功能模块均通过首页卡片访问，分为三组：系统工具 / 效率工具 / 助手与信息。
-    /// 新增（P0-3）：智能排序（收藏优先 + 使用频率）、收藏星标、状态徽标（推荐 / NEW）。
-    /// <para>导航模块 key="home"（由 MainWindow._factories 注册）；首页卡片由 ModuleRegistry
-    /// （C# 实例）驱动，BuildCards 在构造函数里生成卡片并注入星标 / NEW 徽标；
-    /// 依赖 ThemeManager 玻璃画刷与 LocExtension 多语言。</para>
+    /// 首页（v5.3.0 重写）：
+    /// - 顶部轻量欢迎条（问候 + 上次优化 / 可清理统计 + 一键优化）；
+    /// - 下方按「系统工具 / 效率工具 / 助手与信息」三组展示功能卡片；
+    /// - 卡片图标统一为「标题首字徽标」（无 emoji），支持收藏星标与使用频率排序；
+    /// - 全部数据来自 ModuleRegistry（单一事实源）。
     /// </summary>
     public partial class HomePage : UserControl
     {
@@ -30,22 +30,19 @@ namespace WINHELP
         public static readonly DependencyProperty IsStarProperty =
             DependencyProperty.RegisterAttached("IsStar", typeof(bool), typeof(HomePage), new PropertyMetadata(false));
 
-        // 推荐 / 新品徽标集合（可按运营节奏调整）
-        private static readonly HashSet<string> Recommended = new() { "clean", "startup", "system", "agent", "snapshot" };
-        private static readonly HashSet<string> NewModules = new() { "issue", "report", "uninstall" };
-
         public HomePage()
         {
             InitializeComponent();
             BuildCards();
             ApplySort();
             Localize();
-            ThemeCardAccent();
+            RefreshStats();
+            ThemeWelcomeButton();
             UiLanguage.Changed += () => Dispatcher.Invoke(Localize);
-            ThemeManager.ThemeChanged += () => Dispatcher.Invoke(ThemeCardAccent);
+            ThemeManager.ThemeChanged += () => Dispatcher.Invoke(ThemeWelcomeButton);
         }
 
-        /// <summary>依据 ModuleRegistry 生成首页模块卡片（取代原先写在 XAML 的 Border）。</summary>
+        /// <summary>依据 ModuleRegistry 生成首页模块卡片（首字徽标 + 统一尺寸）。</summary>
         private void BuildCards()
         {
             _cards.Clear();
@@ -72,57 +69,55 @@ namespace WINHELP
             }
         }
 
-        /// <summary>生成单张首页卡片（主级 / 常规两套样式），结构与原有 XAML 卡片一致。</summary>
+        /// <summary>生成单张首页卡片：首字徽标 + 标题 + 副标题。</summary>
         private Border BuildCard(ModuleDefinition m)
         {
-            var sp = new StackPanel();
-            TextBlock title, sub;
-
-            if (m.IsPrimary)
+            // 首字徽标（无 emoji，取中文标题首字）
+            var chip = new Border { Style = (Style)FindResource("IconChip") };
+            chip.Child = new TextBlock
             {
-                var chip = new Border { Style = (Style)FindResource("IconChip") };
-                chip.Child = new TextBlock
-                {
-                    Text = m.Icon,
-                    FontSize = 22,
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center
-                };
-                sp.Children.Add(chip);
-                title = new TextBlock { FontSize = 15, FontWeight = FontWeights.Bold, Margin = new Thickness(0, 10, 0, 2) };
-                sub = new TextBlock { FontSize = 12 };
-            }
-            else
-            {
-                sp.Children.Add(new TextBlock { Text = m.Icon, FontSize = 22, Margin = new Thickness(0, 0, 0, 8) });
-                title = new TextBlock { FontSize = 14, FontWeight = FontWeights.Bold };
-                sub = new TextBlock { FontSize = 12, Margin = new Thickness(0, 2, 0, 0) };
-            }
+                Text = FirstChar(m.TitleZh),
+                FontSize = 16,
+                FontWeight = FontWeights.SemiBold,
+                Foreground = new SolidColorBrush(ThemeManager.AccentColor),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+            };
 
-            // 用 DynamicResource 引用文字画刷，主题切换时实时同步（等价于原 XAML 的 {DynamicResource ...}）
+            var title = new TextBlock
+            {
+                FontSize = 14,
+                FontWeight = FontWeights.SemiBold,
+                Margin = new Thickness(0, 12, 0, 3),
+            };
+            var sub = new TextBlock
+            {
+                FontSize = 12,
+                TextWrapping = TextWrapping.Wrap,
+            };
+
             title.SetResourceReference(TextBlock.ForegroundProperty, "TextPrimaryBrush");
             sub.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
+
+            var sp = new StackPanel();
+            sp.Children.Add(chip);
             sp.Children.Add(title);
             sp.Children.Add(sub);
 
             var border = new Border
             {
                 Tag = m.Key,
-                Style = (Style)FindResource(m.IsPrimary ? "HomeCardPrimary" : "HomeCard")
+                Style = (Style)FindResource("HomeCard"),
             };
             border.MouseLeftButtonDown += Card_Click;
             border.Child = sp;
             return border;
         }
 
-        /// <summary>把卡片原始 StackPanel 内容包进 Grid，叠加「收藏星标」与「状态徽标」。
-        /// 约定：传入 Border 的 Child 必须是承载图标与文字的 StackPanel。</summary>
+        /// <summary>把卡片内容包进 Grid，叠加右上角收藏星标。</summary>
         private void WrapCardContent(Border b, string key)
         {
             if (b.Child is not StackPanel sp) return;
-            // 先断开 sp 与原 Border 的逻辑父子关系，再把它包进 Grid。
-            // 否则 grid.Children.Add(sp) 会因 sp 仍属于 Border.Child 而抛
-            // InvalidOperationException："指定的元素已经是另一个元素的逻辑子元素"。
             b.Child = null;
             sp.HorizontalAlignment = HorizontalAlignment.Stretch;
             sp.VerticalAlignment = VerticalAlignment.Stretch;
@@ -130,57 +125,26 @@ namespace WINHELP
             var grid = new Grid();
             grid.Children.Add(sp);
 
-            // 收藏星标（右上角）
+            bool starred = SettingsManager.IsStarred(key);
             var star = new Button
             {
                 Tag = key,
-                Width = 26, Height = 26,
+                Width = 24, Height = 24,
                 HorizontalAlignment = HorizontalAlignment.Right,
                 VerticalAlignment = VerticalAlignment.Top,
-                Margin = new Thickness(0, 2, 4, 0),
+                Margin = new Thickness(0, 2, 6, 0),
                 Background = Brushes.Transparent,
                 BorderThickness = new Thickness(0),
                 Cursor = Cursors.Hand,
-                FontSize = 15,
-                Content = SettingsManager.IsStarred(key) ? "★" : "☆",
-                Foreground = new SolidColorBrush(SettingsManager.IsStarred(key)
-                    ? Color.FromRgb(0xF1, 0xC4, 0x0F) : Color.FromRgb(0xBD, 0xC3, 0xC7)),
+                FontSize = 13,
+                Content = starred ? "★" : "☆",
+                Foreground = new SolidColorBrush(starred
+                    ? Color.FromRgb(0xE8, 0xA3, 0x1D) : Color.FromRgb(0xC6, 0xCC, 0xD4)),
+                ToolTip = UiLanguage.L("收藏（置顶显示）", "Star (pin to top)"),
             };
             star.SetValue(IsStarProperty, true);
             star.Click += Star_Click;
             grid.Children.Add(star);
-
-            // 状态徽标（右下角）：NEW 优先，其次 推荐。
-            // NEW 徽标仅在用户尚未点击 dismiss 时显示（点击一次即永久隐藏，跨版本保留）。
-            bool showNew = NewModules.Contains(key) && !SettingsManager.IsNewDismissed(key);
-            string? badge = showNew ? "NEW"
-                              : (!NewModules.Contains(key) && Recommended.Contains(key)) ? UiLanguage.L("推荐", "Recommended")
-                              : null;
-            if (badge != null)
-            {
-                var badgeBorder = new Border
-                {
-                    HorizontalAlignment = HorizontalAlignment.Right,
-                    VerticalAlignment = VerticalAlignment.Bottom,
-                    Margin = new Thickness(0, 0, 6, 4),
-                    CornerRadius = new CornerRadius(7),
-                    Padding = new Thickness(7, 2, 7, 2),
-                    // 标记该边框为 NEW 徽标，便于点击后从视觉树移除
-                    Tag = showNew ? "NewBadge" : null,
-                    Background = NewModules.Contains(key)
-                        ? new SolidColorBrush(Color.FromRgb(0xE7, 0x4C, 0x3C))
-                        : new SolidColorBrush(Color.FromArgb(0x33, ThemeManager.AccentColor.R, ThemeManager.AccentColor.G, ThemeManager.AccentColor.B)),
-                };
-                var badgeText = new TextBlock
-                {
-                    Text = badge,
-                    FontSize = 10,
-                    FontWeight = FontWeights.Bold,
-                    Foreground = NewModules.Contains(key) ? Brushes.White : new SolidColorBrush(ThemeManager.AccentColor),
-                };
-                badgeBorder.Child = badgeText;
-                grid.Children.Add(badgeBorder);
-            }
 
             b.Child = grid;
         }
@@ -191,9 +155,6 @@ namespace WINHELP
             var groups = new[] { CardsWrapSystem, CardsWrapTools, CardsWrapAssist };
             foreach (var panel in groups)
             {
-                // 保留非卡片子元素（如一键优化卡 CardOptimize）的原始相对位置
-                var fixedChildren = panel.Children.Cast<UIElement>()
-                    .Where(c => !_cards.Any(x => x.card == c)).ToList();
                 var sortable = _cards.Where(c => c.panel == panel).ToList();
                 sortable.Sort((a, b) =>
                 {
@@ -205,7 +166,6 @@ namespace WINHELP
                     return a.order.CompareTo(b.order);
                 });
                 panel.Children.Clear();
-                foreach (var f in fixedChildren) panel.Children.Add(f);
                 foreach (var s in sortable) panel.Children.Add(s.card);
             }
         }
@@ -217,11 +177,11 @@ namespace WINHELP
             bool starred = SettingsManager.IsStarred(key);
             btn.Content = starred ? "★" : "☆";
             btn.Foreground = new SolidColorBrush(starred
-                ? Color.FromRgb(0xF1, 0xC4, 0x0F) : Color.FromRgb(0xBD, 0xC3, 0xC7));
+                ? Color.FromRgb(0xE8, 0xA3, 0x1D) : Color.FromRgb(0xC6, 0xCC, 0xD4));
             ApplySort(); // 立即重排以反映收藏状态
         }
 
-        /// <summary>语言切换时重新设置所有卡片 / 英雄文本</summary>
+        /// <summary>语言切换时重新设置所有卡片 / 欢迎条文本</summary>
         private void Localize()
         {
             SecSystem.Text = UiLanguage.L("系统工具", "System Tools");
@@ -236,16 +196,37 @@ namespace WINHELP
                 if (title != null) title.Text = UiLanguage.L(m.TitleZh, m.TitleEn);
                 if (sub != null) sub.Text = UiLanguage.L(m.SubtitleZh, m.SubtitleEn);
             }
+            SetHeroDate();
+            TxtHeroGreeting.Text = GetGreeting();
+            RefreshStats();
         }
 
-        /// <summary>一键优化卡片背景随主题强调色变化（需求 #7 的延伸：首页强调卡与横幅同色）</summary>
-        private void ThemeCardAccent()
+        /// <summary>刷新欢迎条统计（上次优化 + 可清理量）</summary>
+        public void RefreshStats()
         {
-            if (CardOptimize == null) return;
-            var a = ThemeManager.AccentColor;
-            var d = ThemeManager.DarkerColor;
-            CardOptimize.Background = new LinearGradientBrush(a, d, new Point(0, 0), new Point(1, 1));
+            try
+            {
+                long pending = Cleaner.SumMatching(Cleaner.TempDirs(), "*", System.IO.SearchOption.TopDirectoryOnly).size
+                             + Cleaner.QueryRecycleBin().size;
+                var last = SettingsManager.Current.LastOptimize;
+                string lastStr = (last == default) ? UiLanguage.L("从未优化", "Never optimized") : last.ToString("yyyy-MM-dd HH:mm");
+                TxtHeroExtra.Text = $"{UiLanguage.L("上次优化", "Last optimize")}：{lastStr}  ·  " +
+                                    $"{UiLanguage.L("可清理", "Reclaimable")}：{MainWindow.FmtSize(pending)}";
+            }
+            catch
+            {
+                TxtHeroExtra.Text = "";
+            }
         }
+
+        /// <summary>一键优化按钮背景随主题强调色变化</summary>
+        private void ThemeWelcomeButton()
+        {
+            if (BtnWelcomeOptimize == null) return;
+            ThemeManager.ApplyButtonTheme(BtnWelcomeOptimize, ThemeManager.AccentColor);
+        }
+
+        private void BtnWelcomeOptimize_Click(object sender, RoutedEventArgs e) => OnOptimize?.Invoke();
 
         /// <summary>从卡片容器中找到标题（粗体）与副标题（最后一个 TextBlock）</summary>
         private static void GetCardTexts(Border b, out TextBlock? title, out TextBlock? sub)
@@ -254,7 +235,7 @@ namespace WINHELP
             var sp = b.Child is Grid g ? g.Children.OfType<StackPanel>().FirstOrDefault() : b.Child as StackPanel;
             if (sp == null) return;
             var tbs = sp.Children.OfType<TextBlock>().ToList();
-            title = tbs.FirstOrDefault(tb => tb.FontWeight == FontWeights.Bold);
+            title = tbs.FirstOrDefault(tb => tb.FontWeight == FontWeights.SemiBold);
             sub = tbs.LastOrDefault();
         }
 
@@ -270,20 +251,6 @@ namespace WINHELP
             return sb.ToString();
         }
 
-        /// <summary>从卡片视觉树中移除 NEW 徽标（点击后即时消失，无需重建整页）</summary>
-        private static void RemoveNewBadge(Border card)
-        {
-            if (card.Child is not Grid g) return;
-            for (int i = g.Children.Count - 1; i >= 0; i--)
-            {
-                if (g.Children[i] is Border bd && bd.Tag as string == "NewBadge")
-                {
-                    g.Children.RemoveAt(i);
-                    break;
-                }
-            }
-        }
-
         private void Card_Click(object sender, MouseButtonEventArgs e)
         {
             // 点击卡片内嵌的「收藏星标」时不触发导航
@@ -297,16 +264,7 @@ namespace WINHELP
             if (sender is not Border b || b.Tag is not string key) return;
             SettingsManager.RecordModuleUsage(key); // 记录使用频率
 
-            // 若该模块的 NEW 徽标尚未被忽略，点击即永久隐藏（跨版本保留）
-            if (NewModules.Contains(key) && !SettingsManager.IsNewDismissed(key))
-            {
-                SettingsManager.DismissNew(key);
-                RemoveNewBadge(b);
-            }
-
-            if (key == "optimize")
-                OnOptimize?.Invoke();
-            else if (key == "notes")
+            if (key == "notes")
                 OnNavigate?.Invoke("notes");
             else
                 OnNavigate?.Invoke(key);
@@ -327,10 +285,36 @@ namespace WINHELP
                 else if (panel == CardsWrapTools) toolsVisible = true;
                 else if (panel == CardsWrapAssist) assistVisible = true;
             }
-            // 英雄卡片（一键优化）始终显示；无匹配的分组标题隐藏
             SecSystem.Visibility = sysVisible ? Visibility.Visible : Visibility.Collapsed;
             SecTools.Visibility = toolsVisible ? Visibility.Visible : Visibility.Collapsed;
             SecAssist.Visibility = assistVisible ? Visibility.Visible : Visibility.Collapsed;
         }
+
+        /// <summary>按当前语言设置日期（日 / 月）</summary>
+        private void SetHeroDate()
+        {
+            var now = DateTime.Now;
+            TxtHeroDay.Text = now.Day.ToString();
+            string[] monthEn = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+            TxtHeroMonth.Text = UiLanguage.Current == Lang.En
+                ? monthEn[now.Month - 1]
+                : $"{now.Month}月";
+        }
+
+        /// <summary>根据当前时段返回问候语（随语言切换）</summary>
+        private static string GetGreeting()
+        {
+            int hour = DateTime.Now.Hour;
+            return hour switch
+            {
+                >= 5 and < 12 => UiLanguage.L("早上好，欢迎回来", "Good morning, welcome back"),
+                >= 12 and < 18 => UiLanguage.L("下午好，欢迎回来", "Good afternoon, welcome back"),
+                >= 18 and < 23 => UiLanguage.L("晚上好，欢迎回来", "Good evening, welcome back"),
+                _ => UiLanguage.L("夜深了，注意休息", "Late night—time to rest")
+            };
+        }
+
+        private static string FirstChar(string s)
+            => string.IsNullOrEmpty(s) ? "" : s[..1];
     }
 }
