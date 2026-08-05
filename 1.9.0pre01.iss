@@ -4,7 +4,7 @@
 ; 注：Inno Setup 6 的 [Messages] 标识符以下方为准（参考 Default.isl 6.5.0）。
 
 #define MyAppName "司南工具箱"
-#define MyAppVersion "5.1.0"
+#define MyAppVersion "5.2.0"
 #define MyAppPublisher "YYRMM"
 #define MyAppURL "【完全免费的电脑助手!可以实现官网跳转,电脑帮助等功能】 https://www.bilibili.com/video/BV1gk3g6yEXp/?share_source=copy_web&vd_source=c804f5334fbb4541224a8910a55f757d"
 #define MyAppExeName "司南工具箱.exe"

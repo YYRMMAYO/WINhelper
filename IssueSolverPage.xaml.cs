@@ -333,9 +333,9 @@ namespace WINHELP
 
             if (f.Risk == RiskLevel.Danger)
             {
-                sb.Append(UiLanguage.L("此操作风险较高，确定继续？", "This is high-risk. Continue anyway?"));
-                return MessageBox.Show(sb.ToString(), UiLanguage.L("危险操作确认", "Confirm risky action"),
-                    MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) == MessageBoxResult.Yes;
+                // v5.2.0：高危代码执行项改为 5 连确认（磁盘修复 / 防火墙重置 / 清空打印队列等），
+                // 任一轮点「否」立即中止，杜绝“扫一眼就点确定”导致的误操作。
+                return RiskGuard.ConfirmHighRisk(f.Label, f.Command, f.Warn);
             }
             if (f.Risk == RiskLevel.Caution || f.Warn != null)
             {

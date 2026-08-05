@@ -386,8 +386,38 @@ namespace WINHELP
 
         // ===== 提权命令（静默，由调用方决定提示） =====
 
+        /// <summary>
+        /// 提权执行注册表/电源命令。v5.2.0 安全加固：命令必须先通过值域白名单校验
+        /// （data 只能取编译期预定义的值），再按固定模板拼装，杜绝未来新增项时把用户输入拼进命令。
+        /// </summary>
         private static async Task<CommandResult> RunAdminAsync(string command)
         {
+            // 值域校验：只允许本页预定义的 UAC 级别(0..12) 与休眠状态(on/off) 拼入命令
+            bool valid = false;
+            if (command.StartsWith("powercfg /hibernate ", StringComparison.Ordinal))
+            {
+                valid = command is "powercfg /hibernate on" or "powercfg /hibernate off";
+            }
+            else if (command.StartsWith("reg add \"HKLM\\", StringComparison.Ordinal))
+            {
+                const string marker = "/v ConsentPromptBehaviorAdmin /t REG_DWORD /d ";
+                int m = command.IndexOf(marker, StringComparison.Ordinal);
+                if (m > 0 && command.EndsWith(" /f", StringComparison.Ordinal))
+                {
+                    int len = command.Length - m - marker.Length - 3; // 减去 " /f"
+                    if (len > 0 && int.TryParse(command.Substring(m + marker.Length, len), out var v))
+                        valid = v >= 0 && v <= 12;
+                }
+            }
+            if (!valid)
+            {
+                return new CommandResult
+                {
+                    ExitCode = -4,
+                    Error = UiLanguage.L("命令未通过安全校验，已拒绝执行。", "Command failed security validation and was rejected.")
+                };
+            }
+
             CommandRunner.RegisterAllowed(new[] { command });
             return await CommandRunner.RunAsync(command, requireAdmin: true, timeoutSec: 60);
         }
@@ -420,6 +450,16 @@ namespace WINHELP
                 // UAC 级别（HKLM 策略）：非提权经 reg add 提权；已提权直接写
                 if (item.Key == "uac")
                 {
+                    // v5.2.0：UAC 通知级别属于系统安全策略，改错可能导致无法提权或提权全部放行，
+                    // 属于高危代码执行项，执行前必须 5 连确认。
+                    if (!RiskGuard.ConfirmHighRisk(
+                            UiLanguage.L("修改 UAC 通知级别", "Change UAC notification level"),
+                            $"reg add \"HKLM\\{PolicySystem}\" /v ConsentPromptBehaviorAdmin /t REG_DWORD /d {data} /f",
+                            UiLanguage.L(
+                                "这是系统级安全策略：设置为「从不通知」会让所有程序以管理员权限静默运行，大幅降低系统安全性；设置不当可能导致后续无法弹出授权窗口。",
+                                "System-wide security policy: setting it to Never notify silently runs all programs elevated and greatly reduces security; wrong values can break elevation prompts.")))
+                        return;
+
                     if (!CommandRunner.IsElevated)
                     {
                         var r = await RunAdminAsync(
@@ -681,6 +721,11 @@ namespace WINHELP
                         UiLanguage.L("提示", "Info"), MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
+                // v5.2.0：覆盖 hosts 属于系统级文件覆盖，先 2 次确认
+                if (!RiskGuard.ConfirmTwice(
+                        UiLanguage.L("从备份恢复 hosts", "Restore hosts from backup"),
+                        $"copy /y \"{backupPath}\" \"%WINDIR%\\System32\\drivers\\etc\\hosts\""))
+                    return;
                 await RunAdminLiteral(
                     $"copy /y \"{backupPath}\" \"%WINDIR%\\System32\\drivers\\etc\\hosts\"",
                     UiLanguage.L("Hosts 恢复", "Hosts restore"));
@@ -699,6 +744,16 @@ namespace WINHELP
                 hoverColor: Color.FromRgb(0x55, 0x39, 0x92));
             restart.Click += async (_, __) =>
             {
+                // v5.2.0：结束并重启资源管理器会让桌面与任务栏短暂消失（约 1-2 秒），
+                // 未保存的窗口操作可能丢失，执行前先确认。
+                var ok = MessageBox.Show(
+                    UiLanguage.L(
+                        "将结束并重启 Windows 资源管理器（explorer.exe），桌面与任务栏会短暂消失约 1~2 秒后恢复。确定继续吗？",
+                        "Explorer will be restarted; the desktop and taskbar will briefly disappear for 1-2 seconds. Continue?"),
+                    UiLanguage.L("重启资源管理器", "Restart Explorer"),
+                    MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No);
+                if (ok != MessageBoxResult.Yes) return;
+
                 // 1) 结束 explorer（同会话进程，无需提权）
                 try
                 {

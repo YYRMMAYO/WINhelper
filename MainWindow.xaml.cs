@@ -814,6 +814,66 @@ namespace WINHELP
                 UpdateManager.OpenDownloadUrl(_downloadUrl);
         }
 
+        /// <summary>
+        /// v5.2.0：从 GitHub 直接下载最新 tag 的安装包并安装。
+        /// 使用与「检查更新」相同的 tags 版本解析逻辑，下载后强制 SHA-256 校验，
+        /// 校验不通过（或发布流程未回填哈希）一律拒绝启动安装。
+        /// </summary>
+        private async void BtnUpdateNow_Click(object sender, RoutedEventArgs e)
+        {
+            var btn = (Button)sender;
+            btn.IsEnabled = false;
+            BtnDownload.IsEnabled = false;
+            try
+            {
+                UpdateNotes.Text = UiLanguage.L(
+                    "正在从 GitHub 获取最新版本…", "Fetching the latest version from GitHub…");
+
+                var prog = new Progress<(long Read, long Total)>(p =>
+                {
+                    double pct = p.Total > 0 ? p.Read * 100.0 / p.Total : 0;
+                    UpdateNotes.Text = UiLanguage.L(
+                        string.Format("正在下载安装包… {0:F0}%", pct),
+                        string.Format("Downloading installer… {0:F0}%", pct));
+                });
+
+                string? path = await UpdateManager.DownloadLatestAsync(prog);
+                if (path == null)
+                {
+                    UpdateNotes.Text = UiLanguage.L(
+                        "下载失败或 SHA-256 校验未通过（可能发布流程尚未完成）。可点击「下载页面」手动获取。",
+                        "Download failed or SHA-256 verification failed (the release may not be complete). Use the download page instead.");
+                    return;
+                }
+
+                UpdateNotes.Text = UiLanguage.L(
+                    "下载完成，正在准备安装…", "Download complete, preparing to install…");
+                var r = MessageBox.Show(
+                    UiLanguage.L(
+                        "最新版本安装包已下载并通过完整性校验。\n是否立即运行安装程序？（安装程序会请求管理员权限）",
+                        "The latest installer has been downloaded and verified.\nRun it now? (It will request administrator permission)"),
+                    UiLanguage.L("安装更新", "Install Update"),
+                    MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.Yes);
+                if (r == MessageBoxResult.Yes && UpdateManager.LaunchInstaller(path))
+                {
+                    UpdateNotes.Text = UiLanguage.L(
+                        "安装程序已启动。安装完成后软件将自动升级到最新版本。",
+                        "The installer has started. The app will upgrade once installation finishes.");
+                }
+            }
+            catch (Exception ex)
+            {
+                App.LogCrash(ex, "MainWindow.BtnUpdateNow");
+                UpdateNotes.Text = UiLanguage.L(
+                    "下载更新时发生错误，请稍后重试。", "An error occurred while downloading the update. Retry later.");
+            }
+            finally
+            {
+                btn.IsEnabled = true;
+                BtnDownload.IsEnabled = true;
+            }
+        }
+
         private void BtnDismiss_Click(object sender, RoutedEventArgs e)
         {
             UpdateBar.Visibility = Visibility.Collapsed;

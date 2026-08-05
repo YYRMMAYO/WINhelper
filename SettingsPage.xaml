@@ -272,6 +272,7 @@
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <!-- 左：版本图标 -->
                                     <Border Grid.Column="0" Width="48" Height="48" CornerRadius="12"
@@ -290,8 +291,15 @@
                                             Content="{loc:Loc 检查更新|Check for Updates}" FontSize="12" FontWeight="SemiBold"
                                             Foreground="White" Background="#27AE60"
                                             BorderThickness="0" Cursor="Hand"
-                                            Width="90" Height="34" VerticalAlignment="Center"
+                                            Width="90" Height="34" VerticalAlignment="Center" Margin="0,0,8,0"
                                             Click="BtnCheckUpdate_Click"/>
+                                    <!-- v5.2.0：检测到更新后可直接从 GitHub 下载最新 tag 的安装包 -->
+                                    <Button Grid.Column="3" x:Name="BtnDownloadUpdate"
+                                            Content="{loc:Loc 下载更新|Download Update}" FontSize="12" FontWeight="SemiBold"
+                                            Foreground="White" Background="#2980B9"
+                                            BorderThickness="0" Cursor="Hand"
+                                            Width="90" Height="34" VerticalAlignment="Center"
+                                            Click="BtnDownloadUpdate_Click"/>
                                 </Grid>
                             </Border>
 

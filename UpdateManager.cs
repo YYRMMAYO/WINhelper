@@ -34,7 +34,10 @@ namespace WINHELP
         // 下载源（备）：蓝奏云下载页面
         public const string BackupDownloadUrl =
             "https://wwbpq.lanzouu.com/b01d71xtzg";
-        // 安装包 SHA-256 校验值：发布流程（P5）计算 dist/BAND/司南工具箱_Setup_v5.1.0.exe 后回填此处
+        // 安装包 SHA-256 参考值：发布流程（P5）计算最终安装包后回填。
+        // 注：应用内下载更新不再依赖此常量校验（跨版本更新时无法预知未来安装包的哈希），
+        // 改为运行时读取 GitHub Release body 中声明的 SHA-256（见 DownloadLatestAsync）；
+        // 此常量保留供手动核验 / 展示用途。
         public const string ReleaseSha256 = "B1D9EBB9F756B0A4EA47D149A39C2E3D0939825E2FE75606D3A86537ECE0ACD4";
 
         static UpdateManager()
@@ -169,6 +172,190 @@ namespace WINHELP
                 return hex == ReleaseSha256.ToLowerInvariant();
             }
             catch { return false; }
+        }
+
+        // ===== v5.2.0：从 GitHub 直接下载最新 tag 的 exe 并安装 =====
+
+        /// <summary>最新 Release 资产信息（版本 / 文件名 / 下载地址 / 官方 SHA-256）。</summary>
+        public sealed class ReleaseAsset
+        {
+            public string Version { get; init; } = "";
+            public string FileName { get; init; } = "";
+            public string DownloadUrl { get; init; } = "";
+            /// <summary>发布者在 Release body 中声明的 SHA-256（无则视为发布流程不完整，禁止自动安装）。</summary>
+            public string Sha256 { get; init; } = "";
+        }
+
+        /// <summary>从 Release body 中提取官方 SHA-256（支持 "SHA256: xxx" / "SHA-256: xxx" / "sha256=xxx" 等常见写法）。</summary>
+        private static string ExtractSha256(string body)
+        {
+            if (string.IsNullOrWhiteSpace(body)) return "";
+            foreach (var m in System.Text.RegularExpressions.Regex.Matches(body,
+                @"SHA-?256[\s:=：]+\s*([0-9a-fA-F]{64})", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+            {
+                if (m is System.Text.RegularExpressions.Match mm && mm.Success)
+                    return mm.Groups[1].Value.ToLowerInvariant();
+            }
+            return "";
+        }
+
+        /// <summary>
+        /// 使用与 <see cref="CheckAsync"/> 相同的逻辑（遍历 tags 取最高版本），
+        /// 再通过 GitHub API 查询该 tag 对应的 Release，返回其中第一个 .exe 资产
+        /// 及其在 Release body 中声明的 SHA-256。查询失败返回 null。
+        /// </summary>
+        public static async Task<ReleaseAsset?> GetLatestReleaseExeAsync(CancellationToken ct = default)
+        {
+            try
+            {
+                using var cts = HttpClientProvider.Timeout(10);
+                using var linked = CancellationTokenSource.CreateLinkedTokenSource(cts.Token, ct);
+
+                // 1) 遍历 tags 取最高版本（与 CheckAsync 完全相同的解析逻辑）
+                var tagsJson = await HttpClientProvider.Shared.GetStringAsync(TagsUrl, linked.Token);
+                using (var doc = JsonDocument.Parse(tagsJson))
+                {
+                    var root = doc.RootElement;
+                    if (root.ValueKind != JsonValueKind.Array || root.GetArrayLength() == 0)
+                        return null;
+
+                    Version? remoteMax = null;
+                    string remoteVer = "";
+                    foreach (var tag in root.EnumerateArray())
+                    {
+                        var name = tag.TryGetProperty("name", out var n) ? n.GetString() ?? "" : "";
+                        if (string.IsNullOrEmpty(name)) continue;
+                        var candidate = name.StartsWith("v", StringComparison.OrdinalIgnoreCase)
+                            ? name[1..] : name;
+                        if (!Version.TryParse(candidate, out var v)) continue;
+                        if (remoteMax == null || v > remoteMax) { remoteMax = v; remoteVer = candidate; }
+                    }
+                    if (remoteMax == null) return null;
+
+                    // 2) 查询该 tag 的 Release（资产 + body 中声明的官方 SHA-256）
+                    var releaseUrl = $"https://api.github.com/repos/{GITHUB_OWNER}/{GITHUB_REPO}/releases/tags/v{remoteVer}";
+                    var relJson = await HttpClientProvider.Shared.GetStringAsync(releaseUrl, linked.Token);
+                    using var relDoc = JsonDocument.Parse(relJson);
+                    var relRoot = relDoc.RootElement;
+
+                    string bodySha = "";
+                    if (relRoot.TryGetProperty("body", out var bodyEl) && bodyEl.ValueKind == JsonValueKind.String)
+                        bodySha = ExtractSha256(bodyEl.GetString() ?? "");
+
+                    if (relRoot.TryGetProperty("assets", out var assets)
+                        && assets.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var a in assets.EnumerateArray())
+                        {
+                            if (!a.TryGetProperty("name", out var nameEl)) continue;
+                            string name = nameEl.GetString() ?? "";
+                            if (!name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) continue;
+                            string url = a.TryGetProperty("browser_download_url", out var urlEl)
+                                ? urlEl.GetString() ?? "" : "";
+                            if (string.IsNullOrEmpty(url)) continue;
+                            return new ReleaseAsset
+                            {
+                                Version = remoteVer,
+                                FileName = name,
+                                DownloadUrl = url,
+                                Sha256 = bodySha
+                            };
+                        }
+                    }
+                }
+                return null;
+            }
+            catch (HttpRequestException) { return null; }
+            catch (TaskCanceledException) { return null; }
+            catch (JsonException) { return null; }
+        }
+
+        /// <summary>
+        /// 从 GitHub 下载最新 tag 的安装包到临时目录，下载完成后用「Release body 中声明的官方 SHA-256」校验。
+        /// <para>
+        /// 校验设计（v5.2.0）：不依赖编译期常量（常量无法预知未来版本的哈希，跨版本校验必然失效），
+        /// 改为运行时读取 GitHub Release body 中的 SHA-256 —— 发布流程（P5）上传资产时会把哈希写入 Release 说明。
+        /// 发布方未声明哈希 / 校验失败一律返回 null 并删除文件，绝不允许“无校验直接安装”。
+        /// </para>
+        /// </summary>
+        /// <param name="progress">下载进度回调 (已下载字节, 总字节)。</param>
+        /// <param name="ct">取消令牌。</param>
+        public static async Task<string?> DownloadLatestAsync(
+            IProgress<(long Read, long Total)>? progress = null,
+            CancellationToken ct = default)
+        {
+            var asset = await GetLatestReleaseExeAsync(ct);
+            if (asset == null || string.IsNullOrEmpty(asset.Sha256)) return null; // 发布未声明哈希 → 拒绝
+
+            string tmp = Path.Combine(Path.GetTempPath(), asset.FileName);
+            try
+            {
+                using var cts = HttpClientProvider.Timeout(600); // 大文件放宽到 10 分钟
+                using var linked = CancellationTokenSource.CreateLinkedTokenSource(cts.Token, ct);
+
+                using var resp = await HttpClientProvider.Shared.GetAsync(
+                    asset.DownloadUrl, HttpCompletionOption.ResponseHeadersRead, linked.Token);
+                resp.EnsureSuccessStatusCode();
+
+                long total = resp.Content.Headers.ContentLength ?? 0;
+                await using var src = await resp.Content.ReadAsStreamAsync(linked.Token);
+                await using var dst = File.Create(tmp);
+                var buf = new byte[81920];
+                long read = 0;
+                int n;
+                while ((n = await src.ReadAsync(buf, linked.Token)) > 0)
+                {
+                    await dst.WriteAsync(buf.AsMemory(0, n), linked.Token);
+                    read += n;
+                    progress?.Report((read, total));
+                }
+                await dst.FlushAsync(linked.Token);
+            }
+            catch
+            {
+                TryDeleteFile(tmp);
+                return null;
+            }
+
+            // SHA-256 防篡改校验（以 Release body 声明的官方哈希为准）
+            if (!VerifyFileHash(tmp, asset.Sha256))
+            {
+                TryDeleteFile(tmp);
+                return null;
+            }
+            return tmp;
+        }
+
+        /// <summary>按指定期望值校验文件 SHA-256（十六进制小写比较）。</summary>
+        public static bool VerifyFileHash(string path, string expectedSha256)
+        {
+            if (string.IsNullOrWhiteSpace(expectedSha256) || string.IsNullOrWhiteSpace(path))
+                return false;
+            try
+            {
+                using var fs = File.OpenRead(path);
+                using var sha = SHA256.Create();
+                var hash = sha.ComputeHash(fs);
+                var hex = Convert.ToHexString(hash).ToLowerInvariant();
+                return hex == expectedSha256.ToLowerInvariant();
+            }
+            catch { return false; }
+        }
+
+        /// <summary>用系统默认方式启动安装包（Inno Setup 会自行请求管理员权限）。</summary>
+        public static bool LaunchInstaller(string installerPath)
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo(installerPath) { UseShellExecute = true });
+                return true;
+            }
+            catch { return false; }
+        }
+
+        private static void TryDeleteFile(string path)
+        {
+            try { if (File.Exists(path)) File.Delete(path); } catch { }
         }
     }
 }

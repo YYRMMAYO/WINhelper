@@ -23,11 +23,43 @@ namespace WINHELP
         private NotifyIcon? _notifyIcon;
         private MainWindow? _mainWindow;
 
+        /// <summary>
+        /// 单实例互斥锁。与 Inno Setup 脚本的 AppMutex=YayuToolboxMutex 同名，
+        /// 安装程序升级时也能检测到运行中的实例并自动关闭（配合 CloseApplications）。
+        /// </summary>
+        private Mutex? _singleInstanceMutex;
+        private bool _ownsSingleInstance;
+
         protected override void OnStartup(StartupEventArgs e)
         {
             // 安装全局异常捕获：任何线程上的未处理异常都会被记录到 crash.log，
             // UI 线程异常还会被标记为已处理并弹出提示，避免“闪退”（直接关闭、无任何信息）。
             InstallGlobalExceptionHandlers();
+
+            // v5.2.0 单实例保护：双击图标、快捷方式或误触多次启动时，
+            // 检测到已有一个实例在运行 → 不创建新进程窗口，激活已有窗口后立即退出。
+            // 修复“多次启动出现多个进程/多个窗口”的问题。
+            try
+            {
+                _singleInstanceMutex = new Mutex(true, "YayuToolboxMutex", out bool createdNew);
+                _ownsSingleInstance = createdNew;
+                if (!createdNew)
+                {
+                    ActivateExistingInstance();
+                    Shutdown();
+                    return;
+                }
+            }
+            catch (AbandonedMutexException)
+            {
+                // 上一个实例异常退出导致互斥锁被遗弃：本实例可安全接管
+                _ownsSingleInstance = true;
+            }
+            catch
+            {
+                // 互斥锁创建失败（极少见）：不阻塞正常启动，退回多实例行为
+                _ownsSingleInstance = false;
+            }
 
             // base.OnStartup 必须调用一次（处理命令行、触发 Startup 事件等），且使用真实参数 e。
             base.OnStartup(e);
@@ -193,6 +225,40 @@ namespace WINHELP
 
         // ===== 全局异常捕获 =====
 
+        /// <summary>
+        /// 找到已运行的实例并把它的主窗口带到前台（最小化/隐藏时恢复显示）。
+        /// 找不到则静默退出，避免弹出无意义错误。
+        /// </summary>
+        private static void ActivateExistingInstance()
+        {
+            try
+            {
+                var self = Process.GetCurrentProcess();
+                foreach (var p in Process.GetProcessesByName(self.ProcessName))
+                {
+                    if (p.Id == self.Id) continue;
+                    IntPtr h = p.MainWindowHandle;
+                    if (h == IntPtr.Zero)
+                    {
+                        // 主窗口句柄可能尚未创建（启动中），稍作等待再查一次
+                        p.Refresh();
+                        h = p.MainWindowHandle;
+                    }
+                    if (h == IntPtr.Zero) continue;
+                    ShowWindow(h, 9);        // SW_RESTORE：从最小化/隐藏恢复
+                    SetForegroundWindow(h);  // 置顶并聚焦
+                    break;
+                }
+            }
+            catch { /* 激活失败不影响本实例退出 */ }
+        }
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
         private static string CrashLogDir
             => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WINHELP");
 
@@ -345,6 +411,16 @@ namespace WINHELP
 
         protected override void OnExit(ExitEventArgs e)
         {
+            // 释放单实例互斥锁（仅当本实例真正持有它）
+            try
+            {
+                if (_ownsSingleInstance && _singleInstanceMutex != null)
+                    _singleInstanceMutex.ReleaseMutex();
+                _singleInstanceMutex?.Dispose();
+            }
+            catch { /* 释放失败无碍，进程退出时系统会自动回收 */ }
+            _singleInstanceMutex = null;
+
             // 注销全局热键
             CompanionManager.UnregisterGlobalHotkey();
             _notifyIcon?.Dispose();

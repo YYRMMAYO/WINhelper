@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
-    <Version>5.1.0</Version>
+    <Version>5.2.0</Version>
     <Copyright>Copyright (C) 2025-2026 YYRMM. Licensed under GPL-2.0</Copyright>
     <PackageLicenseExpression>GPL-2.0-only</PackageLicenseExpression>
     <AssemblyName>司南工具箱</AssemblyName>

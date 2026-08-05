@@ -430,6 +430,7 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
                     <TextBlock Name="UpdateTitle" FontSize="13" FontWeight="SemiBold"
@@ -444,10 +445,18 @@
                         FontSize="12" FontWeight="SemiBold"
                         Background="#FF9800" Foreground="White"
                         BorderThickness="0" Cursor="Hand"
-                        Content="{loc:Loc 立即下载|Download Now}" Margin="16,0,8,0"
+                        Content="{loc:Loc 下载页面|Download Page}" Margin="16,0,8,0"
                         shell:WindowChrome.IsHitTestVisibleInChrome="True"
                         Click="BtnDownload_Click"/>
-                <Button Grid.Column="3" Name="BtnDismiss" Height="30" Width="60"
+                <!-- v5.2.0：直接从 GitHub 下载最新 tag 的安装包（复用“检查更新”的版本解析逻辑） -->
+                <Button Grid.Column="3" Name="BtnUpdateNow" Height="30" Width="88"
+                        FontSize="12" FontWeight="SemiBold"
+                        Background="#27AE60" Foreground="White"
+                        BorderThickness="0" Cursor="Hand"
+                        Content="{loc:Loc 下载并安装|Download &amp; Install}" Margin="0,0,8,0"
+                        shell:WindowChrome.IsHitTestVisibleInChrome="True"
+                        Click="BtnUpdateNow_Click"/>
+                <Button Grid.Column="4" Name="BtnDismiss" Height="30" Width="60"
                         FontSize="12" Foreground="#BF360C"
                         Background="Transparent" BorderThickness="0" Cursor="Hand"
                         Content="{loc:Loc 忽略|Dismiss}"

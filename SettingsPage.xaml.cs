@@ -261,6 +261,107 @@ namespace WINHELP
             UpdateManager.OpenDownloadUrl(UpdateManager.PrimaryDownloadUrl);
         }
 
+        /// <summary>
+        /// v5.2.0：从 GitHub 直接下载最新 tag 的安装包。
+        /// 复用「检查更新」的 tags 版本解析逻辑，先比较版本，再下载、SHA-256 校验、询问安装。
+        /// </summary>
+        private async void BtnDownloadUpdate_Click(object sender, RoutedEventArgs e)
+        {
+            BtnDownloadUpdate.IsEnabled = false;
+            BtnCheckUpdate.IsEnabled = false;
+            var origContent = BtnDownloadUpdate.Content;
+            try
+            {
+                UpdateStatusBar.Visibility = Visibility.Visible;
+                UpdateStatusBar.Background = new SolidColorBrush(Color.FromRgb(0xEB, 0xF5, 0xFB));
+                TxtUpdateStatus.Foreground = new SolidColorBrush(Color.FromRgb(0x1F, 0x61, 0x8C));
+                TxtUpdateStatus.Text = UiLanguage.L(
+                    "正在从 GitHub 获取最新版本…", "Fetching the latest version from GitHub…");
+                TxtLastCheckTime.Text = "";
+
+                var asset = await UpdateManager.GetLatestReleaseExeAsync();
+                if (asset == null)
+                {
+                    TxtUpdateStatus.Text = UiLanguage.L(
+                        "未获取到可下载的安装包（可能仓库尚无 Release 或网络不可用）。",
+                        "No downloadable installer found (the repo may have no Release yet, or the network is down).");
+                    return;
+                }
+
+                // 版本比较：远端不高于本地则无需更新
+                if (Version.TryParse(UpdateManager.LocalVersion, out var local)
+                    && Version.TryParse(asset.Version, out var remote) && remote <= local)
+                {
+                    TxtUpdateStatus.Text = UiLanguage.L(
+                        string.Format("当前已是最新版本（{0}）✓", UpdateManager.FullVersion),
+                        string.Format("Already up to date ({0}) ✓", UpdateManager.FullVersion));
+                    TxtUpdateStatus.Foreground = new SolidColorBrush(Color.FromRgb(0x2E, 0x7D, 0x32));
+                    return;
+                }
+
+                var ask = MessageBox.Show(
+                    UiLanguage.L(
+                        string.Format("发现新版本 v{0}（当前 {1}）。\n是否从 GitHub 下载最新安装包？",
+                            asset.Version, UpdateManager.FullVersion),
+                        string.Format("New version v{0} found (current {1}).\nDownload the latest installer from GitHub?",
+                            asset.Version, UpdateManager.FullVersion)),
+                    UiLanguage.L("下载更新", "Download Update"),
+                    MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.Yes);
+                if (ask != MessageBoxResult.Yes) return;
+
+                BtnDownloadUpdate.Content = UiLanguage.L("下载中…", "Downloading…");
+                TxtUpdateStatus.Text = UiLanguage.L(
+                    "正在下载安装包（将进行 SHA-256 完整性校验）…",
+                    "Downloading the installer (SHA-256 verification will run)…");
+
+                var prog = new Progress<(long Read, long Total)>(p =>
+                {
+                    double pct = p.Total > 0 ? p.Read * 100.0 / p.Total : 0;
+                    TxtUpdateStatus.Text = UiLanguage.L(
+                        string.Format("正在下载安装包… {0:F0}%", pct),
+                        string.Format("Downloading installer… {0:F0}%", pct));
+                });
+
+                string? path = await UpdateManager.DownloadLatestAsync(prog);
+                if (path == null)
+                {
+                    TxtUpdateStatus.Text = UiLanguage.L(
+                        "下载失败或 SHA-256 校验未通过（可能发布流程尚未完成），请稍后重试。",
+                        "Download failed or SHA-256 verification failed (the release may be incomplete). Retry later.");
+                    TxtUpdateStatus.Foreground = new SolidColorBrush(Color.FromRgb(0xC0, 0x39, 0x2B));
+                    return;
+                }
+
+                TxtUpdateStatus.Text = UiLanguage.L(
+                    "下载完成并通过完整性校验。", "Download complete and verified.");
+                var install = MessageBox.Show(
+                    UiLanguage.L(
+                        "最新版本安装包已下载并通过完整性校验。\n是否立即运行安装程序？（安装程序会请求管理员权限）",
+                        "The latest installer has been downloaded and verified.\nRun it now? (It will request administrator permission)"),
+                    UiLanguage.L("安装更新", "Install Update"),
+                    MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.Yes);
+                if (install == MessageBoxResult.Yes && UpdateManager.LaunchInstaller(path))
+                {
+                    TxtUpdateStatus.Text = UiLanguage.L(
+                        "安装程序已启动，安装完成后软件将升级到最新版本。",
+                        "The installer has started; the app will upgrade once installation finishes.");
+                    TxtUpdateStatus.Foreground = new SolidColorBrush(Color.FromRgb(0x2E, 0x7D, 0x32));
+                }
+            }
+            catch (Exception ex)
+            {
+                TxtUpdateStatus.Text = UiLanguage.L(
+                    "下载更新时发生错误，请稍后重试。", "An error occurred while downloading. Retry later.");
+                App.LogCrash(ex, "SettingsPage.BtnDownloadUpdate");
+            }
+            finally
+            {
+                BtnDownloadUpdate.Content = origContent;
+                BtnDownloadUpdate.IsEnabled = true;
+                BtnCheckUpdate.IsEnabled = true;
+            }
+        }
+
         /// <summary>下载链接点击（蓝奏云备选源）</summary>
         private void DownloadLink_Click(object sender, MouseButtonEventArgs e)
         {

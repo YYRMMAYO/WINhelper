@@ -186,7 +186,17 @@ public partial class WindowShredder : UserControl
         if (_busy || _items.Count == 0) return;
         var passes = (int)PassSlider.Value;
 
-        // 安全：确认弹窗列出全部将被粉碎的具体路径，避免"以为删 A 实际删了 B"（安全审计建议 P0）
+        // v5.2.0：文件粉碎属于“不可恢复”的最高危代码执行项，改为 5 连确认。
+        // 前 4 轮在 RiskGuard 内逐次确认；最后在此把将粉碎的具体路径清单展示给用户，
+        // 任一轮点「否」立即中止，杜绝“扫一眼就点确定”导致误粉碎重要文件。
+        bool confirmed = RiskGuard.ConfirmHighRisk(
+            UiLanguage.L($"粉碎 {_items.Count} 个文件/文件夹（{passes} 遍随机覆写）", $"Shred {_items.Count} item(s) with {passes} passes"),
+            string.Join(" | ", _items.Select(it => it.Path).Take(5)),
+            UiLanguage.L("文件将被多次随机覆写后删除，任何软件都无法恢复。", "Files are overwritten repeatedly then deleted; NO software can recover them."));
+
+        if (!confirmed) return;
+
+        // 最后一遍：列出全部将被粉碎的具体路径，避免"以为删 A 实际删了 B"（安全审计建议 P0）
         var list = new System.Text.StringBuilder();
         int shown = 0;
         foreach (var it in _items)
