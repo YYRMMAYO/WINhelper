@@ -431,10 +431,14 @@ namespace WINHELP
         private void TxtSearch_TextChanged(object sender, TextChangedEventArgs e)
         {
             var kw = TxtSearch.Text.Trim().ToLowerInvariant();
-            if (!string.IsNullOrEmpty(kw) && _currentKey != "home")
-                SetActiveNav("home", NavHome);
-            if (PageHost.Content is HomePage hp)
-                hp.Filter(kw);
+            // v5.4.0：仅在首次输入时跳回首页（后续击键只做筛选），
+            // 修复"每敲一个字符就整页切换"的卡顿与打断感
+            if (PageHost.Content is not HomePage hp)
+            {
+                if (!string.IsNullOrEmpty(kw)) SetActiveNav("home", NavHome);
+                return;
+            }
+            hp.Filter(kw);
         }
 
         /// <summary>显示更新提示栏</summary>
@@ -453,6 +457,8 @@ namespace WINHELP
         /// <summary>关闭/托盘逻辑</summary>
         protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
         {
+            // v5.4.0：窗口关闭时停止结果提示自动隐藏计时器（防句柄残留）
+            _resultTimer.Stop();
             if (!_forceClose && SettingsManager.Current.CloseToTray)
             {
                 e.Cancel = true;
@@ -541,8 +547,8 @@ namespace WINHELP
                          + (!emptyRecycle ? UiLanguage.L("（已保留回收站）", " (recycle bin kept)") : "");
                 ShowOptimizeResult(UiLanguage.L($"已清理并释放 {FmtSize(freed)}", $"Cleaned and freed {FmtSize(freed)}") + note);
 
-                // 首页可见时刷新统计
-                if (PageHost.Content is HomePage hp) hp.RefreshStats();
+                // 首页可见时刷新统计（v5.4.0：force 跳过 60s 缓存，优化后立即显示新数据）
+                if (PageHost.Content is HomePage hp) hp.RefreshStats(true);
             }
             catch (Exception ex)
             {
@@ -590,7 +596,16 @@ namespace WINHELP
         private void BtnDownload_Click(object sender, RoutedEventArgs e)
         {
             if (!string.IsNullOrEmpty(_downloadUrl))
+            {
                 UpdateManager.OpenDownloadUrl(_downloadUrl);
+            }
+            else
+            {
+                // v5.4.0：更新栏未出现时点击给出明确反馈（不再静默无反应）
+                System.Windows.MessageBox.Show(
+                    UiLanguage.L("暂无可用下载地址。请点击「检查更新」后重试。", "No download link yet. Run 'Check for Updates' first."),
+                    UiLanguage.L("提示", "Hint"), MessageBoxButton.OK, MessageBoxImage.Information);
+            }
         }
 
         /// <summary>

@@ -217,14 +217,14 @@ namespace WINHELP
             if (string.IsNullOrWhiteSpace(baseUrl))
             {
                 TxtSettingsHint.Foreground = new SolidColorBrush(Color.FromRgb(0xE7, 0x4C, 0x3C));
-                TxtSettingsHint.Text = "[!] API 地址不能为空";
+                TxtSettingsHint.Text = UiLanguage.L("[!] API 地址不能为空", "[!] API base URL cannot be empty");
                 return;
             }
             if (!baseUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
                 !baseUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
             {
                 TxtSettingsHint.Foreground = new SolidColorBrush(Color.FromRgb(0xE7, 0x4C, 0x3C));
-                TxtSettingsHint.Text = "[!] 地址需以 http(s):// 开头";
+                TxtSettingsHint.Text = UiLanguage.L("[!] 地址需以 http(s):// 开头", "[!] URL must start with http(s)://");
                 return;
             }
 
@@ -236,7 +236,7 @@ namespace WINHELP
             AgentSettingsManager.Save();
 
             TxtSettingsHint.Foreground = new SolidColorBrush(Color.FromRgb(0x27, 0xAE, 0x60));
-            TxtSettingsHint.Text = "[OK] 已保存";
+            TxtSettingsHint.Text = UiLanguage.L("[OK] 已保存", "[OK] Saved");
         }
 
         /// <summary>常用服务预设：选择后自动填入对应 API 地址（含本地模型端口）及匹配默认模型</summary>
@@ -500,15 +500,17 @@ namespace WINHELP
             BtnSend.Content = "生成中";
             BtnClear.IsEnabled = false;
 
+            // v5.4.0：流式输出节流——后台线程用 StringBuilder 累积，UI 线程每 ~60ms 刷新一次，
+            // 消除长回复下逐分片 Dispatcher.Invoke + Text += 的 O(n²) 字符串重建与频繁滚底
+            var sbFull = new System.Text.StringBuilder();
+            var lastFlush = Environment.TickCount64;
             Action<string> onDelta = piece =>
             {
-                Dispatcher.Invoke(() =>
-                {
-                    // 首次收到内容时清掉占位符
-                    if (textBlock.Text == "思考中…") textBlock.Text = "";
-                    textBlock.Text += piece;
-                    ChatScroll.ScrollToEnd();
-                });
+                lock (sbFull) { sbFull.Append(piece); }
+                long now = Environment.TickCount64;
+                if (now - lastFlush < 60) return;
+                lastFlush = now;
+                FlushDelta(sbFull, textBlock);
             };
 
             try
@@ -516,6 +518,8 @@ namespace WINHELP
                 var full = ChkAgent.IsChecked == true
                     ? await AgentLoopAsync(text, onDelta)
                     : await StreamReplyAsync(text, onDelta);
+                // 收尾：把最后一次累积的增量刷到界面
+                FlushDelta(sbFull, textBlock);
                 _messages.Add(new ChatTurn("assistant", full));
                 SaveHistory();
             }
@@ -523,7 +527,7 @@ namespace WINHELP
             {
                 Dispatcher.Invoke(() =>
                 {
-                    textBlock.Text = "调用失败：\n" + ex.Message;
+                    textBlock.Text = UiLanguage.L("调用失败：\n", "Request failed:\n") + ex.Message;
                     border.Background = new SolidColorBrush(Color.FromRgb(0xFD, 0xF0, 0xF0));
                     border.BorderBrush = new SolidColorBrush(Color.FromRgb(0xE7, 0x4C, 0x3C));
                 });
@@ -537,6 +541,26 @@ namespace WINHELP
                 BtnClear.IsEnabled = true;
                 Dispatcher.Invoke(ChatScroll.ScrollToEnd);
             }
+        }
+
+        /// <summary>v5.4.0：把累积的流式增量刷新到助手气泡（线程安全：任意线程可调）。</summary>
+        private void FlushDelta(System.Text.StringBuilder sb, TextBlock textBlock)
+        {
+            string delta;
+            lock (sb)
+            {
+                if (sb.Length == 0) return;
+                delta = sb.ToString();
+                sb.Clear();
+            }
+            Dispatcher.Invoke(() =>
+            {
+                if (textBlock == null) return;
+                // 首次收到内容时清掉占位符
+                if (textBlock.Text == "思考中…") textBlock.Text = "";
+                textBlock.Text += delta;
+                ChatScroll.ScrollToEnd();
+            });
         }
 
         /// <summary>流式调用 OpenAI 兼容接口，逐片回调 onDelta，返回完整文本</summary>
@@ -894,6 +918,8 @@ namespace WINHELP
             bubble.Child = tb;
             ChatList.Children.Add(bubble);
             TxtEmpty.Visibility = Visibility.Collapsed;
+            // v5.4.0：气泡数量上限（StackPanel 无虚拟化，超长对话只保留最近 200 条防渲染卡顿）
+            while (ChatList.Children.Count > 200) ChatList.Children.RemoveAt(0);
             ChatScroll.ScrollToEnd();
             return (bubble, tb);
         }

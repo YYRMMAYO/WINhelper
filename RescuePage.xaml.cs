@@ -47,28 +47,31 @@ namespace WINHELP
                 ? Color.FromRgb(0x27, 0xAE, 0x60) : Color.FromRgb(0xE6, 0x7E, 0x22));
             AdminBadgeText.Text = UiLanguage.L(admin ? "管理员运行" : "标准权限",
                                                admin ? "Admin" : "Standard");
-            // 无电池设备隐藏电池卡（先查注册表 PowerMeter，再查 WMI Win32_Battery）
-            bool hasBattery = false;
-            try
+            // v5.4.0：电池检测（WMI 查询可能耗时）移到后台，避免页面加载卡顿
+            _ = Task.Run(() =>
             {
-                using var pm = Microsoft.Win32.Registry.LocalMachine
-                    .OpenSubKey(@"SYSTEM\CurrentControlSet\Control\Power\PowerMeter");
-                if (pm != null) hasBattery = true;
-            }
-            catch { }
-            if (!hasBattery)
+                bool hasBattery = false;
                 try
                 {
-                    // 备用：Win32_Battery 查询
-                    using var searcher = new System.Management.ManagementObjectSearcher(
-                        "SELECT * FROM Win32_Battery");
-                    hasBattery = searcher.Get().Count > 0;
+                    using var pm = Microsoft.Win32.Registry.LocalMachine
+                        .OpenSubKey(@"SYSTEM\CurrentControlSet\Control\Power\PowerMeter");
+                    if (pm != null) hasBattery = true;
                 }
                 catch { }
-            if (!hasBattery)
-            {
-                BatteryCard.Visibility = Visibility.Collapsed;
-            }
+                if (!hasBattery)
+                    try
+                    {
+                        using var searcher = new System.Management.ManagementObjectSearcher(
+                            "SELECT * FROM Win32_Battery");
+                        hasBattery = searcher.Get().Count > 0;
+                    }
+                    catch { }
+                Dispatcher.Invoke(() =>
+                {
+                    if (!hasBattery && BatteryCard != null)
+                        BatteryCard.Visibility = Visibility.Collapsed;
+                });
+            });
             // 蓝屏转储文件列表
             ListMinidumps();
         }
@@ -299,7 +302,8 @@ namespace WINHELP
                 if (pidCache.TryGetValue(pid, out var n)) return n;
                 try
                 {
-                    n = Process.GetProcessById(pid).ProcessName;
+                    using var p = Process.GetProcessById(pid);   // v5.4.0：进程对象释放
+                    n = p.ProcessName;
                 }
                 catch { n = "?"; }
                 pidCache[pid] = n;

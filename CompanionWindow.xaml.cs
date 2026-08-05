@@ -338,6 +338,8 @@ namespace WINHELP
         protected override void OnClosed(EventArgs e)
         {
             _timer.Stop();
+            // v5.4.0：一并停止便签状态计时器，防关闭后仍持有窗口引用
+            _noteStatusTimer.Stop();
             ThemeManager.ThemeChanged -= OnThemeChanged;
             ThemeManager.GlassChanged -= OnGlassChanged;
             NotesStore.Changed -= OnNotesChanged;

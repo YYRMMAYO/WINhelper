@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -193,15 +194,26 @@ public partial class SystemCleanerPage : UserControl
             };
             cat.Scan = async () =>
             {
+                // v5.4.0：单次遍历同时算大小 + 收集文件列表（原 SumMatching + EnumerateFiles 两遍）
                 var dirs = Cleaner.TempDirs();
-                var (size, count) = await Task.Run(() => Cleaner.SumMatching(dirs, "*", SearchOption.TopDirectoryOnly));
                 _tempFiles.Clear();
-                foreach (var d in dirs)
+                long size = 0; int count = 0;
+                await Task.Run(() =>
                 {
-                    if (!Directory.Exists(d)) continue;
-                    try { foreach (var f in Directory.EnumerateFiles(d, "*", SearchOption.TopDirectoryOnly)) _tempFiles.Add(f); }
-                    catch { }
-                }
+                    foreach (var d in dirs)
+                    {
+                        if (!Directory.Exists(d)) continue;
+                        try
+                        {
+                            foreach (var f in Directory.EnumerateFiles(d, "*", SearchOption.TopDirectoryOnly))
+                            {
+                                _tempFiles.Add(f);
+                                try { var fi = new FileInfo(f); if (fi.Exists) { size += fi.Length; count++; } } catch { }
+                            }
+                        }
+                        catch { }
+                    }
+                });
                 cat.Size = size; cat.Count = count;
             };
             cat.Clean = () =>
@@ -467,16 +479,21 @@ public partial class SystemCleanerPage : UserControl
 
             int total = _categories.Count;
             int done = 0;
-            foreach (var cat in _categories)
+            // v5.4.0：各类扫描并行执行（浏览器/更新缓存等全量递归遍历是耗时大头），
+            // 进度按完成分类数推进，去掉人为 Delay
+            var tasks = _categories.Select(async cat =>
             {
-                if (cat.SizeTb != null) cat.SizeTb.Text = UiLanguage.L("计算中…", "Calculating…");
+                if (cat.SizeTb != null) Dispatcher.Invoke(() => cat.SizeTb.Text = UiLanguage.L("计算中…", "Calculating…"));
                 try { if (cat.Scan != null) await cat.Scan(); }
                 catch { cat.Size = 0; cat.Count = 0; }
-                if (cat.SizeTb != null) cat.SizeTb.Text = $"{Fmt(cat.Size)} · {cat.Count} {UiLanguage.L("项", "items")}";
-                done++;
-                ScanProgress.Value = done * 100.0 / total;
-                await Task.Delay(10);
-            }
+                Interlocked.Increment(ref done);
+                Dispatcher.Invoke(() =>
+                {
+                    if (cat.SizeTb != null) cat.SizeTb.Text = $"{Fmt(cat.Size)} · {cat.Count} {UiLanguage.L("项", "items")}";
+                    ScanProgress.Value = done * 100.0 / total;   // done 为原子计数，仅进度显示
+                });
+            });
+            await Task.WhenAll(tasks);
 
             await ScanBigFilesAsync();
 
@@ -496,6 +513,7 @@ public partial class SystemCleanerPage : UserControl
 
     private async Task ScanBigFilesAsync()
     {
+        // v5.4.0：5 个根目录并行遍历（IO 密集），结果合并后排序取前 12
         var big = new List<(string path, long size)>();
         var roots = new[]
         {
@@ -506,27 +524,24 @@ public partial class SystemCleanerPage : UserControl
             Environment.GetFolderPath(Environment.SpecialFolder.MyPictures)
         };
 
-        await Task.Run(() =>
+        await Task.Run(() => Parallel.ForEach(roots, root =>
         {
-            foreach (var root in roots)
+            if (!Directory.Exists(root)) return;
+            try
             {
-                if (!Directory.Exists(root)) continue;
-                try
+                foreach (var f in Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories))
                 {
-                    foreach (var f in Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories))
+                    try
                     {
-                        try
-                        {
-                            var fi = new FileInfo(f);
-                            if (fi.Exists && fi.Length > 200L * 1024 * 1024)
-                                lock (big) big.Add((fi.FullName, fi.Length));
-                        }
-                        catch { }
+                        var fi = new FileInfo(f);
+                        if (fi.Exists && fi.Length > 200L * 1024 * 1024)
+                            lock (big) big.Add((fi.FullName, fi.Length));
                     }
+                    catch { }
                 }
-                catch { }
             }
-        });
+            catch { }
+        }));
 
         big.Sort((a, b) => b.size.CompareTo(a.size));
         big = big.Take(12).ToList();
@@ -604,27 +619,39 @@ public partial class SystemCleanerPage : UserControl
         BtnClean.IsEnabled = false;
         BtnScan.IsEnabled = false;
         TxtStatus.Text = UiLanguage.L("正在清理…", "Cleaning…");
-
-        long freed = 0;
-        await Task.Run(() =>
+        try
         {
-            foreach (var c in sel)
+            long freed = 0;
+            await Task.Run(() =>
             {
-                try
+                foreach (var c in sel)
                 {
-                    c.Clean?.Invoke();
-                    freed += c.Size;
+                    try
+                    {
+                        c.Clean?.Invoke();
+                        freed += c.Size;
+                    }
+                    catch { }
+                    c.Size = 0; c.Count = 0;
+                    var tb = c.SizeTb;
+                    Dispatcher.Invoke(() => { if (tb != null) tb.Text = UiLanguage.L("已清理", "Cleaned"); });
                 }
-                catch { }
-                c.Size = 0; c.Count = 0;
-                var tb = c.SizeTb;
-                Dispatcher.Invoke(() => { if (tb != null) tb.Text = UiLanguage.L("已清理", "Cleaned"); });
-            }
-        });
+            });
 
-        Recalc();
-        TxtStatus.Text = UiLanguage.L($"已清理，释放约 {Fmt(freed)}", $"Cleaned, freed about {Fmt(freed)}");
-        BtnScan.IsEnabled = true;
+            Recalc();
+            TxtStatus.Text = UiLanguage.L($"已清理，释放约 {Fmt(freed)}", $"Cleaned, freed about {Fmt(freed)}");
+        }
+        catch (Exception ex)
+        {
+            // v5.4.0：async void 补齐异常处理，清理中途异常不冒泡到全局处理器
+            App.LogCrash(ex, "SystemCleanerPage.BtnClean");
+            TxtStatus.Text = UiLanguage.L("清理出错：", "Cleanup error: ") + ex.Message;
+        }
+        finally
+        {
+            BtnClean.IsEnabled = true;
+            BtnScan.IsEnabled = true;
+        }
         LoadDiskInfo();
     }
 

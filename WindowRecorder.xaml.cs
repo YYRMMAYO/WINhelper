@@ -65,20 +65,27 @@ public partial class WindowRecorder : UserControl
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
-        var installed = DetectInstalled();
-        if (installed.Count == 0)
+        // v5.4.0：文件/注册表探测移到后台线程（原在 UI 线程逐个 File.Exists + 遍历 Uninstall 注册表）
+        TxtNone.Visibility = Visibility.Collapsed;
+        _ = Task.Run(() =>
         {
-            TxtNone.Visibility = Visibility.Visible;
-        }
-        else
-        {
-            TxtNone.Visibility = Visibility.Collapsed;
-            foreach (var app in installed)
-                FoundPanel.Children.Add(BuildCard(app, true));
-        }
-        // 推荐下载区始终展示全部已知软件，方便用户补充安装
-        foreach (var app in Catalog)
-            RecommendPanel.Children.Add(BuildCard(app, false));
+            var installed = DetectInstalled();
+            Dispatcher.Invoke(() =>
+            {
+                if (installed.Count == 0)
+                {
+                    TxtNone.Visibility = Visibility.Visible;
+                }
+                else
+                {
+                    foreach (var app in installed)
+                        FoundPanel.Children.Add(BuildCard(app, true));
+                }
+                // 推荐下载区始终展示全部已知软件，方便用户补充安装
+                foreach (var app in Catalog)
+                    RecommendPanel.Children.Add(BuildCard(app, false));
+            });
+        });
     }
 
     private Border BuildCard(RecApp app, bool installed)

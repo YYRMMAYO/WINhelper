@@ -108,9 +108,12 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
             <TextBlock Name="TxtNote" FontSize="11" Foreground="#95A5A6" VerticalAlignment="Center" TextWrapping="Wrap"/>
-            <Button Name="BtnReset" Grid.Column="1" Content="{loc:Loc 重置统计|Reset Statistics}" Width="110" Height="36"
+            <Button Name="BtnExport" Grid.Column="1" Content="{loc:Loc 导出报告|Export Report}" Width="100" Height="36"
+                    Style="{StaticResource GlassToolbarButton}" Background="#2980B9" Margin="0,0,10,0" Click="BtnExport_Click"/>
+            <Button Name="BtnReset" Grid.Column="2" Content="{loc:Loc 重置统计|Reset Statistics}" Width="110" Height="36"
                     Style="{StaticResource GlassToolbarButton}" Background="#E74C3C" Click="BtnReset_Click"/>
         </Grid>
     </Grid>

@@ -114,9 +114,9 @@
                 <!-- 底部提示 -->
                 <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="4,8,4,2"
                             HorizontalAlignment="Center">
-                    <TextBlock Text="↑ ↓ 选择" FontSize="11" Foreground="{DynamicResource PalSub}" Margin="0,0,14,0"/>
-                    <TextBlock Text="Enter 打开" FontSize="11" Foreground="{DynamicResource PalSub}" Margin="0,0,14,0"/>
-                    <TextBlock Text="Esc 关闭" FontSize="11" Foreground="{DynamicResource PalSub}"/>
+                    <TextBlock Text="{local:Loc ↑ ↓ 选择|↑ ↓ Select}" FontSize="11" Foreground="{DynamicResource PalSub}" Margin="0,0,14,0"/>
+                    <TextBlock Text="{local:Loc Enter 打开|Enter Open}" FontSize="11" Foreground="{DynamicResource PalSub}" Margin="0,0,14,0"/>
+                    <TextBlock Text="{local:Loc Esc 关闭|Esc Close}" FontSize="11" Foreground="{DynamicResource PalSub}"/>
                 </StackPanel>
             </Grid>
         </Border>

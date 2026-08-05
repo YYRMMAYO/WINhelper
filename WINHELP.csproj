@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
-    <Version>5.3.0</Version>
+    <Version>5.5.0</Version>
     <Copyright>Copyright (C) 2025-2026 YYRMM. Licensed under GPL-2.0</Copyright>
     <PackageLicenseExpression>GPL-2.0-only</PackageLicenseExpression>
     <AssemblyName>司南工具箱</AssemblyName>
@@ -21,15 +21,15 @@
     <WindowsPerMonitorDpiAware>true</WindowsPerMonitorDpiAware>
   </PropertyGroup>
 
-  <!-- 自包含单文件发布：无需安装 .NET 运行时，复制到任意 Windows x64 电脑即可运行 -->
+  <!-- 自包含文件夹发布（v5.4.0 起弃用单文件）：
+       单文件 + PublishReadyToRun 组合存在退出崩溃（AppDomain 卸载时 CRT 回调需加载
+       vcruntime140_cor3.dll，单文件 bundle 按需解压时序失败 → DllNotFoundException，见 crash.log）。
+       文件夹发布把 native 库（含 vcruntime140_cor3.dll）作为独立文件常驻 exe 目录，
+       退出时可稳定加载；同时保留 ReadyToRun 预编译的冷启动速度。 -->
   <PropertyGroup Condition="'$(Configuration)'=='Release'">
-    <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>true</SelfContained>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
-    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     <PublishReadyToRun>true</PublishReadyToRun>
-    <!-- EnableCompressionInSingleFile 已移除：压缩会严重拖慢冷启动（每次需解压），
-         改用 ReadyToRun 预编译来平衡启动速度与体积。 -->
   </PropertyGroup>
 
   <ItemGroup>

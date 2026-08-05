@@ -71,10 +71,14 @@ public partial class StartupPage : UserControl
         ApplyTheme();
         ThemeManager.ThemeChanged += () => Dispatcher.Invoke(ApplyTheme);
         UiLanguage.Changed += () => Dispatcher.Invoke(Render);
-        LoadAll();
-        Render();
-        // 计划任务扫描较慢，异步执行，完成后重绘
-        _ = LoadScheduledTasksAsync();
+        // v5.4.0：注册表 + WMI 查询移到 Loaded 后后台执行，避免页面首开卡顿
+        Loaded += async (_, _) =>
+        {
+            await Task.Run(LoadAll);
+            Render();
+            // 计划任务扫描较慢，异步执行，完成后重绘
+            _ = LoadScheduledTasksAsync();
+        };
     }
 
     private void LoadAll()
@@ -90,9 +94,10 @@ public partial class StartupPage : UserControl
         ThemeManager.ApplyButtonTheme(BtnRefresh, ThemeManager.AccentColor);
     }
 
-    private void BtnRefresh_Click(object sender, RoutedEventArgs e)
+    private async void BtnRefresh_Click(object sender, RoutedEventArgs e)
     {
-        LoadAll();
+        TxtStatus.Text = UiLanguage.L("正在加载…", "Loading…");
+        await Task.Run(LoadAll);
         Render();
         TxtStatus.Text = UiLanguage.L($"已加载 {_entries.Count} 个启动项", $"Loaded {_entries.Count} startup items");
     }
@@ -234,12 +239,15 @@ public partial class StartupPage : UserControl
     // ===== 计划任务（只读展示，v4.9.0）=====
     // 任务名是用户数据，无法字面量白名单化，因此只读展示、不提供开关。
 
+    // v5.4.0：计划任务先批量收集（后台线程），完成后一次性合并渲染
+    private readonly List<Entry> _scheduledEntries = new();
+
     private async Task LoadScheduledTasksAsync()
     {
         try
         {
             CommandRunner.RegisterAllowed(new[] { "schtasks /query /xml" });
-            var r = await CommandRunner.RunAsync("schtasks /query /xml", timeoutSec: 40);
+            var r = await CommandRunner.RunAsync("schtasks /query /xml", timeoutSec: 40).ConfigureAwait(false);
             if (!r.Success || string.IsNullOrWhiteSpace(r.Output)) return;
 
             // 输出为多个 <Task ...>...</Task> 拼接，逐个解析
@@ -247,7 +255,14 @@ public partial class StartupPage : UserControl
             {
                 try
                 {
-                    var doc = System.Xml.Linq.XDocument.Parse(m.Value);
+                    // v5.4.0：显式禁用 DTD/实体（防 XXE 与实体膨胀，纵深防御；安全审计 P3）
+                    var doc = System.Xml.Linq.XDocument.Load(
+                        System.Xml.XmlReader.Create(new System.IO.StringReader(m.Value),
+                            new System.Xml.XmlReaderSettings
+                            {
+                                DtdProcessing = System.Xml.DtdProcessing.Prohibit,
+                                XmlResolver = null
+                            }));
                     var root = doc.Root;
                     if (root == null) continue;
                     bool logonOrBoot = false, enabled = false;
@@ -266,22 +281,28 @@ public partial class StartupPage : UserControl
                     var exec = root.Descendants("Command").FirstOrDefault()?.Value ?? "";
                     var args = root.Descendants("Arguments").FirstOrDefault()?.Value ?? "";
                     if (string.IsNullOrWhiteSpace(taskName)) continue;
-                    Dispatcher.Invoke(() =>
+                    // v5.4.0：先批量收集到临时列表，解析完成后一次性渲染（消除逐条 Render 的 O(n²) 全量重建）
+                    _scheduledEntries.Add(new Entry
                     {
-                        _entries.Add(new Entry
-                        {
-                            Name = taskName,
-                            Command = exec + " " + args,
-                            Source = "计划任务（只读）",
-                            Enabled = false,
-                            ReadOnly = true,
-                            ReadOnlyNote = UiLanguage.L("登录/启动时触发，只读展示", "Logon/boot triggered, read-only")
-                        });
-                        Render();
+                        Name = taskName,
+                        Command = exec + " " + args,
+                        Source = "计划任务（只读）",
+                        Enabled = false,
+                        ReadOnly = true,
+                        ReadOnlyNote = UiLanguage.L("登录/启动时触发，只读展示", "Logon/boot triggered, read-only")
                     });
                 }
                 catch { /* 单个任务解析失败跳过 */ }
             }
+
+            // v5.4.0：全部解析完成后一次性合并 + 渲染（消除逐条 Render 的 O(n²) 全量重建）
+            if (_scheduledEntries.Count == 0) return;
+            await Dispatcher.InvokeAsync(() =>
+            {
+                _entries.AddRange(_scheduledEntries);
+                _scheduledEntries.Clear();
+                Render();
+            });
         }
         catch { }
     }

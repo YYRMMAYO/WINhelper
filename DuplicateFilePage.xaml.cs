@@ -98,6 +98,8 @@ namespace WINHELP
                 // 2) SHA-256 校验
                 var verified = await Task.Run(() => VerifyGroups(groups, ct), ct);
                 verified.Sort((a, b) => b.ReclaimBytes.CompareTo(a.ReclaimBytes));
+                // v5.4.0：保存组列表（删除后整体重渲染，替代脆弱的可视树反查；同时支撑"全部清理"）
+                _verifiedGroups = verified;
                 RenderGroups(verified);
 
                 long reclaim = verified.Sum(g => g.ReclaimBytes);
@@ -120,6 +122,7 @@ namespace WINHELP
                 _cts = null;
                 BtnScan.Content = UiLanguage.L("开始扫描", "Scan");
                 BtnPick.IsEnabled = true;
+                BtnCleanAll.IsEnabled = _verifiedGroups != null && _verifiedGroups.Count > 0;
             }
         }
 
@@ -183,9 +186,9 @@ namespace WINHELP
             var result = new List<DupGroup>();
             double total = Math.Max(candidates.Count, 1);
             int done = 0;
-            foreach (var g in candidates)
+            // v5.4.0：候选组间并行计算哈希（CPU/IO 密集），大幅缩短大文件组的校验耗时
+            Parallel.ForEach(candidates, new ParallelOptions { CancellationToken = ct }, g =>
             {
-                ct.ThrowIfCancellationRequested();
                 var verified = g.Files
                     .Select(f => (Path: f, Hash: Sha256Of(f, ct)))
                     .GroupBy(x => x.Hash)
@@ -193,9 +196,9 @@ namespace WINHELP
                     .SelectMany(grp => grp.Select(x => x.Path))
                     .ToList();
                 if (verified.Count >= 2)
-                    result.Add(new DupGroup(g.Name, g.Size, verified));
-                done++;
-            }
+                    lock (result) result.Add(new DupGroup(g.Name, g.Size, verified));
+                Interlocked.Increment(ref done);
+            });
             return result;
         }
 
@@ -332,6 +335,29 @@ namespace WINHELP
 
         // ===== 删除（回收站 + 双重确认） =====
 
+        // v5.4.0：当前已校验的重复组（"全部清理"与单组删除共用，删除后整体重渲染）
+        private List<DupGroup>? _verifiedGroups;
+
+        /// <summary>执行删除：把组内除保留项外的全部文件移入回收站；返回成功删除数。</summary>
+        private static int DeleteGroupFiles(DupGroup g)
+        {
+            int removed = 0;
+            foreach (var f in g.Files.Skip(1))
+            {
+                try
+                {
+                    Microsoft.VisualBasic.FileIO.FileSystem.DeleteFile(
+                        f,
+                        Microsoft.VisualBasic.FileIO.UIOption.OnlyErrorDialogs,
+                        Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin,
+                        Microsoft.VisualBasic.FileIO.UICancelOption.ThrowException);
+                    removed++;
+                }
+                catch (Exception ex) { App.LogCrash(ex, "DuplicateFilePage.Delete"); }
+            }
+            return removed;
+        }
+
         private async void DeleteGroup_Click(object sender, RoutedEventArgs e)
         {
             if (sender is not Button btn || btn.Tag is not DupGroup g) return;
@@ -347,20 +373,7 @@ namespace WINHELP
                         UiLanguage.L("删除重复文件", "Delete duplicate files"), detail))
                     return;
 
-                int removed = 0;
-                foreach (var f in g.Files.Skip(1))
-                {
-                    try
-                    {
-                        Microsoft.VisualBasic.FileIO.FileSystem.DeleteFile(
-                            f,
-                            Microsoft.VisualBasic.FileIO.UIOption.OnlyErrorDialogs,
-                            Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin,
-                            Microsoft.VisualBasic.FileIO.UICancelOption.ThrowException);
-                        removed++;
-                    }
-                    catch (Exception ex) { App.LogCrash(ex, "DuplicateFilePage.Delete"); }
-                }
+                int removed = await Task.Run(() => DeleteGroupFiles(g));
 
                 if (removed > 0)
                 {
@@ -371,18 +384,51 @@ namespace WINHELP
                         UiLanguage.L("完成", "Done"),
                         MessageBoxButton.OK, MessageBoxImage.Information);
 
-                    // 从面板移除已处理的分组
-                    if (btn.Parent is Grid headerGrid && headerGrid.Parent is StackPanel cardRoot
-                        && cardRoot.Parent is Border card && card.Parent is StackPanel owner)
-                    {
-                        owner.Children.Remove(card);
-                        RefreshSummary();
-                    }
+                    // v5.4.0：从保存的组列表移除并整体重渲染（替代可视树反查）
+                    _verifiedGroups?.Remove(g);
+                    RenderGroups(_verifiedGroups ?? new List<DupGroup>());
+                    RefreshSummary();
+                    BtnCleanAll.IsEnabled = _verifiedGroups != null && _verifiedGroups.Count > 0;
                 }
             }
             finally
             {
                 btn.IsEnabled = true;
+            }
+        }
+
+        /// <summary>v5.4.0：全部清理——每组保留 1 个，其余一次性移入回收站。</summary>
+        private async void BtnCleanAll_Click(object sender, RoutedEventArgs e)
+        {
+            var groups = _verifiedGroups?.Where(g => g.Files.Count > 1).ToList();
+            if (groups == null || groups.Count == 0) return;
+
+            long reclaim = groups.Sum(g => g.ReclaimBytes);
+            int fileCount = groups.Sum(g => g.Files.Count - 1);
+            string detail = UiLanguage.L(
+                $"将清理 {groups.Count} 组重复文件，共 {fileCount} 个文件（每组保留 1 个），可释放约 {MainWindow.FmtSize(reclaim)}。\n\n所有文件移入回收站，可随时恢复。",
+                $"Will clean {groups.Count} group(s), {fileCount} file(s) (keep 1 per group), freeing about {MainWindow.FmtSize(reclaim)}.\n\nAll files go to the Recycle Bin and are recoverable.");
+            if (!RiskGuard.ConfirmTwice(
+                    UiLanguage.L("全部清理重复文件", "Clean all duplicates"), detail))
+                return;
+
+            BtnCleanAll.IsEnabled = false;
+            try
+            {
+                int removed = 0;
+                foreach (var g in groups)
+                    removed += await Task.Run(() => DeleteGroupFiles(g));
+
+                _verifiedGroups = new List<DupGroup>();
+                RenderGroups(_verifiedGroups);
+                RefreshSummary();
+                TxtSummary.Text = UiLanguage.L(
+                    $"已清理 {groups.Count} 组 · 移入回收站 {removed} 个文件",
+                    $"Cleaned {groups.Count} group(s) · {removed} file(s) to Recycle Bin");
+            }
+            finally
+            {
+                BtnCleanAll.IsEnabled = _verifiedGroups != null && _verifiedGroups.Count > 0;
             }
         }
 

@@ -11,16 +11,34 @@ namespace WINHELP;
 /// <summary>文件粉碎页（导航 key="shred"）：安全擦除文件（不可恢复）。由 MainWindow._factories 懒加载；依赖 ThemeManager 玻璃画刷与 LocExtension 多语言。</summary>
 public partial class WindowShredder : UserControl
 {
-    /// <summary>数据模型：ShredItem。</summary>
-    private sealed class ShredItem
+    /// <summary>数据模型：ShredItem（v5.4.0 实现 INotifyPropertyChanged，粉碎后状态实时刷新）。</summary>
+    private sealed class ShredItem : System.ComponentModel.INotifyPropertyChanged
     {
         public string Path { get; set; } = "";
-        public string Status { get; set; } = "";
-        public string StatusColor { get; set; } = "#7F8C8D";
+
+        private string _status = "";
+        public string Status
+        {
+            get => _status;
+            set { _status = value; Notify(nameof(Status)); }
+        }
+
+        private string _statusColor = "#7F8C8D";
+        public string StatusColor
+        {
+            get => _statusColor;
+            set { _statusColor = value; Notify(nameof(StatusColor)); }
+        }
+
+        public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
+        private void Notify(string name)
+            => PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(name));
     }
 
     private readonly ObservableCollection<ShredItem> _items = new();
     private bool _busy;
+    // v5.4.0：粉碎取消令牌（长时间任务可中断）
+    private System.Threading.CancellationTokenSource? _cts;
 
     public WindowShredder()
     {
@@ -57,6 +75,7 @@ public partial class WindowShredder : UserControl
         TxtPassesLabel.Text = UiLanguage.L("粉碎遍数", "Passes");
         BtnShred.Content = UiLanguage.L("开始粉碎", "Shred");
         BtnClear.Content = UiLanguage.L("清空列表", "Clear List");
+        BtnCancel.Content = UiLanguage.L("取消", "Cancel");   // v5.4.0
         if (!_busy) TxtStatus.Text = UiLanguage.L("就绪", "Ready");
     }
 
@@ -105,6 +124,19 @@ public partial class WindowShredder : UserControl
                 StatusColor = "#E74C3C"
             });
             TxtStatus.Text = UiLanguage.L("已阻止对系统关键路径的粉碎操作", "Blocked shredding of a critical system path");
+            return;
+        }
+        // 安全防护（v5.4.0）：拒绝添加重解析点（junction / 符号链接 / 挂载点）本身，
+        // 防止粉碎器跟随链接删除目标目录的真实文件（安全审计 P1 修复）
+        if (Cleaner.IsReparsePoint(path))
+        {
+            _items.Add(new ShredItem
+            {
+                Path = path,
+                Status = UiLanguage.L("❌ 已拒绝：这是链接（junction/符号链接），请粉碎其真实目标", "❌ Blocked: it is a link (junction/symlink); shred the real target instead"),
+                StatusColor = "#E74C3C"
+            });
+            TxtStatus.Text = UiLanguage.L("已阻止对链接（junction/符号链接）的粉碎操作", "Blocked shredding of a link (junction / symlink)");
             return;
         }
         _items.Add(new ShredItem { Path = path, Status = UiLanguage.L("待处理", "Queued") });
@@ -216,27 +248,70 @@ public partial class WindowShredder : UserControl
         _busy = true;
         BtnShred.IsEnabled = false;
         BtnClear.IsEnabled = false;
+        BtnCancel.IsEnabled = true;          // v5.4.0：允许取消
         TxtStatus.Text = UiLanguage.L("正在粉碎…", "Shredding…");
+        _cts = new System.Threading.CancellationTokenSource();
+        var token = _cts.Token;
 
         int done = 0;
+        bool canceled = false;
         foreach (var item in _items)
         {
-            await Task.Run(() => ShredPath(item, passes));
+            if (token.IsCancellationRequested)
+            {
+                canceled = true;
+                break;
+            }
+            // 显示当前正在粉碎的文件（长任务不再"干等"）
+            TxtStatus.Text = UiLanguage.L("正在粉碎：", "Shredding: ") + item.Path;
+            await Task.Run(() => ShredPath(item, passes), token);
             done++;
             Dispatcher.Invoke(() => Prog.Value = done * 100.0 / _items.Count);
         }
 
-        Prog.Value = 100;
-        TxtStatus.Text = UiLanguage.L($"完成：已处理 {_items.Count} 项", $"Done: processed {_items.Count} item(s)");
+        if (canceled)
+        {
+            TxtStatus.Text = UiLanguage.L($"已取消：完成 {done}/{_items.Count} 项，其余未处理", $"Canceled: {done}/{_items.Count} done, rest untouched");
+        }
+        else
+        {
+            Prog.Value = 100;
+            TxtStatus.Text = UiLanguage.L($"完成：已处理 {_items.Count} 项", $"Done: processed {_items.Count} item(s)");
+        }
+        _cts.Dispose();
+        _cts = null;
         _busy = false;
         BtnShred.IsEnabled = true;
         BtnClear.IsEnabled = true;
+        BtnCancel.IsEnabled = false;
+    }
+
+    /// <summary>v5.4.0：取消当前粉碎（当前文件覆写完成后停止，不做一半的文件保持原样可再次粉碎）。</summary>
+    private void BtnCancel_Click(object sender, RoutedEventArgs e)
+    {
+        if (_busy && _cts != null)
+        {
+            _cts.Cancel();
+            BtnCancel.IsEnabled = false;
+            TxtStatus.Text = UiLanguage.L("正在取消…（当前文件完成后停止）", "Canceling… (stops after the current file)");
+        }
     }
 
     private void ShredPath(ShredItem item, int passes)
     {
         try
         {
+            // 入口双重防护（v5.4.0 安全审计 P1 修复）：根路径本身若为重解析点（junction/符号链接），
+            // 禁止粉碎——否则枚举会跟随链接指向目标目录内的真实文件
+            if (Cleaner.IsReparsePoint(item.Path))
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    item.Status = UiLanguage.L("已拒绝：该路径是链接（junction/符号链接）", "Blocked: path is a link (junction/symlink)");
+                    item.StatusColor = "#E74C3C";
+                });
+                return;
+            }
             var attr = File.GetAttributes(item.Path);
             if (attr.HasFlag(FileAttributes.Directory))
                 ShredDirectory(item, item.Path, passes);

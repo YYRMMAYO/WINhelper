@@ -93,10 +93,14 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <Button Name="BtnShred" Grid.Column="0" Content="{loc:Loc 开始粉碎|Start Shredding}" Height="38"
                         Style="{StaticResource GlassToolbarButton}" HorizontalAlignment="Stretch" Click="BtnShred_Click"/>
-                <Button Name="BtnClear" Grid.Column="1" Content="{loc:Loc 清空列表|Clear List}" Width="100" Height="38" Margin="10,0,0,0"
+                <Button Name="BtnCancel" Grid.Column="1" Content="{loc:Loc 取消|Cancel}" Width="90" Height="38"
+                        Margin="10,0,0,0" Style="{StaticResource GlassToolbarButton}" Background="#E67E22"
+                        Click="BtnCancel_Click" IsEnabled="False"/>
+                <Button Name="BtnClear" Grid.Column="2" Content="{loc:Loc 清空列表|Clear List}" Width="100" Height="38" Margin="10,0,0,0"
                         Style="{StaticResource GlassToolbarButton}" Background="#95A5A6" Click="BtnClear_Click"/>
             </Grid>
 

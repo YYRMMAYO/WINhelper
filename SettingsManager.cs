@@ -118,6 +118,41 @@ namespace WINHELP
             catch { /* 保存失败静默忽略 */ }
         }
 
+        // v5.4.0：防抖保存——高频变更（如每次点卡片记录使用次数）合并为一次写盘，避免频繁小文件 IO
+        private static System.Threading.Timer? _saveTimer;
+        private static readonly object _saveTimerLock = new();
+
+        /// <summary>防抖保存：500ms 内多次调用合并为一次写盘。</summary>
+        public static void SaveDebounced()
+        {
+            lock (_saveTimerLock)
+            {
+                if (_saveTimer == null)
+                {
+                    _saveTimer = new System.Threading.Timer(_ =>
+                    {
+                        try { Save(); }
+                        finally
+                        {
+                            lock (_saveTimerLock) { _saveTimer?.Dispose(); _saveTimer = null; }
+                        }
+                    }, null, System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
+                }
+                _saveTimer.Change(500, System.Threading.Timeout.Infinite);
+            }
+        }
+
+        /// <summary>立即写盘并取消挂起的防抖定时器（退出前调用，保证防抖数据不丢）。</summary>
+        public static void SaveNow()
+        {
+            lock (_saveTimerLock)
+            {
+                _saveTimer?.Dispose();
+                _saveTimer = null;
+            }
+            Save();
+        }
+
         /// <summary>设置/取消开机自动启动（注册表 HKCU\Run）</summary>
         public static void SetAutoStart(bool enable)
         {
@@ -151,13 +186,13 @@ namespace WINHELP
 
         // ===== 首页智能排序 / 收藏（P0-3） =====
 
-        /// <summary>记录模块使用次数（用于首页智能排序），变化立即落盘</summary>
+        /// <summary>记录模块使用次数（用于首页智能排序），防抖落盘（高频调用）</summary>
         public static void RecordModuleUsage(string key)
         {
             if (string.IsNullOrEmpty(key)) return;
             if (!Current.RecentModules.ContainsKey(key)) Current.RecentModules[key] = 0;
             Current.RecentModules[key]++;
-            Save();
+            SaveDebounced();
         }
 
         /// <summary>该模块是否已被收藏</summary>

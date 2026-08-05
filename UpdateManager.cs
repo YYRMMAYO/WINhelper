@@ -277,6 +277,12 @@ namespace WINHELP
         /// 改为运行时读取 GitHub Release body 中的 SHA-256 —— 发布流程（P5）上传资产时会把哈希写入 Release 说明。
         /// 发布方未声明哈希 / 校验失败一律返回 null 并删除文件，绝不允许“无校验直接安装”。
         /// </para>
+        /// <para>
+        /// v5.4.0 安全加固（审计 P1/P2）：
+        /// ① 资产名只取纯文件名（Path.GetFileName）并拒绝非法字符，杜绝路径穿越跳出临时目录；
+        /// ② 下载 URL 的 host 必须命中可信白名单（github.com / objects.githubusercontent.com 等）；
+        /// ③ 下载完成后校验最终响应 host（防重定向到任意域，纵深防御）。
+        /// </para>
         /// </summary>
         /// <param name="progress">下载进度回调 (已下载字节, 总字节)。</param>
         /// <param name="ct">取消令牌。</param>
@@ -287,7 +293,19 @@ namespace WINHELP
             var asset = await GetLatestReleaseExeAsync(ct);
             if (asset == null || string.IsNullOrEmpty(asset.Sha256)) return null; // 发布未声明哈希 → 拒绝
 
-            string tmp = Path.Combine(Path.GetTempPath(), asset.FileName);
+            // ① 资产名净化：只取纯文件名，拒绝非法字符 / 路径分隔符 / 上级目录引用
+            string fileName = Path.GetFileName(asset.FileName);
+            if (string.IsNullOrEmpty(fileName)
+                || fileName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0
+                || fileName.Contains("..", StringComparison.Ordinal))
+                return null;
+
+            // ② 下载 URL 域名白名单（防仓库被控制后指向任意主机，如内网地址）
+            if (!Uri.TryCreate(asset.DownloadUrl, UriKind.Absolute, out var dlUri)
+                || !SafeUrl.IsTrustedHost(dlUri.Host))
+                return null;
+
+            string tmp = Path.Combine(Path.GetTempPath(), fileName);
             try
             {
                 using var cts = HttpClientProvider.Timeout(600); // 大文件放宽到 10 分钟
@@ -296,6 +314,14 @@ namespace WINHELP
                 using var resp = await HttpClientProvider.Shared.GetAsync(
                     asset.DownloadUrl, HttpCompletionOption.ResponseHeadersRead, linked.Token);
                 resp.EnsureSuccessStatusCode();
+
+                // ③ 校验最终响应 host（防自动重定向逃逸白名单）
+                var finalHost = resp.RequestMessage?.RequestUri?.Host;
+                if (string.IsNullOrEmpty(finalHost) || !SafeUrl.IsTrustedHost(finalHost))
+                {
+                    TryDeleteFile(tmp);
+                    return null;
+                }
 
                 long total = resp.Content.Headers.ContentLength ?? 0;
                 await using var src = await resp.Content.ReadAsStreamAsync(linked.Token);

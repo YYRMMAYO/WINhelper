@@ -43,6 +43,8 @@ namespace WINHELP
             _all = items.ToList();
             ApplyThemeColors();
             ThemeManager.ThemeChanged += OnThemeChanged;
+            // v5.4.0：窗口关闭时退订静态事件，防止每次 Ctrl+K 泄漏一个窗口（安全审计 P2 修复）
+            Closed += (_, _) => ThemeManager.ThemeChanged -= OnThemeChanged;
             Loaded += (_, _) =>
             {
                 // 让面板出现在主窗口上方约 1/8 处（命令面板惯例：靠上居中）

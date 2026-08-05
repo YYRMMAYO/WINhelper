@@ -91,11 +91,11 @@ public partial class WindowUninstaller : UserControl
         var found = new System.Collections.Generic.List<ProgramItem>();
         await Task.Run(() =>
         {
-            foreach (var root in roots)
+            try
             {
-                if (root == null) continue;
-                try
+                foreach (var root in roots)
                 {
+                    if (root == null) continue;
                     foreach (var name in root.GetSubKeyNames())
                     {
                         try
@@ -116,9 +116,13 @@ public partial class WindowUninstaller : UserControl
                         catch { }
                     }
                 }
-                catch { }
+                found.Sort((a, b) => string.Compare(a.DisplayName, b.DisplayName, StringComparison.CurrentCultureIgnoreCase));
             }
-            found.Sort((a, b) => string.Compare(a.DisplayName, b.DisplayName, StringComparison.CurrentCultureIgnoreCase));
+            finally
+            {
+                // v5.4.0：释放根键句柄（原实现只 using 了子键，根键泄漏）
+                foreach (var r in roots) try { r?.Dispose(); } catch { }
+            }
         });
 
         foreach (var item in found) _programs.Add(item);
@@ -217,6 +221,16 @@ public partial class WindowUninstaller : UserControl
             if (dangerousExes.Contains(exe))
                 return "命令通过系统解释器执行，可能包含隐藏的恶意操作";
 
+            // v5.4.0 安全加固：先展开环境变量再判断（ShellExecute 会展开 %comspec% 等），
+            // 否则 "%comspec% /c <任意命令>" 可绕过解释器黑名单（安全审计 P2 修复）
+            if (first.Contains('%'))
+            {
+                var expanded = Environment.ExpandEnvironmentVariables(first);
+                var exeExpanded = Path.GetFileName(expanded).ToLowerInvariant();
+                if (dangerousExes.Contains(exeExpanded))
+                    return "命令通过系统解释器执行，可能包含隐藏的恶意操作";
+            }
+
             // 2) 命令中若包含明显恶意关键字，直接阻止
             string[] maliciousPatterns =
             {
@@ -285,9 +299,18 @@ public partial class WindowUninstaller : UserControl
         TxtStatus.Text = UiLanguage.L($"扫描完成：发现 {found.Count} 处残留", $"Scan done: {found.Count} leftover(s) found");
         BtnScanResidue.IsEnabled = true;
         BtnDeleteResidue.IsEnabled = _residues.Count > 0;
+        BtnSelectAllResidue.IsEnabled = _residues.Count > 0;   // v5.4.0
     }
 
     // ===== 删除残留 =====
+
+    /// <summary>v5.4.0：全选/反选残留项（再点一次全不选）。</summary>
+    private void BtnSelectAllResidue_Click(object sender, RoutedEventArgs e)
+    {
+        bool anyUnchecked = _residues.Any(r => !r.IsChecked);
+        foreach (var r in _residues) r.IsChecked = anyUnchecked;
+        BtnDeleteResidue.IsEnabled = _residues.Any(x => x.IsChecked);
+    }
 
     private async void BtnDeleteResidue_Click(object sender, RoutedEventArgs e)
     {
@@ -301,6 +324,7 @@ public partial class WindowUninstaller : UserControl
         if (r != MessageBoxResult.Yes) return;
 
         int ok = 0, fail = 0;
+        var removed = new List<ResidueItem>();
         await Task.Run(() =>
         {
             foreach (var item in sel)
@@ -318,7 +342,7 @@ public partial class WindowUninstaller : UserControl
                         File.Delete(item.Path);
                     else
                         continue;
-                    Dispatcher.Invoke(() => _residues.Remove(item));
+                    removed.Add(item);   // v5.4.0：收集后一次性从集合移除
                     ok++;
                 }
                 catch
@@ -327,9 +351,11 @@ public partial class WindowUninstaller : UserControl
                 }
             }
         });
+        foreach (var item in removed) _residues.Remove(item);
 
         TxtStatus.Text = UiLanguage.L($"删除完成：成功 {ok}，失败 {fail}", $"Done: {ok} ok, {fail} failed");
         BtnDeleteResidue.IsEnabled = _residues.Any(x => x.IsChecked);
+        BtnSelectAllResidue.IsEnabled = _residues.Count > 0;
     }
 
     private static void DeleteRegistryKeyTree(string fullPath)

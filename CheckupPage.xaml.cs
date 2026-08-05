@@ -109,14 +109,18 @@ namespace WINHELP
             catch (Exception ex) { sb.AppendLine("（硬件信息获取失败：" + ex.Message + "）"); }
             sb.AppendLine();
 
-            // ===== 3) 垃圾占用估算 =====
+            // ===== 3) 垃圾占用估算（v5.4.0：三路扫描并行） =====
             sb.AppendLine("===== 可清理空间估算 =====");
             long junk = 0;
             try
             {
-                var (tmpSize, _) = await Task.Run(() => Cleaner.SumMatching(Cleaner.TempDirs(), "*", SearchOption.TopDirectoryOnly));
-                var (brSize, _) = await Task.Run(() => Cleaner.SumMatching(Cleaner.BrowserCacheDirs(), "*", SearchOption.AllDirectories));
-                var (upSize, _) = await Task.Run(() => Cleaner.SumMatching(Cleaner.UpdateCacheDirs(), "*", SearchOption.AllDirectories));
+                var tmpT = Task.Run(() => Cleaner.SumMatching(Cleaner.TempDirs(), "*", SearchOption.TopDirectoryOnly));
+                var brT = Task.Run(() => Cleaner.SumMatching(Cleaner.BrowserCacheDirs(), "*", SearchOption.AllDirectories));
+                var upT = Task.Run(() => Cleaner.SumMatching(Cleaner.UpdateCacheDirs(), "*", SearchOption.AllDirectories));
+                await Task.WhenAll(tmpT, brT, upT);
+                var (tmpSize, _) = tmpT.Result;
+                var (brSize, _) = brT.Result;
+                var (upSize, _) = upT.Result;
                 junk = tmpSize + brSize + upSize;
                 sb.AppendLine($"临时文件：{FormatSize(tmpSize)}");
                 sb.AppendLine($"浏览器缓存：{FormatSize(brSize)}");
@@ -203,7 +207,7 @@ li{{font-size:12.5px;line-height:1.7;}}
 <div class=""sub"">生成时间：{DateTime.Now:yyyy-MM-dd HH:mm} ｜ 软件版本 v{UpdateManager.LocalVersion} ｜ 用户：&lt;user&gt;</div>
 <div class=""score"">健康分 {health.Score} / 100（{health.Grade}）</div>
 <div class=""bar""><i></i></div>
-<div class=""card""><h2>结论</h2><p>{health.Summary}</p></div>
+<div class=""card""><h2>结论</h2><p>{HtmlEsc(health.Summary)}</p></div>
 {(health.Suggestions.Count > 0 ? "<div class=\"card\"><h2>优化建议</h2><ul>" + string.Concat(health.Suggestions.Select(s => "<li>" + HtmlEsc(s) + "</li>")) + "</ul></div>" : "")}
 <div class=""card""><h2>可清理空间</h2><p>合计约 <b>" + FormatSize(junk) + @"</b>（可在「系统清理」模块一键释放）</p></div>
 <div class=""card""><h2>详细数据</h2><p>" + esc + @"</p></div>

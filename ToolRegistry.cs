@@ -335,7 +335,10 @@ namespace WINHELP
             using var p = Process.Start(psi)!;
             var outTask = p.StandardOutput.ReadToEndAsync();
             var errTask = p.StandardError.ReadToEndAsync();
-            if (!p.WaitForExit(12000))
+            // v5.4.0：改为异步等待（不阻塞 UI 线程，修复 AI 代操作卡死 12s）
+            var waitTask = p.WaitForExitAsync();
+            var done = await Task.WhenAny(waitTask, Task.Delay(12000));
+            if (done != waitTask)
             {
                 try { p.Kill(); } catch { }
             }
@@ -429,6 +432,11 @@ namespace WINHELP
             if (string.IsNullOrEmpty(name))
                 return new ToolResult { Description = "结束进程", Text = "进程名为空。" };
 
+            // v5.4.0 安全加固：进程名只允许 [A-Za-z0-9_.-]（Windows 进程名合法字符集），
+            // 杜绝命令分隔符 / 路径 / 引号等注入（安全审计 P2 修复）
+            if (!System.Text.RegularExpressions.Regex.IsMatch(name, "^[A-Za-z0-9_.-]+$"))
+                return new ToolResult { Description = "结束进程", Text = $"进程名「{name}」含有非法字符，已拒绝。" };
+
             // 自保护：禁止结束本程序
             var self = System.Diagnostics.Process.GetCurrentProcess().ProcessName;
             if (name.Equals(self, StringComparison.OrdinalIgnoreCase))
@@ -453,28 +461,31 @@ namespace WINHELP
             int killed = 0, skipped = 0;
             foreach (var p in procs)
             {
-                bool skip = false;
-                try
+                using (p)   // v5.4.0：进程对象释放（GetProcessesByName 返回的句柄需 Dispose）
                 {
-                    var exe = p.MainModule?.FileName;
-                    if (string.IsNullOrEmpty(exe))
+                    bool skip = false;
+                    try
                     {
-                        // 已退出或无权限读取模块路径 → 保守跳过，不 Kill
-                        skip = true;
-                    }
-                    else
-                    {
-                        // Path.GetFullPath 规范化（防 "C:\Windows\System32..\X" 等变体）+ "\" 分隔符边界（防 System32X 误判）
-                        var full = Path.GetFullPath(exe);
-                        if (full.StartsWith(sysDir, StringComparison.OrdinalIgnoreCase))
+                        var exe = p.MainModule?.FileName;
+                        if (string.IsNullOrEmpty(exe))
+                        {
+                            // 已退出或无权限读取模块路径 → 保守跳过，不 Kill
                             skip = true;
+                        }
+                        else
+                        {
+                            // Path.GetFullPath 规范化（防 "C:\Windows\System32..\X" 等变体）+ "\" 分隔符边界（防 System32X 误判）
+                            var full = Path.GetFullPath(exe);
+                            if (full.StartsWith(sysDir, StringComparison.OrdinalIgnoreCase))
+                                skip = true;
+                        }
                     }
-                }
-                catch { skip = true; } // 读不到模块路径 → 保守跳过该进程
+                    catch { skip = true; } // 读不到模块路径 → 保守跳过该进程
 
-                if (skip) { skipped++; continue; }
-                try { p.Kill(); killed++; }
-                catch { /* 部分进程无权限，跳过 */ }
+                    if (skip) { skipped++; continue; }
+                    try { p.Kill(); killed++; }
+                    catch { /* 部分进程无权限，跳过 */ }
+                }
             }
             return new ToolResult
             {

@@ -23,12 +23,16 @@ namespace WINHELP
         /// <summary>一键优化请求（由 MainWindow 注入，直接触发顶部「一键优化」逻辑）</summary>
         public Action? OnOptimize;
 
-        // 卡片：Border + key + 所属分组面板（用于按组排序）
-        private readonly List<(Border card, string key, WrapPanel panel, int order)> _cards = new();
+        // 卡片：Border + key + 所属分组面板 + 排序号 + 首字徽标文本（用于随语言切换）
+        private readonly List<(Border card, string key, WrapPanel panel, int order, TextBlock chip)> _cards = new();
 
         // 收藏星标附加标记：用于区分卡片内嵌的星标按钮点击与卡片导航点击
         public static readonly DependencyProperty IsStarProperty =
             DependencyProperty.RegisterAttached("IsStar", typeof(bool), typeof(HomePage), new PropertyMetadata(false));
+
+        // v5.4.0：首页统计短缓存（60s 内不重扫磁盘；一键优化完成/语言切换时强制刷新）
+        private DateTime _statsCacheAt = DateTime.MinValue;
+        private string _statsCacheText = "";
 
         public HomePage()
         {
@@ -58,23 +62,23 @@ namespace WINHELP
                 if (m.HomeGroup == null) continue;
                 if (!panels.TryGetValue(m.HomeGroup, out var panel) || panel == null) continue;
 
-                var card = BuildCard(m);
+                var card = BuildCard(m, out var chipText);
                 WrapCardContent(card, m.Key);
 
                 int order = m.HomeGroup == "system" ? orderSys++
                            : m.HomeGroup == "tools" ? orderTools++
                            : orderAssist++;
-                _cards.Add((card, m.Key, panel, order));
+                _cards.Add((card, m.Key, panel, order, chipText));
                 panel.Children.Add(card);
             }
         }
 
-        /// <summary>生成单张首页卡片：首字徽标 + 标题 + 副标题。</summary>
-        private Border BuildCard(ModuleDefinition m)
+        /// <summary>生成单张首页卡片：首字徽标（随语言切换）+ 标题 + 副标题。</summary>
+        private Border BuildCard(ModuleDefinition m, out TextBlock chipText)
         {
-            // 首字徽标（无 emoji，取中文标题首字）
+            // 首字徽标（无 emoji；中文取标题首字，英文取标题首字母大写）
             var chip = new Border { Style = (Style)FindResource("IconChip") };
-            chip.Child = new TextBlock
+            chipText = new TextBlock
             {
                 Text = FirstChar(m.TitleZh),
                 FontSize = 16,
@@ -83,6 +87,7 @@ namespace WINHELP
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
             };
+            chip.Child = chipText;
 
             var title = new TextBlock
             {
@@ -188,30 +193,56 @@ namespace WINHELP
             SecTools.Text = UiLanguage.L("效率工具", "Efficiency Tools");
             SecAssist.Text = UiLanguage.L("助手与信息", "Assistants & Info");
 
-            foreach (var (card, key, _, _) in _cards)
+            foreach (var (card, key, _, _, chip) in _cards)
             {
                 var m = ModuleRegistry.Find(key);
                 if (m == null) continue;
                 GetCardTexts(card, out var title, out var sub);
                 if (title != null) title.Text = UiLanguage.L(m.TitleZh, m.TitleEn);
                 if (sub != null) sub.Text = UiLanguage.L(m.SubtitleZh, m.SubtitleEn);
+                // 首字徽标随语言切换：中文标题首字 / 英文标题首字母
+                chip.Text = UiLanguage.Current == Lang.En ? FirstEn(m.TitleEn) : FirstChar(m.TitleZh);
             }
             SetHeroDate();
             TxtHeroGreeting.Text = GetGreeting();
-            RefreshStats();
+            RefreshStats(true);   // 语言切换强制刷新（缓存文本可能为旧语言）
         }
 
-        /// <summary>刷新欢迎条统计（上次优化 + 可清理量）</summary>
-        public void RefreshStats()
+        /// <summary>刷新欢迎条统计（上次优化 + 可清理量）。后台扫描防 UI 卡顿；60s 内命中缓存不重扫。</summary>
+        public void RefreshStats(bool force = false)
         {
             try
             {
-                long pending = Cleaner.SumMatching(Cleaner.TempDirs(), "*", System.IO.SearchOption.TopDirectoryOnly).size
-                             + Cleaner.QueryRecycleBin().size;
                 var last = SettingsManager.Current.LastOptimize;
                 string lastStr = (last == default) ? UiLanguage.L("从未优化", "Never optimized") : last.ToString("yyyy-MM-dd HH:mm");
-                TxtHeroExtra.Text = $"{UiLanguage.L("上次优化", "Last optimize")}：{lastStr}  ·  " +
-                                    $"{UiLanguage.L("可清理", "Reclaimable")}：{MainWindow.FmtSize(pending)}";
+
+                // 短缓存：60 秒内直接复用上次结果（每次切回首页都重扫磁盘是浪费）
+                if (!force && (DateTime.Now - _statsCacheAt).TotalSeconds < 60)
+                {
+                    TxtHeroExtra.Text = _statsCacheText;
+                    return;
+                }
+
+                // 同步设置"上次优化"部分，可清理量异步计算（扫盘可能耗时）
+                _ = Task.Run(() =>
+                {
+                    long pending;
+                    try
+                    {
+                        pending = Cleaner.SumMatching(Cleaner.TempDirs(), "*", System.IO.SearchOption.TopDirectoryOnly).size
+                                + Cleaner.QueryRecycleBin().size;
+                    }
+                    catch { pending = 0; }
+                    var text = $"{UiLanguage.L("上次优化", "Last optimize")}：{lastStr}  ·  " +
+                               $"{UiLanguage.L("可清理", "Reclaimable")}：{MainWindow.FmtSize(pending)}";
+                    _statsCacheAt = DateTime.Now;
+                    _statsCacheText = text;
+                    Dispatcher.Invoke(() =>
+                    {
+                        if (TxtHeroExtra == null) return;
+                        TxtHeroExtra.Text = text;
+                    });
+                });
             }
             catch
             {
@@ -275,7 +306,7 @@ namespace WINHELP
         {
             keyword = (keyword ?? "").Trim().ToLowerInvariant();
             bool sysVisible = false, toolsVisible = false, assistVisible = false;
-            foreach (var (card, key, panel, _) in _cards)
+            foreach (var (card, key, panel, _, _) in _cards)
             {
                 var text = (key + " " + GetText(card)).ToLowerInvariant();
                 bool show = string.IsNullOrEmpty(keyword) || text.Contains(keyword);
@@ -316,5 +347,14 @@ namespace WINHELP
 
         private static string FirstChar(string s)
             => string.IsNullOrEmpty(s) ? "" : s[..1];
+
+        /// <summary>英文标题首字母（大写），跳过空格 / 符号等非字母字符；无字母返回空串。</summary>
+        private static string FirstEn(string s)
+        {
+            if (string.IsNullOrEmpty(s)) return "";
+            foreach (char c in s)
+                if (char.IsLetter(c)) return char.ToUpperInvariant(c).ToString();
+            return "";
+        }
     }
 }

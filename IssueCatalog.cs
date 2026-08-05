@@ -978,7 +978,8 @@ namespace WINHELP
                     },
                     "c盘满 飘红 临时文件 temp 清理 空间不足",
                     new FixAction("清空临时文件目录", "Clear temp directory",
-                        @"del /f /s /q ""%temp%\*.*""",
+                        // v5.4.0：%temp% 是用户可篡改环境变量，改固定路径 %LOCALAPPDATA%\Temp（安全审计 P3）
+                        @"del /f /s /q ""%LOCALAPPDATA%\Temp\*.*""",
                         needAdmin: false, timeoutSec: TNormal, risk: RiskLevel.Caution,
                         warnZh: "会删除临时目录下的全部文件。正在被程序使用的文件会自动跳过，不影响已安装软件。",
                         warnEn: "Deletes everything in the temp directory. Files in use are skipped and installed software is unaffected.")),

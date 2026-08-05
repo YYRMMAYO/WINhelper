@@ -32,6 +32,8 @@ namespace WINHELP
 
         // 缓存最近一次硬件信息（语言切换重渲硬件列表用）
         private List<HardwareInfo.Item>? _lastHwItems;
+        // v5.4.0：硬件加载防重入标志（语言切换/手动刷新并发时只跑一次）
+        private bool _hwLoading;
 
         // ===== 进程榜 / 温度 / 诊断 状态 =====
         private List<ProcItem>? _procItems;
@@ -123,6 +125,9 @@ namespace WINHELP
             Dispatcher.Invoke(() =>
             {
                 LocalizeUI();
+                // 硬件信息文本按采集时语言生成本地化，语言切换必须重扫以更新文案；
+                // 加防重入：若正在加载则跳过本次（避免并发 WMI 枚举）
+                if (_hwLoading) return;
                 _ = LoadHardwareAsync();
             });
         }
@@ -169,6 +174,8 @@ namespace WINHELP
 
         private async Task LoadHardwareAsync()
         {
+            if (_hwLoading) return;          // v5.4.0：防重入
+            _hwLoading = true;
             try
             {
                 BtnRefreshHw.IsEnabled = false;
@@ -190,6 +197,7 @@ namespace WINHELP
             }
             finally
             {
+                _hwLoading = false;
                 BtnRefreshHw.IsEnabled = true;
             }
         }
@@ -643,9 +651,19 @@ namespace WINHELP
                             using var p = Process.Start(psi);
                             if (p != null)
                             {
-                                var output = p.StandardOutput.ReadToEnd();
-                            p.WaitForExit(3000);
-                            return new CheckResult { Pass = true, Detail = L("进程启动功能正常", "Process launch OK") };
+                                // v5.4.0：异步等待 + 校验输出，超时/无输出按失败处理（修复"超时仍报正常"误报）
+                                var wait = p.WaitForExitAsync();
+                                var done = await Task.WhenAny(wait, Task.Delay(3000));
+                                if (done != wait)
+                                {
+                                    try { p.Kill(); } catch { }
+                                    return new CheckResult { Pass = false, Detail = L("进程启动超时", "Process launch timed out") };
+                                }
+                                string outp;
+                                try { outp = p.StandardOutput.ReadToEnd(); } catch { outp = ""; }
+                                if (!outp.Trim().Equals("ok", StringComparison.OrdinalIgnoreCase))
+                                    return new CheckResult { Pass = false, Detail = L("进程启动输出异常", "Bad process output") };
+                                return new CheckResult { Pass = true, Detail = L("进程启动功能正常", "Process launch OK") };
                             }
                             return new CheckResult { Pass = false, Detail = L("进程启动返回 null", "Process null") };
                         }

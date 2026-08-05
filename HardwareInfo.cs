@@ -36,8 +36,10 @@ namespace WINHELP
             try
             {
                 using var searcher = new ManagementObjectSearcher("SELECT Name, NumberOfCores, NumberOfLogicalProcessors, MaxClockSpeed FROM Win32_Processor");
-                foreach (ManagementObject mo in searcher.Get())
+                using var results = searcher.Get();
+                foreach (ManagementObject mo in results)
                 {
+                    using var _mo = mo;
                     var name = Safe(mo, "Name");
                     var cores = Safe(mo, "NumberOfCores");
                     var logical = Safe(mo, "NumberOfLogicalProcessors");
@@ -64,10 +66,16 @@ namespace WINHELP
                 using var searcher = new ManagementObjectSearcher(
                     "SELECT Name, AdapterRAM, DriverVersion, Status, VideoProcessor FROM Win32_VideoController");
                 bool any = false;
-                foreach (ManagementObject mo in searcher.Get())
+                // v5.4.0：部分机器（核显+独显同名 / 驱动重复枚举）会返回两块相同显卡，
+                // 按名称去重只显示一次，避免"显卡区域两条相同提示"
+                var seenGpus = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                using var results = searcher.Get();
+                foreach (ManagementObject mo in results)
                 {
+                    using var _mo = mo;
                     any = true;
                     var name = Trim(Safe(mo, "Name"));
+                    if (!string.IsNullOrEmpty(name) && !seenGpus.Add(name)) continue;   // 同名显卡去重
                     var ram = Safe(mo, "AdapterRAM");
                     var driver = Safe(mo, "DriverVersion");
                     var status = Safe(mo, "Status");
@@ -100,8 +108,10 @@ namespace WINHELP
             try
             {
                 using var searcher = new ManagementObjectSearcher("SELECT TotalPhysicalMemory FROM Win32_ComputerSystem");
-                foreach (ManagementObject mo in searcher.Get())
+                using var results = searcher.Get();
+                foreach (ManagementObject mo in results)
                 {
+                    using var _mo = mo;
                     var mem = Safe(mo, "TotalPhysicalMemory");
                     if (!string.IsNullOrEmpty(mem) && ulong.TryParse(mem, out var bytes))
                         list.Add(new Item { Label = L("安装内存 (RAM)", "Installed RAM"), Value = FormatBytes((long)bytes) });
@@ -151,8 +161,10 @@ namespace WINHELP
             try
             {
                 using var searcher = new ManagementObjectSearcher("SELECT SMBIOSBIOSVersion, Manufacturer FROM Win32_Bios");
-                foreach (ManagementObject mo in searcher.Get())
+                using var results = searcher.Get();
+                foreach (ManagementObject mo in results)
                 {
+                    using var _mo = mo;
                     var ver = Trim(Safe(mo, "SMBIOSBIOSVersion"));
                     var manu = Trim(Safe(mo, "Manufacturer"));
                     if (!string.IsNullOrEmpty(ver) || !string.IsNullOrEmpty(manu))
@@ -166,8 +178,10 @@ namespace WINHELP
             try
             {
                 using var searcher = new ManagementObjectSearcher("SELECT Caption, Version, OSArchitecture, BuildNumber FROM Win32_OperatingSystem");
-                foreach (ManagementObject mo in searcher.Get())
+                using var results = searcher.Get();
+                foreach (ManagementObject mo in results)
                 {
+                    using var _mo = mo;
                     var caption = Trim(Safe(mo, "Caption"));
                     var ver = Safe(mo, "Version");
                     var arch = Safe(mo, "OSArchitecture");
@@ -276,7 +290,7 @@ namespace WINHELP
         private static string FormatMHz(string mhz)
         {
             if (double.TryParse(mhz, out var v) && v > 0)
-                return v >= 1000 ? $"{v / 1000.0:F(2)} GHz" : $"{v:F(0)} MHz";
+                return v >= 1000 ? $"{v / 1000.0:F2} GHz" : $"{v:F0} MHz";
             return mhz + " MHz";
         }
     }

@@ -80,9 +80,14 @@
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <TextBlock x:Name="TxtResultTitle" Style="{StaticResource DupSectionTitle}"
                                Text="{loc:Loc 扫描结果|Results}"/>
+                    <Button x:Name="BtnCleanAll" Grid.Column="2" Height="30" Padding="14,0" Margin="10,0,0,0"
+                            FontSize="12" Cursor="Hand" IsEnabled="False"
+                            Content="{loc:Loc 全部清理（每组保留 1 个）|Clean All (keep 1 per group)}"
+                            Click="BtnCleanAll_Click"/>
                     <TextBlock x:Name="TxtSummary" Grid.Column="1" FontSize="12"
                                Foreground="{DynamicResource AccentTextBrush}" VerticalAlignment="Center"/>
                 </Grid>

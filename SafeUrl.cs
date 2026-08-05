@@ -63,6 +63,7 @@ namespace WINHELP
         /// 1. 仅接受 http/https 绝对地址；
         /// 2. 显式拒绝云元数据服务地址 169.254.169.254（防止 SSRF 窃取云凭据）；
         /// 3. 非本机回环地址（localhost / 127.x / ::1）强制 https，防止 API 令牌经明文 HTTP 外泄。
+        /// v5.4.0：增加 DNS 解析后 IP 网段复查（防 169.254.169.254.nip.io 之类域名绕过）。
         /// 返回修正后的地址；地址无效返回 null（调用方应阻断连接）。
         /// </summary>
         public static string? ValidateApiBase(string baseUrl)
@@ -76,8 +77,33 @@ namespace WINHELP
             if (host == "169.254.169.254" || host.StartsWith("169.254.169.", StringComparison.Ordinal))
                 return null;
 
+            // 拒绝元数据/链路本地网段的关键别名域名（metadata.google.internal 等）
+            if (host.EndsWith(".metadata.google.internal", StringComparison.Ordinal)
+                || host == "metadata.google.internal"
+                || host.EndsWith(".169.254.169.254.nip.io", StringComparison.Ordinal)
+                || host.EndsWith(".127.0.0.1.nip.io", StringComparison.Ordinal)
+                || host.EndsWith(".0.0.0.0.nip.io", StringComparison.Ordinal))
+                return null;
+
             var isLoopback = host == "localhost" || host == "127.0.0.1" || host == "::1"
                 || host.StartsWith("127.", StringComparison.Ordinal) || host == "[::1]";
+
+            // DNS 解析后按 IP 网段复查（防域名级绕过）
+            if (!isLoopback && !host.StartsWith("169.254.", StringComparison.Ordinal))
+            {
+                try
+                {
+                    foreach (var addr in System.Net.Dns.GetHostAddresses(host))
+                    {
+                        string ip = addr.ToString();
+                        if (ip.StartsWith("169.254.169.", StringComparison.Ordinal)   // 元数据 IP
+                            || ip.StartsWith("127.", StringComparison.Ordinal)        // 回环
+                            || ip == "0.0.0.0" || ip == "::1")
+                            return null;
+                    }
+                }
+                catch { /* 解析失败交由连接阶段处理 */ }
+            }
 
             // 非回环地址强制 https
             if (!isLoopback && uri.Scheme == Uri.UriSchemeHttp)

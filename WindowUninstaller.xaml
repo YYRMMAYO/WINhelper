@@ -94,11 +94,15 @@
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
             <TextBlock Name="TxtResidueTitle" Text="{loc:Loc 残留文件|Residual Files}" FontSize="14" FontWeight="Bold" Foreground="#2C3E50" VerticalAlignment="Center"/>
-            <Button Name="BtnScanResidue" Grid.Column="1" Content="{loc:Loc 扫描残留|Scan Residue}" Width="100" Height="34"
-                    Style="{StaticResource GlassToolbarButton}" Background="#5B8DEF" IsEnabled="False" Margin="0,0,10,0" Click="BtnScanResidue_Click"/>
-            <Button Name="BtnDeleteResidue" Grid.Column="2" Content="{loc:Loc 删除选中|Delete Selected}" Width="100" Height="34"
+            <Button Name="BtnSelectAllResidue" Grid.Column="1" Content="{loc:Loc 全选|Select All}" Width="72" Height="34"
+                    Style="{StaticResource GlassToolbarButton}" Background="#95A5A6" IsEnabled="False" Margin="0,0,8,0" Click="BtnSelectAllResidue_Click"/>
+            <Button Name="BtnScanResidue" Grid.Column="2" Content="{loc:Loc 扫描残留|Scan Residue}" Width="100" Height="34"
+                    Style="{StaticResource GlassToolbarButton}" Background="#5B8DEF" IsEnabled="False" Margin="0,0,8,0" Click="BtnScanResidue_Click"/>
+            <Button Name="BtnDeleteResidue" Grid.Column="3" Content="{loc:Loc 删除选中|Delete Selected}" Width="100" Height="34"
                     Style="{StaticResource GlassToolbarButton}" Background="#E74C3C" IsEnabled="False" Click="BtnDeleteResidue_Click"/>
         </Grid>
 

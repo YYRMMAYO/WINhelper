@@ -221,4 +221,49 @@ public partial class WindowReport : UserControl
 
         Refresh();
     }
+
+    /// <summary>v5.4.0：导出月度报告为文本文件（补齐"结果可导出"缺口）。</summary>
+    private void BtnExport_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var dlg = new Microsoft.Win32.SaveFileDialog
+            {
+                Title = UiLanguage.L("导出月度报告", "Export monthly report"),
+                Filter = "文本文件 (*.txt)|*.txt",
+                FileName = $"司南工具箱_月度报告_{DateTime.Now:yyyy-MM-dd}.txt"
+            };
+            if (dlg.ShowDialog() != true) return;
+
+            var s = SettingsManager.Current;
+            var data = LoadReport();
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("司南工具箱 月度报告");
+            sb.AppendLine("生成时间：" + DateTime.Now.ToString("yyyy-MM-dd HH:mm"));
+            sb.AppendLine();
+            sb.AppendLine("累计清理：" + Fmt(s.CleanedBytes));
+            sb.AppendLine("累计优化次数：" + s.OptimizeCount);
+            sb.AppendLine("连续使用天数：" + (s.UsageStreak > 0 ? s.UsageStreak.ToString() : "—"));
+            sb.AppendLine("首次使用：" + (s.FirstUse == default ? "—" : s.FirstUse.ToString("yyyy-MM-dd")));
+            sb.AppendLine("上次优化：" + (s.LastOptimize == default ? "—" : s.LastOptimize.ToString("yyyy-MM-dd HH:mm")));
+            sb.AppendLine();
+            sb.AppendLine("成就：" + BuildAchievement(s));
+            sb.AppendLine();
+            sb.AppendLine("近 12 个月优化次数：");
+            foreach (var kv in data.Months.OrderBy(kv => kv.Key).TakeLast(12))
+                sb.AppendLine($"  {kv.Key}  {kv.Value.OptimizeCount} 次 / 清理 {Fmt(kv.Value.CleanedBytes)}");
+
+            File.WriteAllText(dlg.FileName, sb.ToString(), System.Text.Encoding.UTF8);
+            MessageBox.Show(Window.GetWindow(this),
+                UiLanguage.L("报告已导出到：\n" + dlg.FileName, "Report exported to:\n" + dlg.FileName),
+                UiLanguage.L("导出成功", "Export OK"), MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        catch (Exception ex)
+        {
+            App.LogCrash(ex, "WindowReport.Export");
+            MessageBox.Show(Window.GetWindow(this),
+                UiLanguage.L("导出失败：", "Export failed: ") + ex.Message,
+                UiLanguage.L("导出失败", "Export Failed"), MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
 }

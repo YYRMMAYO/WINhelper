@@ -318,16 +318,31 @@ namespace WINHELP
             {
                 Directory.CreateDirectory(CrashLogDir);
                 var path = Path.Combine(CrashLogDir, "crash.log");
+
+                // v5.4.0：日志轮转——超 1MB 时把旧日志改名 .old（保留最近一份），
+                // 防止长期运行无限增长拖垮 BugReportPage 的全量读取
+                try
+                {
+                    if (new FileInfo(path).Length > 1_000_000)
+                    {
+                        var old = path + ".old";
+                        try { if (File.Exists(old)) File.Delete(old); } catch { }
+                        try { File.Move(path, old); } catch { }
+                    }
+                }
+                catch { }
+
                 var sb = new System.Text.StringBuilder();
                 sb.AppendLine("========== " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + " ==========");
                 sb.AppendLine("Context : " + context);
                 sb.AppendLine("Type    : " + ex.GetType().FullName);
-                sb.AppendLine("Message : " + ex.Message);
-                sb.AppendLine("Stack   : " + ex.StackTrace);
+                // v5.4.0：消息与堆栈脱敏（用户名 / 个人目录），防反馈渠道被动收集隐私（安全审计 P3）
+                sb.AppendLine("Message : " + SanitizeCrashText(ex.Message));
+                sb.AppendLine("Stack   : " + SanitizeCrashText(ex.StackTrace));
                 if (ex.InnerException != null)
                 {
-                    sb.AppendLine("Inner   : " + ex.InnerException.GetType().FullName + " | " + ex.InnerException.Message);
-                    sb.AppendLine("InnerStk: " + ex.InnerException.StackTrace);
+                    sb.AppendLine("Inner   : " + ex.InnerException.GetType().FullName + " | " + SanitizeCrashText(ex.InnerException.Message));
+                    sb.AppendLine("InnerStk: " + SanitizeCrashText(ex.InnerException.StackTrace));
                 }
                 sb.AppendLine();
                 // 用 FileShare.ReadWrite 让另一个实例也能写入，不互相阻塞。
@@ -337,6 +352,26 @@ namespace WINHELP
                 sw.Flush();
             }
             catch { /* 日志写入失败不应引发二次异常 */ }
+        }
+
+        /// <summary>crash.log 隐私脱敏：用户名与个人目录路径替换为占位符。</summary>
+        internal static string SanitizeCrashText(string? text)
+        {
+            if (string.IsNullOrEmpty(text)) return text ?? "";
+            try
+            {
+                var s = text;
+                var user = Environment.UserName;
+                if (!string.IsNullOrEmpty(user)) s = s.Replace(user, "<user>", StringComparison.OrdinalIgnoreCase);
+                var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+                if (!string.IsNullOrEmpty(home)) s = s.Replace(home, "<userprofile>", StringComparison.OrdinalIgnoreCase);
+                var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+                if (!string.IsNullOrEmpty(local)) s = s.Replace(local, "<localappdata>", StringComparison.OrdinalIgnoreCase);
+                var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+                if (!string.IsNullOrEmpty(appData)) s = s.Replace(appData, "<appdata>", StringComparison.OrdinalIgnoreCase);
+                return s;
+            }
+            catch { return text ?? ""; }
         }
 
         /// <summary>创建系统托盘图标</summary>
@@ -411,6 +446,11 @@ namespace WINHELP
 
         protected override void OnExit(ExitEventArgs e)
         {
+            // 停止定时自动优化计划（System.Timers.Timer 需显式释放，否则句柄残留到进程退出）
+            try { SchedulerManager.Stop(); } catch { }
+            // v5.4.0：退出前立即写盘设置（防抖保存的挂起数据不丢失）
+            try { SettingsManager.SaveNow(); } catch { }
+
             // 释放单实例互斥锁（仅当本实例真正持有它）
             try
             {

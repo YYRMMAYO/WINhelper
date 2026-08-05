@@ -213,7 +213,8 @@ namespace WINHELP
             }
 
             // 持久化保存（SchedulerManager 会在下一分钟检查读取到最新值）
-            SettingsManager.Save();
+            // v5.4.0：时间输入框每敲一个字符都会触发，改防抖保存避免高频写盘
+            SettingsManager.SaveDebounced();
         }
 
         /// <summary>手动检查更新</summary>

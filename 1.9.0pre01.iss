@@ -4,7 +4,7 @@
 ; 注：Inno Setup 6 的 [Messages] 标识符以下方为准（参考 Default.isl 6.5.0）。
 
 #define MyAppName "司南工具箱"
-#define MyAppVersion "5.3.0"
+#define MyAppVersion "5.5.0"
 #define MyAppPublisher "YYRMM"
 #define MyAppURL "【完全免费的电脑助手!可以实现官网跳转,电脑帮助等功能】 https://www.bilibili.com/video/BV1gk3g6yEXp/?share_source=copy_web&vd_source=c804f5334fbb4541224a8910a55f757d"
 #define MyAppExeName "司南工具箱.exe"
@@ -118,7 +118,9 @@ LaunchProgram=运行 %1
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "F:\new\WINHELP\dist\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+; v5.4.0：自包含文件夹发布（弃用单文件），打包 dist 目录全部内容（exe + 运行时 DLL 等）。
+; Excludes 排除安装包输出目录 BAND 与调试符号 / 图标源文件，避免循环打包。
+Source: "F:\new\WINHELP\dist\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "BAND,*.pdb,*.svg"
 ; 注意：不要在任何共享系统文件上使用 "Flags: ignoreversion"
 
 [Registry]

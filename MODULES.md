@@ -2,7 +2,54 @@
 
 > 用途：本文件是项目的**总索引**。当你在 VS 里"只看到部分代码、找不到某个模块"时，先查这里。
 > 维护约定：新增/合并模块后，请同步更新本文件与 `ModuleRegistry.cs`（模块元数据单一来源），`MainWindow.InitPages()` 会自动遍历注册。
-> 版本：随主程序 5.3.0。命名空间统一为 `WINHELP`；程序集名/EXE 名为「司南工具箱」（AppData 数据目录仍为 `WINHELP`）。
+> 版本：随主程序 5.5.0。命名空间统一为 `WINHELP`；程序集名/EXE 名为「司南工具箱」（AppData 数据目录仍为 `WINHELP`）。
+
+## v5.5.0 性能与实用性增强（2026-08-06 第三轮）
+
+- **系统清理**：分类扫描并行化（`Task.WhenAll`，去掉人为 Delay）；临时目录单次遍历同时算大小+收集文件（省一半 IO）；大文件扫描 5 根目录 `Parallel.ForEach`。
+- **一键体检**：临时/浏览器缓存/更新缓存三路扫描并行。
+- **重复文件**：SHA-256 校验候选组间 `Parallel.ForEach`（大组显著提速）。
+- **卸载残留**：新增「全选/反选」按钮；删除后一次性从集合移除（替代逐项跨线程 Remove）。
+- **月度报告**：新增「导出报告」（txt，含累计/本月/成就/近 12 月趋势）。
+- **截图标注**：取色自动复制到剪贴板。
+- **网络测速**：新增「取消」按钮（CTS 贯穿 Ping 与下载）。
+- **Agent 助手**：气泡上限 200 条（StackPanel 无虚拟化，防超长对话渲染卡顿）。
+- **主窗口**：「下载页面」无可用地址时给出提示（不再静默）。
+
+## v5.4.0 全面修复与重构（2026-08-06，基于全量审计）
+
+- **发布方式变更（修复退出崩溃）**：弃用 `PublishSingleFile`，改为**自包含文件夹发布**（保留 ReadyToRun）。
+  根因：单文件 + R2R 组合在进程退出（AppDomain 卸载）时 CRT 回调需加载 `vcruntime140_cor3.dll`，
+  bundle 按需解压时序失败 → 每次退出 `DllNotFoundException`（crash.log 实锤）。文件夹发布使
+  `vcruntime140_cor3.dll` 常驻 exe 目录，退出稳定。**注意**：安装脚本 `1.9.0pre01.iss` [Files] 段已改为
+  `dist\*` 递归打包（Excludes: BAND,pdb,svg）；`dist/` 交付形态从单文件变为「exe + 运行时 DLL 目录」。
+- **网络诊断模块重构（NetworkDiagnosticsPage）**：修复"断开 WiFi 仍检测正常"与"新手看不懂"：
+  - 弃用误导性 `GetIsNetworkAvailable()`，以「默认路由出口接口」为核心判定（有效 IPv4 非 169.254 APIPA + 网关存在）；
+  - WiFi 专查（netsh wlan 解析 SSID / 信号 / 连接状态），直观回答"WiFi 连没连上"；
+  - 外网探测双通道：ICMP + HTTP 204（gstatic / msftconnecttest / miui），防 ICMP 被拦误判；
+  - 结论分级：未连接 / 未获取 IP / 无网关 / 路由器不可达 / 外网中断 / DNS 异常 / 正常，配白话标签 + 修复建议；
+  - 全部检测移入后台线程（原 `Task.Run(() => Dispatcher.Invoke(全部逻辑))` 把 Ping/DNS 拉回 UI 线程卡死 5~10s）；
+  - 按钮 try/catch/finally 恢复，画刷静态复用。
+- **多语言修复**：首页卡片首字徽标随语言切换（英文模式显示英文标题首字母）；AgentAssistantPage 提示、
+  SearchWindow 快捷键提示改走 `UiLanguage.L`/`local:Loc`。
+- **全局故障修复**：`HardwareInfo.FormatMHz` 非法格式串 `F(2)`→`:F2`（CPU 频率此前恒"无法读取"）；
+  `ToolRegistry.RunDiagnosticAsync` `WaitForExit(12000)`→异步等待（AI 代操作不再卡 UI 12s）；
+  `SystemStatusPage` 进程启动检测超时按失败处理（此前超时误报"正常"）；`HomePage.RefreshStats` 扫盘异步化；
+  `WindowShredder` 数据模型实现 INPC（粉碎后状态实时刷新）；`SearchWindow` 关闭时退订静态 ThemeChanged（修泄漏）；
+  `StartupPage` 注册表 + WMI 查询移到 Loaded 后后台；`SystemCleanerPage`/网络诊断 async void 补齐 catch/finally；
+  `App.OnExit` 补 `SchedulerManager.Stop()`；主窗口/陪伴窗定时器关闭时 Stop；WindowUninstaller 根键、
+  RescuePage 进程对象、HardwareInfo WMI 集合、ToolRegistry 进程对象均补 Dispose。
+- **安全修复**：`WindowShredder` 入口拒绝重解析点（junction/符号链接，防粉碎跟随链接删除目标真实文件）；
+  `UpdateManager` 资产名 `Path.GetFileName` 净化 + 下载 URL 域名白名单 + 最终响应 host 校验；
+  `ToolRegistry.kill_process` 进程名正则白名单 `[A-Za-z0-9_.-]+`；`WindowUninstaller` 卸载命令先展开环境变量
+  再判解释器（防 `%comspec%` 绕过）；`SafeUrl.ValidateApiBase` DNS 解析后按 IP 网段复查 + 元数据别名黑名单；
+  `CheckupPage` HTML 报告 Summary 转义；`App.LogCrash` 消息/堆栈脱敏（用户名、个人目录）；`StartupPage` XML
+  解析显式 `DtdProcessing.Prohibit`；`IssueCatalog` 清临时目录命令 `%temp%`→`%LOCALAPPDATA%\Temp`（防环境变量篡改）。
+- **用户逻辑**：顶部搜索框在非首页输入时仅首次跳回首页（不再每击键整页切换）。
+- **第二轮性能/实用性（同日）**：显卡同名去重（Win32_VideoController 重复枚举）；首页统计 60s TTL 缓存；
+  计划任务一次性渲染（消除 O(n²)）；系统状况语言切换 WMI 防重入；RescuePage/WindowRecorder 页面加载检测移后台；
+  crash.log 1MB 轮转；Agent 流式输出 60ms 节流；SettingsManager 防抖保存（SaveDebounced/SaveNow）；
+  文件粉碎支持取消 + 显示当前文件；重复文件页新增「全部清理（每组保留 1 个）」并保存组列表整体重渲染。
 
 ## v5.3.0 UI 全面重写（重大变更）
 

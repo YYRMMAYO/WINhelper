@@ -574,7 +574,9 @@ public partial class WindowSnapshot : UserControl
             ColorSwatch.Visibility = Visibility.Visible;
             ColorSwatch.Background = new SolidColorBrush(c);
             TxtColor.Text = hex;
-            TxtStatus.Text = UiLanguage.L($"取色：{hex}（坐标 {x},{y}）", $"Picked: {hex} (at {x},{y})");
+            // v5.4.0：取色自动复制到剪贴板（省去手抄）
+            try { System.Windows.Clipboard.SetText(hex); } catch { }
+            TxtStatus.Text = UiLanguage.L($"取色：{hex}（已复制，坐标 {x},{y}）", $"Picked: {hex} (copied, at {x},{y})");
         }
         catch (Exception ex)
         {
