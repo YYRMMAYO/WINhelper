@@ -30,6 +30,9 @@ namespace WINHELP
         private double _diskFreeGB = -1;
         private bool _netOk = true, _apiOk = true, _settingsOk = true, _iconOk = true, _cfgOk = true;
 
+        // 缓存最近一次硬件信息（语言切换重渲硬件列表用）
+        private List<HardwareInfo.Item>? _lastHwItems;
+
         // ===== 进程榜 / 温度 / 诊断 状态 =====
         private List<ProcItem>? _procItems;
         private double? _cpuTempC;
@@ -107,35 +110,13 @@ namespace WINHELP
             Loaded += (_, _) =>
             {
                 UiLanguage.Changed += OnLanguageChanged;
-                UiMode.Changed += OnModeChanged;
                 _ = LoadTemperatureAsync();
             };
-            Unloaded += (_, _) =>
-            {
-                UiLanguage.Changed -= OnLanguageChanged;
-                UiMode.Changed -= OnModeChanged;
-            };
+            Unloaded += (_, _) => UiLanguage.Changed -= OnLanguageChanged;
 
             LocalizeUI();
             _ = LoadHardwareAsync();
         }
-
-        /// <summary>普通/专业模式切换：重渲硬件信息标签与优化建议（通俗/原文随模式变化）</summary>
-        private void OnModeChanged()
-        {
-            Dispatcher.Invoke(() =>
-            {
-                LocalizeUI();
-                if (_lastHwItems != null) RenderHardwareList();
-                if (_lastHealth != null && _lastPassCount >= 0)
-                    BuildSuggestions(_lastPassCount, _lastTotal, _lastHealth);
-            });
-        }
-
-        // 缓存最近一次硬件信息 / 健康分结果（模式切换重渲用）
-        private List<HardwareInfo.Item>? _lastHwItems;
-        private HealthScoreService.HealthResult? _lastHealth;
-        private int _lastPassCount = -1, _lastTotal = 0;
 
         private void OnLanguageChanged()
         {
@@ -308,8 +289,8 @@ namespace WINHELP
 
             var lb = new TextBlock
             {
-                // 普通模式：在标签后追加术语通俗解释（如"处理器 (CPU)（中央处理器…）"）
-                Text = UiMode.IsPro ? label : Glossary.Hint(label),
+                // 在标签后追加术语通俗解释（如"处理器 (CPU)（中央处理器…）"）
+                Text = Glossary.Hint(label),
                 FontSize = 12,
                 FontWeight = FontWeights.SemiBold,
                 Foreground = new SolidColorBrush(isGpu ? Color.FromRgb(0xC0, 0x39, 0x2B) : Color.FromRgb(0x7F, 0x8C, 0x8D)),
@@ -513,9 +494,7 @@ namespace WINHELP
                         var autoStart = s?.AutoStart;
                         var autoUpdate = s?.AutoCheckUpdate;
                         return ok
-                            ? new CheckResult { Pass = true, Detail = UiMode.IsPro
-                                ? $"AutoStart:{autoStart} AutoUpdate:{autoUpdate}"
-                                : L($"开机自启：{autoStart} · 自动更新：{autoUpdate}", $"AutoStart:{autoStart} AutoUpdate:{autoUpdate}") }
+                            ? new CheckResult { Pass = true, Detail = L($"开机自启：{autoStart} · 自动更新：{autoUpdate}", $"AutoStart:{autoStart} AutoUpdate:{autoUpdate}") }
                             : new CheckResult { Pass = false, Detail = L("设置为空", "Settings empty") };
                     }
                 },
@@ -853,11 +832,6 @@ namespace WINHELP
                     ActionLabel = ""
                 });
             }
-
-            // 缓存结果供模式切换重渲
-            _lastHealth = health;
-            _lastPassCount = passCount;
-            _lastTotal = total;
 
             TxtOptStatus.Text = string.Format(L("共 {0} 条建议", "{0} suggestion(s)"), list.Count);
             foreach (var s in list) OptPanel.Children.Add(CreateSuggestionRow(s));

@@ -630,12 +630,8 @@ namespace WINHELP
             ThemeManager.ApplyButtonTheme(view, ThemeManager.AccentColor);
             var viewBox = new TextBox
             {
-                Background = new SolidColorBrush(Color.FromRgb(0x1E, 0x1E, 0x1E)),
-                Foreground = new SolidColorBrush(Color.FromRgb(0xDC, 0xDC, 0xDC)),
-                FontFamily = new FontFamily("Consolas"), FontSize = 11,
-                TextWrapping = TextWrapping.Wrap, IsReadOnly = true, IsUndoEnabled = false,
-                BorderThickness = new Thickness(0), Padding = new Thickness(6),
-                MinHeight = 70, MaxHeight = 130, VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                Style = (Style)FindResource("CodePanel"),
+                MinHeight = 70, MaxHeight = 130,
                 Visibility = Visibility.Collapsed, Margin = new Thickness(0, 0, 0, 8)
             };
             view.Click += (_, __) =>

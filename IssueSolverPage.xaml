@@ -150,11 +150,8 @@
                                    FontSize="12" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}"
                                    Margin="0,0,0,6"/>
                         <TextBox x:Name="TxtConsole" Grid.Row="1"
-                                 Background="#1E1E1E" Foreground="#DCDCDC"
-                                 FontFamily="Consolas" FontSize="12" TextWrapping="Wrap"
-                                 IsReadOnly="True" IsUndoEnabled="False"
-                                 BorderThickness="0" Padding="10"
-                                 VerticalScrollBarVisibility="Auto"/>
+                                 Style="{StaticResource CodePanel}"
+                                 TextWrapping="Wrap"/>
                     </Grid>
                 </Border>
             </Grid>

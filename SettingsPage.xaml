@@ -91,28 +91,6 @@
                         <TextBlock x:Name="TxtGeneralTitle" Text="{loc:Loc 通用设置|General}" FontSize="15" FontWeight="Bold"
                                    Foreground="#2C3E50" Margin="0,0,0,16"/>
 
-                            <!-- 显示模式（普通/专业，v5.0.0） -->
-                            <Border Style="{StaticResource GlassCard}" CornerRadius="10" Padding="16,14" Margin="0,0,0,10">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel Grid.Column="0">
-                                        <TextBlock x:Name="TxtModeLabel" Text="{loc:Loc 显示模式|Display Mode}" FontSize="14" FontWeight="SemiBold"
-                                                   Foreground="#2C3E50"/>
-                                        <TextBlock x:Name="TxtModeHint" Text="{loc:Loc 普通模式显示通俗解释，适合新手；专业模式显示原始技术信息|Simple mode shows plain explanations; Pro mode shows raw technical info}"
-                                                   FontSize="12" Foreground="#95A5A6" Margin="0,4,0,0"/>
-                                    </StackPanel>
-                                    <ComboBox Grid.Column="1" x:Name="CmbMode" Width="120" Height="34"
-                                              VerticalAlignment="Center"
-                                              SelectionChanged="CmbMode_Changed">
-                                        <ComboBoxItem x:Name="CmbModeSimple" Content="{loc:Loc 普通模式|Simple}"/>
-                                        <ComboBoxItem x:Name="CmbModePro" Content="{loc:Loc 专业模式|Pro}"/>
-                                    </ComboBox>
-                                </Grid>
-                            </Border>
-
                             <!-- 界面语言 -->
                             <Border Style="{StaticResource GlassCard}" CornerRadius="10" Padding="16,14" Margin="0,0,0,10">
                                 <Grid>

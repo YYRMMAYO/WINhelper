@@ -287,11 +287,10 @@ namespace WINHELP
             return sb.ToString();
         }
 
-        /// <summary>解析 netstat -ano 输出，映射进程名，可选按端口过滤。普通模式输出中文列名。</summary>
+        /// <summary>解析 netstat -ano 输出，映射进程名，可选按端口过滤（中文列名，通俗展示）。</summary>
         private static string ParsePorts(string output, string filter)
         {
             if (string.IsNullOrWhiteSpace(output)) return UiLanguage.L("（无输出）", "(no output)");
-            bool pro = UiMode.IsPro;
             var rows = new List<string>();
             var pidCache = new Dictionary<int, string>();
             string? ProcName(int pid)
@@ -337,16 +336,12 @@ namespace WINHELP
                 if (!string.IsNullOrEmpty(filter) && !local.Contains(":" + filter + " ", StringComparison.OrdinalIgnoreCase)
                     && !local.EndsWith(":" + filter, StringComparison.OrdinalIgnoreCase))
                     continue;
-                rows.Add(pro
-                    ? $"{proto,-5} {local,-28} {foreign,-24} {state,-14} {ProcName(pid)}  (PID {pid})"
-                    : $"{proto,-5} {local,-28} {foreign,-24} {StateZh(state),-12} {ProcName(pid)}  (PID {pid})");
+                rows.Add($"{proto,-5} {local,-28} {foreign,-24} {StateZh(state),-12} {ProcName(pid)}  (PID {pid})");
             }
 
             if (rows.Count == 0)
                 return UiLanguage.L("（无匹配结果）", "(no match)");
-            var header = pro
-                ? string.Format("{0,-5} {1,-28} {2,-24} {3,-14} {4}", "Proto", "Local", "Foreign", "State", "Process")
-                : string.Format("{0,-6} {1,-28} {2,-24} {3,-12} {4}", "协议", "本地地址", "远程地址", "状态", "进程");
+            var header = string.Format("{0,-6} {1,-28} {2,-24} {3,-12} {4}", "协议", "本地地址", "远程地址", "状态", "进程");
             return header + "\n" + string.Join("\n", rows.Take(400));
         }
     }

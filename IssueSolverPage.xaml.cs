@@ -45,12 +45,6 @@ namespace WINHELP
 
             Localize();
             UiLanguage.Changed += () => Dispatcher.Invoke(Localize);
-            UiMode.Changed += () => Dispatcher.Invoke(() =>
-            {
-                // 专业模式切换后重渲当前详情（命令通俗解释随模式变化）
-                if (DetailView.Visibility == Visibility.Visible && _current != null)
-                    ShowDetail(_current);
-            });
 
             BtnCancel.Click += BtnCancel_Click;
             BtnCopy.Click += BtnCopy_Click;

@@ -71,8 +71,6 @@ public partial class StartupPage : UserControl
         ApplyTheme();
         ThemeManager.ThemeChanged += () => Dispatcher.Invoke(ApplyTheme);
         UiLanguage.Changed += () => Dispatcher.Invoke(Render);
-        UiMode.Changed += () => Dispatcher.Invoke(Render); // 来源术语解释随模式变化
-        UiMode.Changed += () => Dispatcher.Invoke(Render); // 来源术语解释随模式变化
         LoadAll();
         Render();
         // 计划任务扫描较慢，异步执行，完成后重绘

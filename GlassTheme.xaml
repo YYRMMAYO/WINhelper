@@ -9,18 +9,21 @@
          严禁使用 UIElement.Opacity 改透明度，会把子元素也变虚。
          ============================================================ -->
 
-    <!-- 玻璃效果资源：阴影 + 模糊 -->
-    <DropShadowEffect x:Key="GlassShadow" BlurRadius="24" ShadowDepth="1" Direction="270" Opacity="0.10"/>
+    <!-- 玻璃效果资源：阴影 + 模糊（v5.1.0：阴影整体减淡，更简洁干净） -->
+    <DropShadowEffect x:Key="GlassShadow" BlurRadius="16" ShadowDepth="1" Direction="270" Opacity="0.05"/>
     <BlurEffect x:Key="GlassBlur" Radius="30" KernelType="Gaussian"/>
 
     <!-- 卡片阴影别名（与 MainWindow 的 CardShadow 视觉一致）。
          放在 Application 级资源，使任意 UserControl 在构造函数阶段（尚未挂入可视化树、
          无法向上查找到 MainWindow.Resources）也能通过 FindResource("CardShadow") 取到，
          避免 AI 密钥获取教程等页面在构建卡片时抛 ResourceReferenceKeyNotFoundException 而崩溃。 -->
-    <DropShadowEffect x:Key="CardShadow" BlurRadius="24" ShadowDepth="1" Direction="270" Opacity="0.10"/>
+    <DropShadowEffect x:Key="CardShadow" BlurRadius="16" ShadowDepth="1" Direction="270" Opacity="0.05"/>
 
     <!-- 高光描边笔刷：1px 白色高光（用于玻璃卡边缘） -->
     <SolidColorBrush x:Key="GlassHighlight" Color="#80FFFFFF"/>
+
+    <!-- 卡片/面板实边框（v5.1.0：浅灰实边更清晰，替代半透明白高光） -->
+    <SolidColorBrush x:Key="CardBorder" Color="#E3E8EF"/>
 
     <!-- 描边浅色：用于卡片内细分割线 -->
     <SolidColorBrush x:Key="GlassDivider" Color="#20FFFFFF"/>
@@ -59,18 +62,18 @@
          ============================================================ -->
     <Style x:Key="GlassCard" TargetType="Border">
         <Setter Property="Background" Value="{DynamicResource GlassCardBrush}"/>
-        <Setter Property="BorderBrush" Value="{StaticResource GlassHighlight}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource CardBorder}"/>
         <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="CornerRadius" Value="14"/>
+        <Setter Property="CornerRadius" Value="12"/>
         <Setter Property="Effect" Value="{StaticResource GlassShadow}"/>
     </Style>
 
     <!-- 玻璃面板：用于大区块（顶栏、状态栏、设置页内面板） -->
     <Style x:Key="GlassPanel" TargetType="Border">
         <Setter Property="Background" Value="{DynamicResource GlassPanelBrush}"/>
-        <Setter Property="BorderBrush" Value="{StaticResource GlassHighlight}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource CardBorder}"/>
         <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="CornerRadius" Value="14"/>
+        <Setter Property="CornerRadius" Value="12"/>
     </Style>
 
     <!-- 侧边栏：左侧导航（不带阴影、右侧描边分隔） -->
@@ -154,6 +157,22 @@
         <Setter Property="Padding" Value="10,6"/>
     </Style>
 
+    <!-- 浅色代码/输出面板（v5.1.0：替代纯黑控制台，蓝白清爽；用于端口/蓝屏/报告等只读输出） -->
+    <Style x:Key="CodePanel" TargetType="TextBox">
+        <Setter Property="Background" Value="#F7F9FB"/>
+        <Setter Property="Foreground" Value="#3A4A5A"/>
+        <Setter Property="BorderBrush" Value="#E3E8EF"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="FontFamily" Value="Consolas"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="IsReadOnly" Value="True"/>
+        <Setter Property="IsUndoEnabled" Value="False"/>
+        <Setter Property="Padding" Value="10"/>
+        <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
+        <Setter Property="CaretBrush" Value="#3A4A5A"/>
+        <Setter Property="SelectionBrush" Value="#C9DDF3"/>
+    </Style>
+
     <!-- ============================================================
          玻璃滚动条 / ScrollViewer（悬浮式，不占布局宽度）
          - 滚动条以半透明玻璃质感浮在右侧/底部边缘，平时自动隐藏，
@@ -176,26 +195,26 @@
         </Setter>
     </Style>
 
-    <!-- 滚动条滑块（Thumb） -->
+    <!-- 滚动条滑块（Thumb）：v5.1.0 柔和浅灰蓝，hover 主色 -->
     <Style x:Key="GlassScrollBarThumb" TargetType="Thumb">
         <Setter Property="OverridesDefaultStyle" Value="True"/>
-        <Setter Property="Background" Value="#7FB2E0"/>
+        <Setter Property="Background" Value="#C9D4E0"/>
         <Setter Property="Focusable" Value="False"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Thumb">
-                    <Border x:Name="ThumbBorder" Background="#7FB2E0" CornerRadius="4"
+                    <Border x:Name="ThumbBorder" Background="#C9D4E0" CornerRadius="4"
                             Margin="2" SnapsToDevicePixels="True">
                         <Border.Effect>
-                            <DropShadowEffect BlurRadius="4" ShadowDepth="0" Opacity="0.25" Color="#2C3E50"/>
+                            <DropShadowEffect BlurRadius="4" ShadowDepth="0" Opacity="0.15" Color="#2C3E50"/>
                         </Border.Effect>
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="ThumbBorder" Property="Background" Value="#4A90D9"/>
+                            <Setter TargetName="ThumbBorder" Property="Background" Value="#9FB6CC"/>
                         </Trigger>
                         <Trigger Property="IsDragging" Value="True">
-                            <Setter TargetName="ThumbBorder" Property="Background" Value="#3A7BC8"/>
+                            <Setter TargetName="ThumbBorder" Property="Background" Value="#4A90D9"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

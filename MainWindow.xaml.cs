@@ -101,7 +101,6 @@ namespace WINHELP
             ApplyTheme();
             ThemeManager.ThemeChanged += () => Dispatcher.Invoke(ApplyTheme);
             UiLanguage.Changed += () => Dispatcher.Invoke(Localize);
-            UiMode.Changed += () => Dispatcher.Invoke(UpdateModeButton);
 
             Title = $"司南工具箱 v{UpdateManager.LocalVersion}";
 
@@ -457,9 +456,6 @@ namespace WINHELP
             BtnNextTip.Content = UiLanguage.L("换一个", "Next");
             BtnOptimize.Content = UiLanguage.L("一键优化", "One-Click Optimize");
 
-            // 显示模式按钮（v5.0.0）
-            UpdateModeButton();
-
             HeroLabelCpu.Text = UiLanguage.L("CPU", "CPU");
             HeroLabelMem.Text = UiLanguage.L("内存", "Memory");
             HeroLabelNet.Text = UiLanguage.L("网络", "Network");
@@ -553,24 +549,6 @@ namespace WINHELP
         private void BtnCloseTip_Click(object sender, RoutedEventArgs e)
         {
             DailyTipCard.Visibility = Visibility.Collapsed;
-        }
-
-        // ===== 显示模式快速切换（普通/专业，v5.0.0） =====
-
-        /// <summary>刷新顶栏模式按钮：显示当前模式，专业模式高亮</summary>
-        private void UpdateModeButton()
-        {
-            if (BtnModeToggle == null) return;
-            bool pro = UiMode.IsPro;
-            BtnModeToggle.Content = UiLanguage.L(pro ? "专业" : "普通", pro ? "Pro" : "Simple");
-            BtnModeToggle.Background = pro
-                ? new SolidColorBrush(Color.FromArgb(0x66, 0xFF, 0xFF, 0xFF))
-                : new SolidColorBrush(Color.FromArgb(0x1A, 0xFF, 0xFF, 0xFF));
-        }
-
-        private void BtnModeToggle_Click(object sender, RoutedEventArgs e)
-        {
-            UiMode.Toggle();
         }
 
         // ===== 一键优化 =====

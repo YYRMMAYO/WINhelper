@@ -484,19 +484,19 @@ namespace WINHELP
             bool isAcrylic = GlassEffect == GlassMode.Acrylic;
             bool isStarry = IsStarryActive;
 
-            // 卡片 alpha
+            // 卡片 alpha（v5.1.0 起整体更实、更干净，减少玻璃叠层杂乱感）
             byte cardAlpha;
-            if (isStarry)             cardAlpha = 0xCC;  // 80%（深色底需高 alpha）
-            else if (isAcrylic && hasImg) cardAlpha = 0x44;  // ~27%（有图模糊）
-            else if (!hasImg)        cardAlpha = 0xEB;  // ~92%（无图自适应）
-            else                     cardAlpha = (byte)(GlassStrength * 255);
+            if (isStarry)             cardAlpha = 0xD6;  // 84%（深色底需高 alpha）
+            else if (isAcrylic && hasImg) cardAlpha = 0x50;  // ~31%（有图模糊）
+            else if (!hasImg)        cardAlpha = 0xF2;  // ~95%（近实心白，简洁清晰）
+            else                     cardAlpha = (byte)(Math.Min(GlassStrength + 0.08, 0.92) * 255);
 
             // 面板 alpha（比卡片低一档，层次感）
             byte panelAlpha;
-            if (isStarry)             panelAlpha = 0xB4;  // 70%
-            else if (isAcrylic && hasImg) panelAlpha = 0x28;  // ~16%
-            else if (!hasImg)        panelAlpha = 0xD8;  // ~85%
-            else                     panelAlpha = (byte)(Math.Min(GlassStrength + 0.05, 0.9) * 255);
+            if (isStarry)             panelAlpha = 0xC8;  // 78%
+            else if (isAcrylic && hasImg) panelAlpha = 0x32;  // ~20%
+            else if (!hasImg)        panelAlpha = 0xE4;  // ~89%
+            else                     panelAlpha = (byte)(Math.Min(GlassStrength + 0.13, 0.93) * 255);
 
             // 顶栏：与面板一致
             byte topbarAlpha = panelAlpha;
@@ -521,10 +521,10 @@ namespace WINHELP
 
             // 小药丸 alpha（最透）
             byte pillAlpha;
-            if (isStarry)             pillAlpha = 0x90;  // 56%
-            else if (isAcrylic && hasImg) pillAlpha = 0x1E;  // ~12%
-            else if (!hasImg)        pillAlpha = 0xC0;  // ~75%
-            else                     pillAlpha = (byte)(Math.Max(GlassStrength - 0.1, 0.3) * 255);
+            if (isStarry)             pillAlpha = 0x9E;  // 62%
+            else if (isAcrylic && hasImg) pillAlpha = 0x26;  // ~15%
+            else if (!hasImg)        pillAlpha = 0xCE;  // ~81%
+            else                     pillAlpha = (byte)(Math.Max(GlassStrength - 0.05, 0.35) * 255);
 
             // 搜索框：同 pill
             byte searchAlpha = pillAlpha;
@@ -538,8 +538,8 @@ namespace WINHELP
             GlassTopBarBrush  = new SolidColorBrush(Color.FromArgb(topbarAlpha,  0xFF, 0xFF, 0xFF));
             GlassPillBrush    = new SolidColorBrush(Color.FromArgb(pillAlpha,    0xFF, 0xFF, 0xFF));
             GlassSearchBrush  = new SolidColorBrush(Color.FromArgb(searchAlpha,  0xFF, 0xFF, 0xFF));
-            GlassNavHoverBrush  = new SolidColorBrush(Color.FromArgb(0x28, AccentColor.R, AccentColor.G, AccentColor.B));
-            GlassNavActiveBrush = new SolidColorBrush(Color.FromArgb(0x40, AccentColor.R, AccentColor.G, AccentColor.B));
+            GlassNavHoverBrush  = new SolidColorBrush(Color.FromArgb(0x1C, AccentColor.R, AccentColor.G, AccentColor.B));
+            GlassNavActiveBrush = new SolidColorBrush(Color.FromArgb(0x2E, AccentColor.R, AccentColor.G, AccentColor.B));
 
             // 重新注册到 Application.Resources（覆盖冻结的旧实例，触发 DynamicResource 重新解析）
             if (Application.Current != null)

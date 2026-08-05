@@ -24,9 +24,9 @@
     </WindowChrome.WindowChrome>
 
     <Window.Resources>
-        <!-- 卡片外阴影（玻璃感加强：更轻、仅大卡用） -->
-        <DropShadowEffect x:Key="CardShadow" BlurRadius="24" ShadowDepth="1" Direction="270" Opacity="0.10"/>
-        <DropShadowEffect x:Key="HeroShadow" BlurRadius="28" ShadowDepth="2" Direction="270" Opacity="0.12"/>
+        <!-- 卡片外阴影（v5.1.0：更轻更干净，仅大卡用） -->
+        <DropShadowEffect x:Key="CardShadow" BlurRadius="16" ShadowDepth="1" Direction="270" Opacity="0.05"/>
+        <DropShadowEffect x:Key="HeroShadow" BlurRadius="18" ShadowDepth="1" Direction="270" Opacity="0.06"/>
 
         <!-- 导航项基础样式：含左侧激活指示条（玻璃感） -->
         <Style x:Key="NavItemStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
@@ -174,15 +174,6 @@
                                      shell:WindowChrome.IsHitTestVisibleInChrome="True"/>
                         </Grid>
                     </Border>
-
-                    <!-- 显示模式快速切换（普通/专业，v5.0.0） -->
-                    <Button x:Name="BtnModeToggle" Height="32" Margin="0,0,8,0"
-                            FontSize="12" FontWeight="SemiBold" Foreground="White"
-                            Background="#1AFFFFFF" BorderThickness="0" Cursor="Hand"
-                            Content="普通" Padding="12,0"
-                            Click="BtnModeToggle_Click"
-                            ToolTip="{loc:Loc 切换显示模式：普通模式显示通俗解释，专业模式显示原始技术信息|Toggle display mode: Simple shows plain explanations, Pro shows raw technical info}"
-                            shell:WindowChrome.IsHitTestVisibleInChrome="True"/>
 
                     <!-- 一键优化 -->
                     <Button x:Name="BtnOptimize" Height="32" Margin="0,0,14,0"

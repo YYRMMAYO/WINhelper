@@ -71,9 +71,6 @@ namespace WINHELP
             // 2. 加载应用设置
             SettingsManager.Load();
 
-            // 2.02 加载显示模式（普通/专业，v5.0.0）
-            UiMode.Load();
-
             // 2.05 加载插件清单（New B：轻量扩展机制，无插件时静默跳过）
             PluginLoader.Load();
 

@@ -5,22 +5,22 @@
              xmlns:local="clr-namespace:WINHELP"
              Background="Transparent">
     <UserControl.Resources>
-        <!-- 次级卡片：常规大小 -->
+        <!-- 次级卡片：常规大小（v5.1.0：圆角 12、实边框、轻阴影） -->
         <Style x:Key="HomeCard" TargetType="Border">
             <Setter Property="Width" Value="222"/>
             <Setter Property="Height" Value="120"/>
             <Setter Property="Background" Value="{DynamicResource GlassCardBrush}"/>
-            <Setter Property="BorderBrush" Value="#80FFFFFF"/>
+            <Setter Property="BorderBrush" Value="#E3E8EF"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="14"/>
+            <Setter Property="CornerRadius" Value="12"/>
             <Setter Property="Margin" Value="0,0,14,14"/>
             <Setter Property="Padding" Value="14,12"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="local:ClickAnim.IsEnabled" Value="True"/>
-            <Setter Property="local:ClickAnim.HoverScale" Value="1.03"/>
+            <Setter Property="local:ClickAnim.HoverScale" Value="1.02"/>
             <Setter Property="Effect">
                 <Setter.Value>
-                    <DropShadowEffect BlurRadius="24" ShadowDepth="1" Direction="270" Opacity="0.10"/>
+                    <DropShadowEffect BlurRadius="14" ShadowDepth="1" Direction="270" Opacity="0.05"/>
                 </Setter.Value>
             </Setter>
         </Style>
@@ -36,15 +36,15 @@
         <Style x:Key="HomeCardOptimize" TargetType="Border">
             <Setter Property="Width" Value="300"/>
             <Setter Property="Height" Value="142"/>
-            <Setter Property="CornerRadius" Value="14"/>
+            <Setter Property="CornerRadius" Value="12"/>
             <Setter Property="Margin" Value="0,0,14,14"/>
             <Setter Property="Padding" Value="16,14"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="local:ClickAnim.IsEnabled" Value="True"/>
-            <Setter Property="local:ClickAnim.HoverScale" Value="1.03"/>
+            <Setter Property="local:ClickAnim.HoverScale" Value="1.02"/>
             <Setter Property="Effect">
                 <Setter.Value>
-                    <DropShadowEffect BlurRadius="24" ShadowDepth="1" Direction="270" Opacity="0.12" Color="#2E86C1"/>
+                    <DropShadowEffect BlurRadius="14" ShadowDepth="1" Direction="270" Opacity="0.08" Color="#2E86C1"/>
                 </Setter.Value>
             </Setter>
         </Style>
@@ -59,12 +59,12 @@
             <Setter Property="VerticalAlignment" Value="Top"/>
         </Style>
 
-        <!-- 分组标题样式 -->
+        <!-- 分组标题样式（v5.1.0：更精致，小字号 + 主色小竖条） -->
         <Style x:Key="SectionHeader" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="FontSize" Value="14"/>
             <Setter Property="FontWeight" Value="Bold"/>
             <Setter Property="Foreground" Value="{DynamicResource TextOnDarkBrush}"/>
-            <Setter Property="Margin" Value="4,4,0,10"/>
+            <Setter Property="Margin" Value="2,4,0,10"/>
         </Style>
     </UserControl.Resources>
 

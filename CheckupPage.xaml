@@ -60,11 +60,10 @@
                 <ProgressBar x:Name="ScoreBar" Grid.Row="0" Height="8" Minimum="0" Maximum="100" Margin="180,0,0,0"
                              VerticalAlignment="Bottom" Foreground="{DynamicResource AccentBrush}"
                              Background="#22000000"/>
-                <!-- 报告正文 -->
+                <!-- 报告正文（v5.1.0：浅色代码面板） -->
                 <TextBox x:Name="TxtReport" Grid.Row="1"
-                         Background="#1E1E1E" Foreground="#DCDCDC" FontFamily="Consolas" FontSize="12"
-                         TextWrapping="Wrap" IsReadOnly="True" IsUndoEnabled="False"
-                         BorderThickness="0" Padding="10" VerticalScrollBarVisibility="Auto"
+                         Style="{StaticResource CodePanel}"
+                         TextWrapping="Wrap"
                          MinHeight="220"/>
                 <!-- 操作按钮 -->
                 <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">

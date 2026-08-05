@@ -5,9 +5,9 @@ using System.Linq;
 namespace WINHELP
 {
     /// <summary>
-    /// 术语词典（v5.0.0 新增）：把专业术语翻译成一句普通用户能看懂的解释。
-    /// 普通模式下 <see cref="Hint(string)"/> 会在原始文本后追加"（术语：一句话解释）"；
-    /// 专业模式返回原文。解释保持一句话，集中维护、按需扩充。
+    /// 术语词典（v5.0.0 新增，v5.1.0 起始终生效）：把专业术语翻译成一句普通用户能看懂的解释。
+    /// <see cref="Hint(string)"/> 会在原始文本后追加"（术语：一句话解释）"。
+    /// 解释保持一句话，集中维护、按需扩充。
     /// </summary>
     public static class Glossary
     {
@@ -73,17 +73,16 @@ namespace WINHELP
         };
 
         /// <summary>
-        /// 普通模式：若 raw 文本包含已知术语，则追加"（术语：解释）"；专业模式返回原文。
+        /// 若 raw 文本包含已知术语，则追加"（术语：解释）"，让新手看懂专业术语。
         /// 已含括号解释的文本不再重复追加（防嵌套）。
         /// </summary>
         public static string Hint(string raw)
         {
-            if (UiMode.IsPro || string.IsNullOrEmpty(raw)) return raw;
+            if (string.IsNullOrEmpty(raw)) return raw;
             if (raw.Contains('（') && raw.Contains('）')) return raw;
             var hit = Terms.FirstOrDefault(kv => raw.Contains(kv.Key, StringComparison.OrdinalIgnoreCase));
             if (hit.Key == null) return raw;
-            return UiMode.IsPro ? raw
-                : raw + UiLanguage.L("（" + hit.Value.Zh + "）", " (" + hit.Value.En + ")");
+            return raw + UiLanguage.L("（" + hit.Value.Zh + "）", " (" + hit.Value.En + ")");
         }
 
         /// <summary>便捷别名：按当前界面语言返回文本</summary>

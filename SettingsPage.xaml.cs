@@ -59,9 +59,6 @@ namespace WINHELP
             // 语言选择器初始状态（在 _isLoading 期间设置，避免触发 Changed）
             CmbLanguage.SelectedIndex = UiLanguage.Current == Lang.En ? 1 : 0;
 
-            // 显示模式初始状态（v5.0.0）
-            CmbMode.SelectedIndex = UiMode.IsPro ? 1 : 0;
-
             _isLoading = false;
         }
 
@@ -76,13 +73,6 @@ namespace WINHELP
             if (_isLoading) return;
             var lang = CmbLanguage.SelectedIndex == 1 ? Lang.En : Lang.Zh;
             UiLanguage.Set(lang);
-        }
-
-        /// <summary>显示模式切换（普通/专业，v5.0.0）：持久化并触发全局 Changed</summary>
-        private void CmbMode_Changed(object sender, SelectionChangedEventArgs e)
-        {
-            if (_isLoading) return;
-            UiMode.Set(CmbMode.SelectedIndex == 1 ? UiModeLevel.Pro : UiModeLevel.Simple);
         }
 
         /// <summary>刷新定时计划相关文案（中英切换）</summary>
@@ -339,9 +329,6 @@ namespace WINHELP
                 ComboDay.SelectedIndex = SettingsManager.Current.SchedulerDayOfWeek == -1
                     ? 0 : SettingsManager.Current.SchedulerDayOfWeek + 1;
                 TxtTime.Text = SettingsManager.Current.SchedulerTime;
-                // 显示模式：同步 UiMode 与下拉框
-                UiMode.Load();
-                CmbMode.SelectedIndex = UiMode.IsPro ? 1 : 0;
                 _isLoading = false;
                 SettingsManager.SetAutoStart(SettingsManager.Current.AutoStart);
                 MessageBox.Show(

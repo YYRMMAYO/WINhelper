@@ -29,24 +29,6 @@ namespace WINHELP
             InitializeComponent();
             ApplyTheme();
             ThemeManager.ThemeChanged += () => Dispatcher.Invoke(ApplyTheme);
-            UiMode.Changed += OnModeChanged;
-            Unloaded += (_, __) => UiMode.Changed -= OnModeChanged;
-        }
-
-        /// <summary>普通/专业模式切换：若已生成过报告，按新模式重新生成</summary>
-        private void OnModeChanged()
-        {
-            Dispatcher.Invoke(async () =>
-            {
-                if (_busy || string.IsNullOrEmpty(_lastText)) return;
-                try
-                {
-                    var (text, html) = await BuildReportAsync();
-                    _lastText = text;
-                    TxtReport.Text = text;
-                }
-                catch { /* 保持旧报告 */ }
-            });
         }
 
         private void ApplyTheme()
@@ -140,10 +122,7 @@ namespace WINHELP
                 sb.AppendLine($"浏览器缓存：{FormatSize(brSize)}");
                 sb.AppendLine($"更新缓存：{FormatSize(upSize)}");
                 sb.AppendLine($"合计可清理：{FormatSize(junk)}");
-                if (!UiMode.IsPro)
-                    sb.AppendLine("说明：这些是系统运行产生的临时数据，清理后不影响系统和已装软件。");
-                if (!UiMode.IsPro)
-                    sb.AppendLine("（提示：这些都是程序运行产生的临时数据，清理后不影响系统和已装软件）");
+                sb.AppendLine("说明：这些是系统运行产生的临时数据，清理后不影响系统和已装软件。");
             }
             catch (Exception ex) { sb.AppendLine("（扫描失败：" + ex.Message + "）"); }
             sb.AppendLine();

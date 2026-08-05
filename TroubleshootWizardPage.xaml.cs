@@ -218,7 +218,6 @@ public partial class TroubleshootWizardPage : UserControl
         InitializeComponent();
         ThemeManager.ThemeChanged += () => Dispatcher.Invoke(RenderCurrent);
         UiLanguage.Changed += () => Dispatcher.Invoke(() => { LocalizeStatic(); RenderCurrent(); });
-        UiMode.Changed += () => Dispatcher.Invoke(RenderCurrent); // 步骤术语解释随模式变化
         LocalizeStatic();
         RenderCategories();
     }

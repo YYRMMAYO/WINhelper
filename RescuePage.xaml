@@ -67,10 +67,10 @@
                                    TextWrapping="Wrap" FontSize="12" Margin="30,8,0,0"
                                    Foreground="{DynamicResource TextSecondaryBrush}"/>
                         <TextBox x:Name="TxtBsodOut" Grid.Row="2" Grid.ColumnSpan="2"
-                                 Background="#1E1E1E" Foreground="#DCDCDC" FontFamily="Consolas" FontSize="12"
-                                 TextWrapping="Wrap" IsReadOnly="True" IsUndoEnabled="False"
-                                 BorderThickness="0" Padding="8" Margin="30,8,0,0"
-                                 MinHeight="90" MaxHeight="160" VerticalScrollBarVisibility="Auto"/>
+                                 Style="{StaticResource CodePanel}"
+                                 TextWrapping="Wrap"
+                                 Margin="30,8,0,0"
+                                 MinHeight="90" MaxHeight="160"/>
                         <TextBlock x:Name="TxtBsodHint" Grid.Row="3" Grid.ColumnSpan="2"
                                    TextWrapping="Wrap" FontSize="11" Margin="30,6,0,0"
                                    Foreground="{DynamicResource TextSecondaryBrush}"/>
@@ -129,10 +129,10 @@
                                  Margin="8,0,0,0" VerticalAlignment="Center" Padding="6,4"
                                  ToolTip="{loc:Loc 按端口号过滤|Filter by port number}"/>
                         <TextBox x:Name="TxtPortsOut" Grid.Row="1" Grid.ColumnSpan="3"
-                                 Background="#1E1E1E" Foreground="#DCDCDC" FontFamily="Consolas" FontSize="12"
-                                 TextWrapping="NoWrap" IsReadOnly="True" IsUndoEnabled="False"
-                                 BorderThickness="0" Padding="8" Margin="30,8,0,0"
-                                 MinHeight="120" MaxHeight="220" VerticalScrollBarVisibility="Auto"/>
+                                 Style="{StaticResource CodePanel}"
+                                 TextWrapping="NoWrap" HorizontalScrollBarVisibility="Auto"
+                                 Margin="30,8,0,0"
+                                 MinHeight="120" MaxHeight="220"/>
                         <TextBlock x:Name="TxtPortsHint" Grid.Row="2" Grid.ColumnSpan="3"
                                    TextWrapping="Wrap" FontSize="11" Margin="30,6,0,0"
                                    Foreground="{DynamicResource TextSecondaryBrush}"/>
@@ -161,10 +161,10 @@
                         <Button x:Name="BtnDrivers" Grid.Row="0" Grid.Column="1" Content="{loc:Loc 开始备份|Backup}"
                                 Padding="14,6" VerticalAlignment="Center" Click="BtnDrivers_Click"/>
                         <TextBox x:Name="TxtDriversOut" Grid.Row="1" Grid.ColumnSpan="2"
-                                 Background="#1E1E1E" Foreground="#DCDCDC" FontFamily="Consolas" FontSize="12"
-                                 TextWrapping="Wrap" IsReadOnly="True" IsUndoEnabled="False"
-                                 BorderThickness="0" Padding="8" Margin="30,8,0,0"
-                                 MinHeight="90" MaxHeight="180" VerticalScrollBarVisibility="Auto"/>
+                                 Style="{StaticResource CodePanel}"
+                                 TextWrapping="Wrap"
+                                 Margin="30,8,0,0"
+                                 MinHeight="90" MaxHeight="180"/>
                         <TextBlock x:Name="TxtDriversHint" Grid.Row="2" Grid.ColumnSpan="2"
                                    TextWrapping="Wrap" FontSize="11" Margin="30,6,0,0"
                                    Foreground="{DynamicResource TextSecondaryBrush}"/>

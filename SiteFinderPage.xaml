@@ -452,7 +452,7 @@
                                    Foreground="#2C3E50" Margin="0,0,0,6"/>
                         <TextBlock x:Name="TxtSoftwareVersion" FontSize="13"
                                    Foreground="#7F8C8D" Margin="0,0,0,8"
-                                   ><Run Text="{loc:Loc 软件版本 V5.0.0|Software Version V5.0.0}"/></TextBlock>
+                                   ><Run Text="{loc:Loc 软件版本 V5.1.0|Software Version V5.1.0}"/></TextBlock>
                         <Button Name="BtnUpdate" Height="38" Width="220"
                                 FontSize="13" FontWeight="SemiBold"
                                 Foreground="White" BorderThickness="0" Cursor="Hand"
