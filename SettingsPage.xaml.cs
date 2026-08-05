@@ -59,6 +59,9 @@ namespace WINHELP
             // 语言选择器初始状态（在 _isLoading 期间设置，避免触发 Changed）
             CmbLanguage.SelectedIndex = UiLanguage.Current == Lang.En ? 1 : 0;
 
+            // 显示模式初始状态（v5.0.0）
+            CmbMode.SelectedIndex = UiMode.IsPro ? 1 : 0;
+
             _isLoading = false;
         }
 
@@ -75,10 +78,17 @@ namespace WINHELP
             UiLanguage.Set(lang);
         }
 
+        /// <summary>显示模式切换（普通/专业，v5.0.0）：持久化并触发全局 Changed</summary>
+        private void CmbMode_Changed(object sender, SelectionChangedEventArgs e)
+        {
+            if (_isLoading) return;
+            UiMode.Set(CmbMode.SelectedIndex == 1 ? UiModeLevel.Pro : UiModeLevel.Simple);
+        }
+
         /// <summary>刷新定时计划相关文案（中英切换）</summary>
         private void ApplyLocalization()
         {
-            TxtSchedulerTitle.Text = UiLanguage.L("⏰ 定时计划", "⏰ Scheduled Plan");
+            TxtSchedulerTitle.Text = UiLanguage.L("定时计划", "Scheduled Plan");
             TxtEnableScheduler.Text = UiLanguage.L("启用定时自动优化", "Enable scheduled auto-optimization");
             TxtSchedulerHint.Text = UiLanguage.L(
                 "启用后，软件在运行时会按计划自动执行一键优化（清理临时文件 + 清空回收站）。",
@@ -329,6 +339,9 @@ namespace WINHELP
                 ComboDay.SelectedIndex = SettingsManager.Current.SchedulerDayOfWeek == -1
                     ? 0 : SettingsManager.Current.SchedulerDayOfWeek + 1;
                 TxtTime.Text = SettingsManager.Current.SchedulerTime;
+                // 显示模式：同步 UiMode 与下拉框
+                UiMode.Load();
+                CmbMode.SelectedIndex = UiMode.IsPro ? 1 : 0;
                 _isLoading = false;
                 SettingsManager.SetAutoStart(SettingsManager.Current.AutoStart);
                 MessageBox.Show(

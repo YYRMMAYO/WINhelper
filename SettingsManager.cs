@@ -44,6 +44,10 @@ namespace WINHELP
         // ===== 语言（N16） =====
         public string Language { get; set; } = "zh";
 
+        // ===== 显示模式（v5.0.0：普通/专业） =====
+        /// <summary>"simple"=普通模式（通俗解释，默认）；"pro"=专业模式（原始信息）</summary>
+        public string Mode { get; set; } = "simple";
+
         // ===== 首页智能排序 / 收藏（P0-3） =====
         public Dictionary<string, int> RecentModules { get; set; } = new();
         public List<string> StarredModules { get; set; } = new();

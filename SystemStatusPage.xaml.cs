@@ -107,13 +107,35 @@ namespace WINHELP
             Loaded += (_, _) =>
             {
                 UiLanguage.Changed += OnLanguageChanged;
+                UiMode.Changed += OnModeChanged;
                 _ = LoadTemperatureAsync();
             };
-            Unloaded += (_, _) => UiLanguage.Changed -= OnLanguageChanged;
+            Unloaded += (_, _) =>
+            {
+                UiLanguage.Changed -= OnLanguageChanged;
+                UiMode.Changed -= OnModeChanged;
+            };
 
             LocalizeUI();
             _ = LoadHardwareAsync();
         }
+
+        /// <summary>普通/专业模式切换：重渲硬件信息标签与优化建议（通俗/原文随模式变化）</summary>
+        private void OnModeChanged()
+        {
+            Dispatcher.Invoke(() =>
+            {
+                LocalizeUI();
+                if (_lastHwItems != null) RenderHardwareList();
+                if (_lastHealth != null && _lastPassCount >= 0)
+                    BuildSuggestions(_lastPassCount, _lastTotal, _lastHealth);
+            });
+        }
+
+        // 缓存最近一次硬件信息 / 健康分结果（模式切换重渲用）
+        private List<HardwareInfo.Item>? _lastHwItems;
+        private HealthScoreService.HealthResult? _lastHealth;
+        private int _lastPassCount = -1, _lastTotal = 0;
 
         private void OnLanguageChanged()
         {
@@ -144,18 +166,18 @@ namespace WINHELP
             TxtHwTitle.Text = L("设备信息", "Device Info");
             TxtCheckTitle.Text = L("检测项目", "Checks");
             TxtOptTitle.Text = L("优化建议", "Optimization Tips");
-            BtnRefreshHw.Content = L("↻ 刷新", "↻ Refresh");
+            BtnRefreshHw.Content = L("刷新", "Refresh");
             TxtProcTitle.Text = L("进程榜", "Process List");
-            BtnProcRefresh.Content = L("↻ 刷新", "↻ Refresh");
-            BtnKillProc.Content = L("⛔ 结束选中进程", "⛔ End Selected");
+            BtnProcRefresh.Content = L("刷新", "Refresh");
+            BtnKillProc.Content = L("结束选中进程", "End Selected");
             TxtProcStatus.Text = L("点击「刷新」加载进程", "Click Refresh to load processes");
-            TxtTempTitle.Text = L("🌡 温度 / 传感器", "🌡 Temperature / Sensors");
-            BtnTempRefresh.Content = L("↻ 刷新", "↻ Refresh");
-            TxtTempHint.Text = L("通过 WMI 读取，部分设备不支持", "Read via WMI; may be unsupported on some devices");
-            TxtDiagTitle.Text = L("🤖 智能诊断", "🤖 Smart Diagnosis");
-            BtnDiag.Content = L("▶ 开始诊断", "▶ Diagnose");
+            TxtTempTitle.Text = L("温度 / 传感器", "Temperature / Sensors");
+            BtnTempRefresh.Content = L("刷新", "Refresh");
+            TxtTempHint.Text = L("通过系统接口读取，部分设备不支持", "Read via system API; may be unsupported on some devices");
+            TxtDiagTitle.Text = L("智能诊断", "Smart Diagnosis");
+            BtnDiag.Content = L("开始诊断", "Diagnose");
             if (!_isChecking)
-                BtnStart.Content = L("▶ 开始检测", "▶ Start check");
+                BtnStart.Content = L("开始检测", "Start check");
         }
 
         /// <summary>刷新系统信息按钮</summary>
@@ -176,32 +198,8 @@ namespace WINHELP
                     firstHdr.Text = L("正在枚举硬件…", "Enumerating hardware…");
 
                 var items = await HardwareInfo.CollectAsync();
-
-                HardwareList.Children.Clear();
-                int gpuCount = 0;
-                var grouped = new Dictionary<string, List<HardwareInfo.Item>>();
-                foreach (var it in items)
-                {
-                    if (it.IsGpu) gpuCount++;
-                    var k = HwGroupKey(it.Label);
-                    if (!grouped.TryGetValue(k, out var lst)) { lst = new List<HardwareInfo.Item>(); grouped[k] = lst; }
-                    lst.Add(it);
-                }
-
-                foreach (var g in _hwGroups)
-                {
-                    if (!grouped.TryGetValue(g.Key, out var lst) || lst.Count == 0) continue;
-                    HardwareList.Children.Add(CreateGroupHeader(HwGroupName(g.Key)));
-                    foreach (var it in lst)
-                    {
-                        var icon = it.IsGpu ? "◆" : "▪";
-                        HardwareList.Children.Add(CreateInfoRow(icon, it.Label, it.Value, it.IsGpu));
-                    }
-                }
-
-                TxtHwStatus.Text = gpuCount > 0
-                    ? string.Format(L("共 {0} 项 · 检测到 {1} 块显卡", "{0} items · {1} GPU(s) detected"), items.Count, gpuCount)
-                    : string.Format(L("共 {0} 项", "{0} items"), items.Count);
+                _lastHwItems = items;
+                RenderHardwareList();
             }
             catch (Exception ex)
             {
@@ -213,6 +211,37 @@ namespace WINHELP
             {
                 BtnRefreshHw.IsEnabled = true;
             }
+        }
+
+        /// <summary>从缓存渲染硬件信息列表（普通模式在标签后追加术语解释，专业模式原文）</summary>
+        private void RenderHardwareList()
+        {
+            if (HardwareList == null || _lastHwItems == null) return;
+            HardwareList.Children.Clear();
+            int gpuCount = 0;
+            var grouped = new Dictionary<string, List<HardwareInfo.Item>>();
+            foreach (var it in _lastHwItems)
+            {
+                if (it.IsGpu) gpuCount++;
+                var k = HwGroupKey(it.Label);
+                if (!grouped.TryGetValue(k, out var lst)) { lst = new List<HardwareInfo.Item>(); grouped[k] = lst; }
+                lst.Add(it);
+            }
+
+            foreach (var g in _hwGroups)
+            {
+                if (!grouped.TryGetValue(g.Key, out var lst) || lst.Count == 0) continue;
+                HardwareList.Children.Add(CreateGroupHeader(HwGroupName(g.Key)));
+                foreach (var it in lst)
+                {
+                    var icon = it.IsGpu ? "◆" : "▪";
+                    HardwareList.Children.Add(CreateInfoRow(icon, it.Label, it.Value, it.IsGpu));
+                }
+            }
+
+            TxtHwStatus.Text = gpuCount > 0
+                ? string.Format(L("共 {0} 项 · 检测到 {1} 块显卡", "{0} items · {1} GPU(s) detected"), _lastHwItems.Count, gpuCount)
+                : string.Format(L("共 {0} 项", "{0} items"), _lastHwItems.Count);
         }
 
         private static string HwGroupKey(string label)
@@ -279,7 +308,8 @@ namespace WINHELP
 
             var lb = new TextBlock
             {
-                Text = label,
+                // 普通模式：在标签后追加术语通俗解释（如"处理器 (CPU)（中央处理器…）"）
+                Text = UiMode.IsPro ? label : Glossary.Hint(label),
                 FontSize = 12,
                 FontWeight = FontWeights.SemiBold,
                 Foreground = new SolidColorBrush(isGpu ? Color.FromRgb(0xC0, 0x39, 0x2B) : Color.FromRgb(0x7F, 0x8C, 0x8D)),
@@ -371,7 +401,7 @@ namespace WINHELP
             try
             {
             BtnStart.IsEnabled = false;
-            BtnStart.Content = L("⏳ 检测中...", "⏳ Checking...");
+            BtnStart.Content = L("检测中...", "Checking...");
             TxtSummary.Text = L("准备中…", "Preparing…");
             CheckList.Children.Clear();
             OptPanel.Children.Clear();
@@ -432,7 +462,7 @@ namespace WINHELP
             {
                 _isChecking = false;
                 BtnStart.IsEnabled = true;
-                BtnStart.Content = L("▶ 重新检测", "▶ Re-check");
+                BtnStart.Content = L("重新检测", "Re-check");
             }
         }
 
@@ -483,7 +513,9 @@ namespace WINHELP
                         var autoStart = s?.AutoStart;
                         var autoUpdate = s?.AutoCheckUpdate;
                         return ok
-                            ? new CheckResult { Pass = true, Detail = $"AutoStart:{autoStart} AutoUpdate:{autoUpdate}" }
+                            ? new CheckResult { Pass = true, Detail = UiMode.IsPro
+                                ? $"AutoStart:{autoStart} AutoUpdate:{autoUpdate}"
+                                : L($"开机自启：{autoStart} · 自动更新：{autoUpdate}", $"AutoStart:{autoStart} AutoUpdate:{autoUpdate}") }
                             : new CheckResult { Pass = false, Detail = L("设置为空", "Settings empty") };
                     }
                 },
@@ -734,7 +766,7 @@ namespace WINHELP
             // 综合健康分概览（New A）：分数 + 一句话结论
             list.Add(new Suggestion
             {
-                Icon = "🏆",
+                Icon = "",
                 Title = L("综合健康分 ", "Health score ") + health.Score,
                 Desc = health.Summary,
                 ActionKey = null,
@@ -745,7 +777,7 @@ namespace WINHELP
             {
                 list.Add(new Suggestion
                 {
-                    Icon = "💡",
+                    Icon = "",
                     Title = sug,
                     Desc = "",
                     ActionKey = null,
@@ -757,7 +789,7 @@ namespace WINHELP
             {
                 list.Add(new Suggestion
                 {
-                    Icon = "💽",
+                    Icon = "",
                     Title = L("系统盘空间紧张", "Low system disk space"),
                     Desc = string.Format(L("系统盘仅剩 {0:F1} GB，建议清理临时文件与回收站释放空间。", "Only {0:F1} GB left on system drive. Clean temp & recycle bin."), _diskFreeGB),
                     ActionKey = "clean",
@@ -769,7 +801,7 @@ namespace WINHELP
             {
                 list.Add(new Suggestion
                 {
-                    Icon = "🌐",
+                    Icon = "",
                     Title = L("网络连接异常", "Network issue"),
                     Desc = L("未能连接到网络，部分在线功能（更新、教程）将不可用。", "No network. Online features (updates, tutorials) won't work."),
                     ActionKey = "net",
@@ -780,7 +812,7 @@ namespace WINHELP
             {
                 list.Add(new Suggestion
                 {
-                    Icon = "⚙️",
+                    Icon = "",
                     Title = L("设置加载异常", "Settings load issue"),
                     Desc = L("应用设置未能正常读取，可在设置页重置或检查配置目录权限。", "Settings failed to load. Reset in Settings or check config permissions."),
                     ActionKey = "settings",
@@ -791,7 +823,7 @@ namespace WINHELP
             {
                 list.Add(new Suggestion
                 {
-                    Icon = "🖼️",
+                    Icon = "",
                     Title = L("图标资源缺失", "Icon resource missing"),
                     Desc = L("应用图标资源未能加载，可能影响界面显示，建议重新安装或修复。", "App icon resource missing; UI may look off. Reinstall/repair suggested."),
                     ActionKey = null,
@@ -802,7 +834,7 @@ namespace WINHELP
             {
                 list.Add(new Suggestion
                 {
-                    Icon = "🧹",
+                    Icon = "",
                     Title = L("定期清理更流畅", "Clean regularly"),
                     Desc = L("保持系统盘整洁可提升运行速度，建议偶尔运行一次系统清理。", "Keep the system drive tidy for better performance."),
                     ActionKey = "clean",
@@ -814,13 +846,18 @@ namespace WINHELP
             {
                 list.Add(new Suggestion
                 {
-                    Icon = "✅",
+                    Icon = "",
                     Title = L("系统状态良好", "System is healthy"),
                     Desc = L("各项检测均通过，暂无需要优化的项，保持即可。", "All checks passed. Nothing needs fixing right now."),
                     ActionKey = null,
                     ActionLabel = ""
                 });
             }
+
+            // 缓存结果供模式切换重渲
+            _lastHealth = health;
+            _lastPassCount = passCount;
+            _lastTotal = total;
 
             TxtOptStatus.Text = string.Format(L("共 {0} 条建议", "{0} suggestion(s)"), list.Count);
             foreach (var s in list) OptPanel.Children.Add(CreateSuggestionRow(s));

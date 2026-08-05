@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -11,18 +12,19 @@ using Microsoft.Win32;
 namespace WINHELP
 {
     /// <summary>
-    /// TweakPage.xaml 交互逻辑 — 个性化调校（导航 key="tweak"，v4.9.0 新增）。
+    /// TweakPage.xaml 交互逻辑 — 个性化调校（导航 key="tweak"，v4.9.0 新增，v5.0.0 全面修复）。
     /// 任务栏合并 / 开始菜单对齐 / 搜索框样式 / 右键菜单风格 / UAC 级别 / 休眠 / Hosts。
-    /// 强制安全设计：任何写入前先导出原值到 %APPDATA%/WINHELP/backup/tweak_*.reg；
-    /// 每项独立「恢复默认」+ 页面级「全部还原」；需重启 Explorer 的项明确提示。
-    /// 含用户数据的项（UAC 级别为 HKLM 策略）非提权时只读展示。
+    /// 强制安全设计（v5.0.0 修复闭环）：每次写入前备份真实原值到 %APPDATA%/WINHELP/backup/tweak_{key}.json，
+    /// 「恢复默认」优先从备份回退原值（无备份才回退硬编码默认）；每项独立「恢复默认」+ 页面级「全部还原」；
+    /// 需重启 Explorer 的项明确提示；休眠状态按 hiberfil.sys 真实读取；
+    /// 提权运行时 HKCU 写入经 HKEY_USERS\&lt;SID&gt; 保证落在当前登录用户（修复"改了没反应"）。
     /// </summary>
     public partial class TweakPage : UserControl
     {
         // ===== 调校项模型 =====
         private sealed class TweakItem
         {
-            public string Key = "";                 // 用于备份文件名
+            public string Key = "";                 // 用于备份文件名与恢复分发
             public string TitleZh = "";
             public string TitleEn = "";
             public string DescZh = "";
@@ -32,29 +34,46 @@ namespace WINHELP
             public string ValueName = "";
             public RegistryValueKind Kind = RegistryValueKind.DWord;
             public (string Label, string? Data)[] Options = Array.Empty<(string, string?)>();
-            public string? DefaultData = null;      // 恢复默认用的值
-            public string? ReadFunc = null;         // 自定义读取（"uac"）
+            public string? DefaultData = null;      // 无备份时回退的默认值
             public bool NeedsAdmin = false;         // HKLM 写需要提权
             public bool NeedsExplorerRestart = false;
 
-            public string? LastBackup { get; set; } // 本会话最后一次备份的 .reg 路径
+            // 卡片引用：应用/恢复成功后即时刷新（v5.0.0）
+            public TextBlock? CurText;
+            public ComboBox? Combo;
 
+            /// <summary>当前实际值（休眠项按 hiberfil.sys 真实状态；不存在返回 ""）</summary>
             public string CurrentString()
             {
                 try
                 {
-                    using var k = (Hive == "HKLM" ? Registry.LocalMachine : Registry.CurrentUser)
-                        .OpenSubKey(SubKey);
-                    if (k == null) return "（未设置）";
+                    if (Key == "hibernate") return HibernationEnabled() ? "on" : "off";
+                    using var k = (Hive == "HKLM" ? Registry.LocalMachine : OpenHkcuSubKey(SubKey, false));
+                    if (k == null) return "";
                     var v = k.GetValue(ValueName);
-                    if (v == null) return "（未设置）";
+                    if (v == null) return "";
+                    if (v is string s) return s.Length == 0 ? "" : s;
                     return v is int i ? i.ToString() : v.ToString()!;
                 }
                 catch { return "?"; }
             }
         }
 
+        /// <summary>备份记录（JSON，v5.0.0：记录真实原值，恢复时优先回退原值）</summary>
+        private sealed class TweakBackup
+        {
+            public string Key { get; set; } = "";
+            public string Hive { get; set; } = "";
+            public string SubKey { get; set; } = "";
+            public string ValueName { get; set; } = "";
+            public string Kind { get; set; } = "";
+            public bool OriginalExists { get; set; }
+            public string? OriginalValue { get; set; }   // null 表示原值不存在
+            public string? HibernationState { get; set; } // "on"/"off"，仅休眠用
+        }
+
         private readonly List<TweakItem> _items = new();
+        private bool _built;
         private static readonly string BackupDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "WINHELP", "backup");
         private const string ExplorerAdvanced =
@@ -67,6 +86,7 @@ namespace WINHELP
             InitializeComponent();
             ApplyTheme();
             ThemeManager.ThemeChanged += () => Dispatcher.Invoke(ApplyTheme);
+            UiLanguage.Changed += () => Dispatcher.Invoke(() => { _built = false; RebuildAll(); });
             Loaded += (_, __) => BuildCards();
         }
 
@@ -77,11 +97,48 @@ namespace WINHELP
                 hoverColor: Color.FromRgb(0xC0, 0x5F, 0x12));
         }
 
+        // ===== HKCU 读取/写入（提权时经 HKEY_USERS\<SID> 保证写当前登录用户，修复 Bug 9） =====
+
+        private static RegistryKey? OpenHkcuSubKey(string subKey, bool writable)
+        {
+            if (CommandRunner.IsElevated)
+            {
+                var sid = System.Security.Principal.WindowsIdentity.GetCurrent().User?.Value;
+                if (!string.IsNullOrEmpty(sid))
+                    return Registry.Users.OpenSubKey(sid + @"\" + subKey, writable);
+            }
+            return Registry.CurrentUser.OpenSubKey(subKey, writable);
+        }
+
+        private static RegistryKey? CreateHkcuSubKey(string subKey)
+        {
+            if (CommandRunner.IsElevated)
+            {
+                var sid = System.Security.Principal.WindowsIdentity.GetCurrent().User?.Value;
+                if (!string.IsNullOrEmpty(sid))
+                    return Registry.Users.CreateSubKey(sid + @"\" + subKey);
+            }
+            return Registry.CurrentUser.CreateSubKey(subKey);
+        }
+
+        /// <summary>休眠是否启用（以 hiberfil.sys 存在性为准，无需提权）</summary>
+        private static bool HibernationEnabled() =>
+            File.Exists(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "hiberfil.sys"));
+
         // ===== 构建卡片 =====
 
         private void BuildCards()
         {
-            if (CardsPanel.Children.Count > 0) return; // 只构建一次
+            if (_built) return;
+            _built = true;
+            RebuildAll();
+        }
+
+        /// <summary>重建全部卡片（语言切换 / 首次加载）</summary>
+        private void RebuildAll()
+        {
+            if (CardsPanel == null) return;
+            CardsPanel.Children.Clear();
             _items.Clear();
 
             _items.Add(new TweakItem
@@ -121,14 +178,14 @@ namespace WINHELP
             _items.Add(new TweakItem
             {
                 Key = "win10_menu", TitleZh = "右键菜单 Win10 风格", TitleEn = "Win10 context menu",
-                DescZh = "完整右键菜单（注册空值即生效；删除该项恢复）", DescEn = "Full context menu",
+                DescZh = "启用完整右键菜单（注册空值即生效；恢复即还原系统默认）", DescEn = "Full context menu (empty value enables; restore returns to default)",
                 Hive = "HKCU",
                 SubKey = @"Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32",
                 ValueName = "",
                 Kind = RegistryValueKind.String,
                 Options = new (string, string?)[]
                 {
-                    ("启用（空值）", ""),
+                    ("启用完整右键菜单", "enable"),
                 },
                 DefaultData = null,  // 恢复 = 删除该子键
                 NeedsExplorerRestart = true
@@ -136,19 +193,19 @@ namespace WINHELP
             _items.Add(new TweakItem
             {
                 Key = "uac", TitleZh = "UAC 通知级别", TitleEn = "UAC level",
-                DescZh = "管理员授权弹窗频率（HKLM，需管理员）", DescEn = "Admin prompt frequency (HKLM)",
+                DescZh = "管理员授权弹窗频率（系统级设置，需管理员权限）", DescEn = "Admin prompt frequency (system-wide, needs admin)",
                 Hive = "HKLM", SubKey = PolicySystem, ValueName = "ConsentPromptBehaviorAdmin",
                 NeedsAdmin = true,
                 Options = new (string, string?)[]
                 {
-                    ("始终通知（默认 5）", "5"), ("较频繁（4）", "4"), ("较少（2）", "2"), ("从不通知（0，不推荐）", "0")
+                    ("始终通知（默认）", "5"), ("较频繁", "4"), ("较少", "2"), ("从不通知（不推荐）", "0")
                 },
                 DefaultData = "5"
             });
             _items.Add(new TweakItem
             {
                 Key = "hibernate", TitleZh = "休眠开关", TitleEn = "Hibernation",
-                DescZh = "启用/关闭休眠文件 hiberfil.sys（需管理员）", DescEn = "Enable/disable hibernation",
+                DescZh = "启用/关闭休眠文件 hiberfil.sys（需管理员权限，恢复会回到你原来的状态）", DescEn = "Enable/disable hibernation (needs admin; restore returns to your previous state)",
                 Hive = "HKLM", SubKey = PolicySystem, ValueName = "__hibernate",
                 NeedsAdmin = true,
                 Options = new (string, string?)[]
@@ -185,11 +242,12 @@ namespace WINHELP
             sp.Children.Add(title);
             var cur = new TextBlock
             {
-                Text = UiLanguage.L("当前值：", "Current: ") + item.CurrentString(),
+                Text = UiLanguage.L("当前值：", "Current: ") + ItemLabel(item, item.CurrentString()),
                 FontSize = 11, Margin = new Thickness(0, 2, 0, 0),
                 Foreground = (Brush)FindResource("TextSecondaryBrush")
             };
             sp.Children.Add(cur);
+            item.CurText = cur; // 应用后刷新引用
             var desc = new TextBlock
             {
                 Text = UiLanguage.L(item.DescZh, item.DescEn),
@@ -206,12 +264,9 @@ namespace WINHELP
             };
             foreach (var (label, data) in item.Options)
                 cb.Items.Add(new ComboBoxItem { Content = label, Tag = data });
-            var curVal = item.CurrentString();
-            int idx = 0;
-            for (int i = 0; i < item.Options.Length; i++)
-                if (item.Options[i].Data == curVal) { idx = i; break; }
-            cb.SelectedIndex = idx;
+            cb.SelectedIndex = MatchIndex(item);
             sp.Children.Add(cb);
+            item.Combo = cb;
 
             // 按钮行
             var row = new StackPanel { Orientation = Orientation.Horizontal };
@@ -221,37 +276,36 @@ namespace WINHELP
                 Padding = new Thickness(14, 5, 14, 5), Margin = new Thickness(0, 0, 8, 0)
             };
             ThemeManager.ApplyButtonTheme(apply, ThemeManager.AccentColor);
-            apply.Click += async (_, __) => await ApplyItemAsync(item, cb);
+            apply.Click += async (_, __) => await ApplyItemAsync(item);
             row.Children.Add(apply);
+
+            // v5.0.0（修复 Bug 4）：需管理员项在非提权时也显示「恢复默认」，点击走提权恢复
+            var restore = new Button
+            {
+                Content = UiLanguage.L("恢复默认", "Restore"),
+                Padding = new Thickness(14, 5, 14, 5)
+            };
+            ThemeManager.ApplyButtonTheme(restore, Color.FromRgb(0x95, 0xA5, 0xA6),
+                hoverColor: Color.FromRgb(0x7F, 0x8C, 0x8D));
+            restore.Click += async (_, __) => await RestoreItemAsync(item);
+            row.Children.Add(restore);
 
             if (item.NeedsAdmin && !CommandRunner.IsElevated)
             {
-                var need = new TextBlock
+                row.Children.Add(new TextBlock
                 {
                     Text = UiLanguage.L("需管理员权限", "Needs admin"),
                     FontSize = 10, VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(4, 0, 0, 0),
                     Foreground = new SolidColorBrush(Color.FromRgb(0xE6, 0x7E, 0x22))
-                };
-                row.Children.Add(need);
-            }
-            else
-            {
-                var restore = new Button
-                {
-                    Content = UiLanguage.L("恢复默认", "Restore"),
-                    Padding = new Thickness(14, 5, 14, 5)
-                };
-                ThemeManager.ApplyButtonTheme(restore, Color.FromRgb(0x95, 0xA5, 0xA6),
-                    hoverColor: Color.FromRgb(0x7F, 0x8C, 0x8D));
-                restore.Click += async (_, __) => await RestoreItemAsync(item);
-                row.Children.Add(restore);
+                });
             }
             sp.Children.Add(row);
 
             var hint = new TextBlock
             {
                 Text = item.NeedsExplorerRestart
-                    ? UiLanguage.L("提示：可能需要重启资源管理器生效", "Note: Explorer restart may be needed")
+                    ? UiLanguage.L("提示：应用后请点击页面底部「重启资源管理器」生效", "Note: click Restart Explorer at page bottom after applying")
                     : "",
                 FontSize = 10, Margin = new Thickness(0, 6, 0, 0),
                 Foreground = (Brush)FindResource("TextMutedBrush")
@@ -260,45 +314,121 @@ namespace WINHELP
             return card;
         }
 
-        // ===== 应用 / 恢复 =====
-
-        private static async Task RunAdminLiteral(string command, string label)
+        /// <summary>选项文本：当前值 → 对应选项标签（找不到就显示原值）</summary>
+        private static string ItemLabel(TweakItem item, string val)
         {
-            // 固定命令提权走 CommandRunner 白名单
-            CommandRunner.RegisterAllowed(new[] { command });
-            var r = await CommandRunner.RunAsync(command, requireAdmin: true, timeoutSec: 60);
-            MessageBox.Show(r.Success
-                ? UiLanguage.L(label + " 执行成功。", label + " done.")
-                : UiLanguage.L(label + " 失败：", label + " failed: ") + (r.Error ?? r.ExitCode.ToString()),
-                UiLanguage.L("提示", "Info"), MessageBoxButton.OK,
-                r.Success ? MessageBoxImage.Information : MessageBoxImage.Warning);
+            foreach (var (label, data) in item.Options)
+                if (data == val) return label;
+            return string.IsNullOrEmpty(val) ? UiLanguage.L("（未设置）", "(unset)") : val;
         }
 
-        private async Task ApplyItemAsync(TweakItem item, ComboBox cb)
+        /// <summary>当前值在选项中的索引</summary>
+        private static int MatchIndex(TweakItem item)
         {
-            if (cb.SelectedItem is not ComboBoxItem sel || sel.Tag is not string data)
+            string curVal = item.CurrentString();
+            for (int i = 0; i < item.Options.Length; i++)
+                if (item.Options[i].Data == curVal) return i;
+            return 0;
+        }
+
+        /// <summary>应用/恢复成功后刷新卡片当前值与选中项（v5.0.0）</summary>
+        private void RefreshCard(TweakItem item)
+        {
+            if (item.CurText != null)
+                item.CurText.Text = UiLanguage.L("当前值：", "Current: ") + ItemLabel(item, item.CurrentString());
+            if (item.Combo != null)
+                item.Combo.SelectedIndex = MatchIndex(item);
+        }
+
+        // ===== 备份 =====
+
+        /// <summary>写前备份真实原值到 backup/tweak_{key}.json（v5.0.0：JSON 而非伪 .reg，恢复可回退原值）</summary>
+        private void BackupItem(TweakItem item)
+        {
+            try
+            {
+                Directory.CreateDirectory(BackupDir);
+                var b = new TweakBackup
+                {
+                    Key = item.Key,
+                    Hive = item.Hive,
+                    SubKey = item.SubKey,
+                    ValueName = item.ValueName,
+                    Kind = item.Kind.ToString(),
+                    HibernationState = item.Key == "hibernate"
+                        ? (HibernationEnabled() ? "on" : "off") : null
+                };
+                using var k = (item.Hive == "HKLM" ? Registry.LocalMachine : OpenHkcuSubKey(item.SubKey, false));
+                if (k != null)
+                {
+                    var v = k.GetValue(item.ValueName);
+                    b.OriginalExists = v != null;
+                    if (v != null)
+                        b.OriginalValue = v is byte[] bytes ? Convert.ToBase64String(bytes) : v.ToString();
+                }
+                File.WriteAllText(Path.Combine(BackupDir, $"tweak_{item.Key}.json"),
+                    JsonSerializer.Serialize(b, new JsonSerializerOptions { WriteIndented = true }));
+            }
+            catch { /* 备份失败不阻断主流程 */ }
+        }
+
+        /// <summary>读取最近一次备份；无则返回 null</summary>
+        private static TweakBackup? LoadBackup(string key)
+        {
+            try
+            {
+                var path = Path.Combine(BackupDir, $"tweak_{key}.json");
+                if (!File.Exists(path)) return null;
+                return JsonSerializer.Deserialize<TweakBackup>(File.ReadAllText(path));
+            }
+            catch { return null; }
+        }
+
+        // ===== 提权命令（静默，由调用方决定提示） =====
+
+        private static async Task<CommandResult> RunAdminAsync(string command)
+        {
+            CommandRunner.RegisterAllowed(new[] { command });
+            return await CommandRunner.RunAsync(command, requireAdmin: true, timeoutSec: 60);
+        }
+
+        // ===== 应用 =====
+
+        private async Task ApplyItemAsync(TweakItem item)
+        {
+            if (item.Combo?.SelectedItem is not ComboBoxItem sel || sel.Tag is not string data)
                 return;
 
-            // 1) 写前备份原值到 backup 目录
+            // 1) 写前备份真实原值
             BackupItem(item);
 
             try
             {
-                // 休眠：特殊处理 —— 走提权命令
+                // 休眠：走提权命令
                 if (item.Key == "hibernate")
                 {
-                    await RunAdminLiteral($"powercfg /hibernate {data}", UiLanguage.L("休眠设置", "Hibernation"));
+                    var r = await RunAdminAsync($"powercfg /hibernate {data}");
+                    MessageBox.Show(r.Success
+                        ? UiLanguage.L("休眠设置已应用。", "Hibernation applied.")
+                        : UiLanguage.L("休眠设置失败：", "Hibernation failed: ") + (r.Error ?? r.ExitCode.ToString()),
+                        UiLanguage.L("提示", "Info"), MessageBoxButton.OK,
+                        r.Success ? MessageBoxImage.Information : MessageBoxImage.Warning);
+                    RefreshCard(item);
                     return;
                 }
 
-                // UAC 级别（HKLM 策略）：非提权时经 reg add 提权执行；已提权则直接写
+                // UAC 级别（HKLM 策略）：非提权经 reg add 提权；已提权直接写
                 if (item.Key == "uac")
                 {
                     if (!CommandRunner.IsElevated)
                     {
-                        await RunAdminLiteral(
-                            $"reg add \"HKLM\\{PolicySystem}\" /v ConsentPromptBehaviorAdmin /t REG_DWORD /d {data} /f",
-                            UiLanguage.L("UAC 级别", "UAC level"));
+                        var r = await RunAdminAsync(
+                            $"reg add \"HKLM\\{PolicySystem}\" /v ConsentPromptBehaviorAdmin /t REG_DWORD /d {data} /f");
+                        MessageBox.Show(r.Success
+                            ? UiLanguage.L("已应用。", "Applied.")
+                            : UiLanguage.L("应用失败：", "Apply failed: ") + (r.Error ?? r.ExitCode.ToString()),
+                            UiLanguage.L("提示", "Info"), MessageBoxButton.OK,
+                            r.Success ? MessageBoxImage.Information : MessageBoxImage.Warning);
                     }
                     else
                     {
@@ -307,18 +437,27 @@ namespace WINHELP
                         MessageBox.Show(UiLanguage.L("已应用。", "Applied."),
                             UiLanguage.L("提示", "Info"), MessageBoxButton.OK, MessageBoxImage.Information);
                     }
+                    RefreshCard(item);
                     return;
                 }
 
-                // 右键菜单：空字符串值即启用（设置 ""），恢复时删除子键
-                using (var k = (item.Hive == "HKLM" ? Registry.LocalMachine : Registry.CurrentUser)
-                    .CreateSubKey(item.SubKey))
+                // 右键菜单 Win10 风格：创建 InprocServer32 并写空字符串即启用
+                if (item.Key == "win10_menu")
+                {
+                    using var k = CreateHkcuSubKey(item.SubKey);
+                    k?.SetValue("", "", RegistryValueKind.String);
+                    MessageBox.Show(UiLanguage.L("已应用（建议重启资源管理器生效）。", "Applied (restart Explorer to take effect)."),
+                        UiLanguage.L("提示", "Info"), MessageBoxButton.OK, MessageBoxImage.Information);
+                    RefreshCard(item);
+                    return;
+                }
+
+                // 普通 HKCU 项：直写
+                using (var k = CreateHkcuSubKey(item.SubKey))
                 {
                     if (k == null) throw new InvalidOperationException("无法打开注册表键");
                     if (item.Kind == RegistryValueKind.String)
                         k.SetValue(item.ValueName, data, RegistryValueKind.String);
-                    else if (data == "删除")
-                        k.DeleteValue(item.ValueName, false);
                     else if (int.TryParse(data, out var iv))
                         k.SetValue(item.ValueName, iv, RegistryValueKind.DWord);
                     else
@@ -327,10 +466,11 @@ namespace WINHELP
 
                 string msg = UiLanguage.L("已应用。", "Applied.");
                 if (item.NeedsExplorerRestart)
-                    msg += "\n" + UiLanguage.L("建议重启资源管理器使更改生效（见页面底部按钮）。",
-                        "Restart Explorer to apply (button at page bottom).");
+                    msg += "\n" + UiLanguage.L("建议点击页面底部「重启资源管理器」使更改生效。",
+                        "Click Restart Explorer at page bottom to apply.");
                 MessageBox.Show(msg, UiLanguage.L("提示", "Info"),
                     MessageBoxButton.OK, MessageBoxImage.Information);
+                RefreshCard(item);
             }
             catch (Exception ex)
             {
@@ -339,49 +479,96 @@ namespace WINHELP
             }
         }
 
-        private async Task RestoreItemAsync(TweakItem item)
+        // ===== 恢复 =====
+
+        /// <summary>恢复核心逻辑：优先从备份回退原值，无备份回退默认值；返回是否成功</summary>
+        private async Task<bool> RestoreItemCoreAsync(TweakItem item)
         {
             try
             {
+                var backup = LoadBackup(item.Key);
+
+                // 休眠：回到备份记录的原状态（无备份回退"启用"）
                 if (item.Key == "hibernate")
                 {
-                    await RunAdminLiteral("powercfg /hibernate on", UiLanguage.L("休眠设置", "Hibernation"));
-                    return;
+                    var state = backup?.HibernationState ?? item.DefaultData ?? "on";
+                    var r = await RunAdminAsync($"powercfg /hibernate {state}");
+                    return r.Success;
                 }
-                // 恢复默认：删除值（HKCU 项安全可逆）；HKLM UAC 项提权写回默认 5
-                if (item.Hive == "HKLM")
+
+                // UAC（HKLM）：写回备份原值，无备份回退默认 5
+                if (item.Key == "uac")
                 {
-                    await RunAdminLiteral(
-                        $"reg add \"HKLM\\{PolicySystem}\" /v ConsentPromptBehaviorAdmin /t REG_DWORD /d 5 /f",
-                        UiLanguage.L("UAC 恢复", "UAC restore"));
-                    return;
+                    var val = backup is { OriginalExists: true, OriginalValue: not null }
+                        ? backup.OriginalValue : item.DefaultData ?? "5";
+                    if (!CommandRunner.IsElevated)
+                    {
+                        var r = await RunAdminAsync(
+                            $"reg add \"HKLM\\{PolicySystem}\" /v ConsentPromptBehaviorAdmin /t REG_DWORD /d {val} /f");
+                        return r.Success;
+                    }
+                    using (var k = Registry.LocalMachine.CreateSubKey(PolicySystem))
+                        k?.SetValue("ConsentPromptBehaviorAdmin", int.Parse(val), RegistryValueKind.DWord);
+                    return true;
                 }
-                using (var k = (item.Hive == "HKLM" ? Registry.LocalMachine : Registry.CurrentUser)
-                    .OpenSubKey(item.SubKey, true))
-                {
-                    if (k == null) throw new InvalidOperationException("无法打开注册表键");
-                    k.DeleteValue(item.ValueName, false);
-                }
+
+                // 右键菜单：原值存在则写回，否则删除整个 CLSID 子键还原系统默认
                 if (item.Key == "win10_menu")
                 {
-                    // 删除整个 CLSID 子键以恢复默认右键菜单
-                    try
+                    if (backup is { OriginalExists: true, OriginalValue: not null })
                     {
-                        Registry.CurrentUser.DeleteSubKeyTree(
-                            @"Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}", false);
+                        using var k = CreateHkcuSubKey(item.SubKey);
+                        k?.SetValue("", backup.OriginalValue, RegistryValueKind.String);
                     }
-                    catch { }
+                    else
+                    {
+                        try
+                        {
+                            Registry.CurrentUser.DeleteSubKeyTree(
+                                @"Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}", false);
+                        }
+                        catch { }
+                    }
+                    return true;
                 }
-                MessageBox.Show(UiLanguage.L("已恢复默认。", "Restored to default."),
-                    UiLanguage.L("提示", "Info"), MessageBoxButton.OK, MessageBoxImage.Information);
+
+                // 普通 HKCU 项：原值存在则写回原值，不存在则删除值（回到系统默认）
+                using (var k = CreateHkcuSubKey(item.SubKey))
+                {
+                    if (k == null) throw new InvalidOperationException("无法打开注册表键");
+                    if (backup is { OriginalExists: true, OriginalValue: not null })
+                    {
+                        var raw = backup.OriginalValue;
+                        if (item.Kind == RegistryValueKind.String)
+                            k.SetValue(item.ValueName, raw, RegistryValueKind.String);
+                        else if (int.TryParse(raw, out var iv))
+                            k.SetValue(item.ValueName, iv, RegistryValueKind.DWord);
+                        else
+                            k.SetValue(item.ValueName, raw);
+                    }
+                    else
+                    {
+                        k.DeleteValue(item.ValueName, false);
+                    }
+                }
+                return true;
             }
-            catch (Exception ex)
-            {
-                MessageBox.Show(UiLanguage.L("恢复失败：", "Restore failed: ") + ex.Message,
-                    UiLanguage.L("提示", "Info"), MessageBoxButton.OK, MessageBoxImage.Warning);
-            }
+            catch { return false; }
         }
 
+        /// <summary>单项恢复：带结果弹窗 + 刷新卡片</summary>
+        private async Task RestoreItemAsync(TweakItem item)
+        {
+            bool ok = await RestoreItemCoreAsync(item);
+            RefreshCard(item);
+            MessageBox.Show(ok
+                ? UiLanguage.L("已恢复。", "Restored.")
+                : UiLanguage.L("恢复失败（可能被拒绝授权或命令执行失败）。", "Restore failed (denied or command error)."),
+                UiLanguage.L("提示", "Info"), MessageBoxButton.OK,
+                ok ? MessageBoxImage.Information : MessageBoxImage.Warning);
+        }
+
+        /// <summary>全部还原：逐项执行并统计成败（v5.0.0 修复 Bug 10：不再无条件"全部完成"）</summary>
         private async void BtnRestoreAll_Click(object sender, RoutedEventArgs e)
         {
             var ok = MessageBox.Show(
@@ -389,29 +576,21 @@ namespace WINHELP
                 UiLanguage.L("全部还原", "Restore all"),
                 MessageBoxButton.YesNo, MessageBoxImage.Question);
             if (ok != MessageBoxResult.Yes) return;
+
+            int success = 0, failed = 0;
             foreach (var item in _items)
-                await RestoreItemAsync(item);
-            MessageBox.Show(UiLanguage.L("全部还原完成。", "All restored."),
-                UiLanguage.L("提示", "Info"), MessageBoxButton.OK, MessageBoxImage.Information);
-        }
-
-        // ===== 备份 =====
-
-        private void BackupItem(TweakItem item)
-        {
-            try
             {
-                Directory.CreateDirectory(BackupDir);
-                var stamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-                var file = Path.Combine(BackupDir, $"tweak_{item.Key}_{stamp}.reg");
-                // 导出当前值（文本记录，便于人工查看与恢复）
-                File.WriteAllText(file,
-                    $"; 司南工具箱调校备份 {stamp}\r\n" +
-                    $"; Hive={item.Hive} Key={item.SubKey} Value={item.ValueName}\r\n" +
-                    $"CurrentValue={item.CurrentString()}\r\n");
-                item.LastBackup = file;
+                bool r = await RestoreItemCoreAsync(item);
+                RefreshCard(item);
+                if (r) success++; else failed++;
             }
-            catch { }
+            string msg = failed == 0
+                ? UiLanguage.L(string.Format("全部还原完成：{0} 项全部成功。", success),
+                    string.Format("All restored: {0} item(s) succeeded.", success))
+                : UiLanguage.L(string.Format("还原完成：{0} 项成功，{1} 项失败（多为未授权，可逐项重试）。", success, failed),
+                    string.Format("Done: {0} ok, {1} failed (mostly due to permission - retry individually).", success, failed));
+            MessageBox.Show(msg, UiLanguage.L("提示", "Info"), MessageBoxButton.OK,
+                failed == 0 ? MessageBoxImage.Information : MessageBoxImage.Warning);
         }
 
         // ===== Hosts 卡 =====
@@ -513,7 +692,7 @@ namespace WINHELP
             row.Children.Add(restore);
             sp.Children.Add(row);
 
-            // 重启资源管理器按钮
+            // 重启资源管理器（v5.0.0 修复 Bug 8：提权 kill + 非提权重启，避免 Explorer 以管理员运行）
             var restart = new Button
             {
                 Content = UiLanguage.L("重启资源管理器", "Restart Explorer"),
@@ -522,11 +701,34 @@ namespace WINHELP
             };
             ThemeManager.ApplyButtonTheme(restart, Color.FromRgb(0x6C, 0x4B, 0xB4),
                 hoverColor: Color.FromRgb(0x55, 0x39, 0x92));
-            restart.Click += async (_, __) => await RunAdminLiteral(
-                "taskkill /f /im explorer.exe && start explorer.exe",
-                UiLanguage.L("重启资源管理器", "Restart Explorer"));
+            restart.Click += async (_, __) =>
+            {
+                // 1) 结束 explorer（同会话进程，无需提权）
+                try
+                {
+                    CommandRunner.RegisterAllowed(new[] { "taskkill /f /im explorer.exe" });
+                    await CommandRunner.RunAsync("taskkill /f /im explorer.exe", requireAdmin: false, timeoutSec: 30);
+                }
+                catch { /* 结束失败也继续尝试重启 */ }
+                // 2) 延迟后以当前用户会话非提权启动新 Explorer
+                await Task.Delay(1200);
+                try { Process.Start(new ProcessStartInfo("explorer.exe") { UseShellExecute = true }); }
+                catch { }
+            };
             sp.Children.Add(restart);
             return card;
+        }
+
+        private static async Task RunAdminLiteral(string command, string label)
+        {
+            // 固定命令提权走 CommandRunner 白名单
+            CommandRunner.RegisterAllowed(new[] { command });
+            var r = await CommandRunner.RunAsync(command, requireAdmin: true, timeoutSec: 60);
+            MessageBox.Show(r.Success
+                ? UiLanguage.L(label + " 执行成功。", label + " done.")
+                : UiLanguage.L(label + " 失败：", label + " failed: ") + (r.Error ?? r.ExitCode.ToString()),
+                UiLanguage.L("提示", "Info"), MessageBoxButton.OK,
+                r.Success ? MessageBoxImage.Information : MessageBoxImage.Warning);
         }
     }
 }

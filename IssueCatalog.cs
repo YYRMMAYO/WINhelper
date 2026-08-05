@@ -172,7 +172,7 @@ namespace WINHELP
             // ═══════════════ ① 网络与上网 ═══════════════
             new IssueCategory("net", "🌐", "网络与上网", "Network & Internet",
 
-                new IssueEntry("net-dns", "🕸️",
+                new IssueEntry("net-dns", "",
                     "网页打不开但 QQ 微信能用", "Web pages fail but chat apps work",
                     "聊天软件、游戏都正常，唯独浏览器打不开网页，或只有某些网站打不开。",
                     "Chat apps and games work fine, but the browser cannot load pages, or only certain sites fail.",
@@ -194,7 +194,7 @@ namespace WINHELP
                     new FixAction("清空 DNS 缓存", "Flush DNS cache", "ipconfig /flushdns",
                         needAdmin: false, timeoutSec: TQuick, risk: RiskLevel.Safe)),
 
-                new IssueEntry("net-winsock", "🔌",
+                new IssueEntry("net-winsock", "",
                     "完全无法上网 / 网络协议栈损坏", "No internet at all, broken network stack",
                     "网络图标显示已连接，但所有程序都上不了网；或装了加速器、VPN 后网络彻底瘫痪。",
                     "The network icon shows connected but nothing can reach the internet, often after installing a VPN or game accelerator.",
@@ -218,7 +218,7 @@ namespace WINHELP
                         warnZh: "会清除第三方软件注入的网络分层协议，VPN 或加速器可能需要重新安装。必须重启后生效。",
                         warnEn: "Removes third-party LSPs; your VPN or accelerator may need reinstalling. Requires a reboot.")),
 
-                new IssueEntry("net-ipreset", "♻️",
+                new IssueEntry("net-ipreset", "",
                     "IP 配置异常 / 自动获取失败", "Invalid IP configuration",
                     "网络诊断提示「以太网没有有效的 IP 配置」，或手动改过 IP 后再也连不上网。",
                     "Windows diagnostics reports an invalid IP configuration, or the network broke after manually setting an IP.",
@@ -242,7 +242,7 @@ namespace WINHELP
                         warnZh: "会把手动设置的静态 IP 与 DNS 清回自动获取，公司或校园网需要重新配置。必须重启后生效。",
                         warnEn: "Static IP and DNS settings revert to automatic; office or campus networks need reconfiguring. Requires a reboot.")),
 
-                new IssueEntry("net-apipa", "🔢",
+                new IssueEntry("net-apipa", "",
                     "IP 地址变成 169.254 开头", "Address stuck at 169.254.x.x",
                     "查看网络详情时 IPv4 地址是 169.254 开头，网络显示感叹号且完全无法通信。",
                     "The IPv4 address starts with 169.254, the network shows a warning icon and nothing connects.",
@@ -266,7 +266,7 @@ namespace WINHELP
                         warnZh: "执行过程中会短暂断网数秒，正在下载或开会时请先暂停。",
                         warnEn: "The network drops for a few seconds; pause downloads or meetings first.")),
 
-                new IssueEntry("net-proxy", "🚧",
+                new IssueEntry("net-proxy", "",
                     "能 ping 通却打不开网页", "Ping works but pages will not load",
                     "命令行 ping 网站正常有回应，但浏览器一直转圈或提示无法连接到代理服务器。",
                     "Ping replies normally but the browser hangs or reports it cannot connect to the proxy server.",
@@ -290,7 +290,7 @@ namespace WINHELP
                         warnZh: "会清除系统级代理配置，如果你正在使用需要代理的公司内网，之后需重新设置。",
                         warnEn: "Clears the system proxy; corporate networks that require a proxy must be reconfigured.")),
 
-                new IssueEntry("net-cert", "🔐",
+                new IssueEntry("net-cert", "",
                     "浏览器提示证书错误或不安全", "Certificate or HTTPS errors in the browser",
                     "打开任何 HTTPS 网站都提示证书无效、不受信任或您的连接不是私密连接。",
                     "Every HTTPS site warns that the certificate is invalid, untrusted or the connection is not private.",
@@ -312,7 +312,7 @@ namespace WINHELP
                     new FixAction("同步网络时间", "Sync with internet time", "w32tm /resync",
                         needAdmin: true, timeoutSec: TQuick, risk: RiskLevel.Safe)),
 
-                new IssueEntry("net-latency", "📉",
+                new IssueEntry("net-latency", "",
                     "网络延迟高 / 打游戏卡顿丢包", "High latency or packet loss",
                     "网页能打开但很慢，游戏里延迟忽高忽低、频繁卡顿或掉线。",
                     "Pages load slowly, games show spiking latency, stuttering or disconnects.",
@@ -334,7 +334,7 @@ namespace WINHELP
                     new FixAction("测试网络延迟与丢包", "Test latency and loss", "ping -n 20 223.5.5.5",
                         needAdmin: false, timeoutSec: TQuick, risk: RiskLevel.Safe)),
 
-                new IssueEntry("net-nslookup", "🔍",
+                new IssueEntry("net-nslookup", "",
                     "DNS 解析异常 / 域名被劫持", "DNS resolution failure or hijacking",
                     "特定网站打不开或跳转到广告页面，其他网站正常。",
                     "Specific sites fail or redirect to ad pages while others work fine.",
@@ -356,7 +356,7 @@ namespace WINHELP
                     new FixAction("用公共 DNS 测试解析", "Test with public DNS", "nslookup www.baidu.com 223.5.5.5",
                         needAdmin: false, timeoutSec: TQuick, risk: RiskLevel.Safe)),
 
-                new IssueEntry("net-wifi", "📶",
+                new IssueEntry("net-wifi", "",
                     "Wi-Fi 频繁掉线或搜不到信号", "Wi-Fi keeps dropping or cannot find networks",
                     "无线网络时断时续，或干脆搜不到自家路由器的信号。",
                     "The wireless connection drops intermittently, or the home network does not appear at all.",
@@ -378,7 +378,7 @@ namespace WINHELP
                     new FixAction("查看无线连接状态", "Show wireless status", "netsh wlan show interfaces",
                         needAdmin: false, timeoutSec: TQuick, risk: RiskLevel.Safe)),
 
-                new IssueEntry("net-hosts", "📄",
+                new IssueEntry("net-hosts", "",
                     "特定网站打不开疑似 hosts 被篡改", "Certain sites blocked by a tampered hosts file",
                     "只有个别网站或某个软件的更新服务器连不上，换网络换设备都一样。",
                     "Only a few specific sites or one app update server are unreachable, on any network.",
@@ -400,7 +400,7 @@ namespace WINHELP
                     new FixAction("查看 hosts 文件内容", "Show hosts file", @"type %windir%\System32\drivers\etc\hosts",
                         needAdmin: false, timeoutSec: TQuick, risk: RiskLevel.Safe)),
 
-                new IssueEntry("net-firewall", "🛡️",
+                new IssueEntry("net-firewall", "",
                     "防火墙误拦截导致联机失败", "Firewall blocks games or local sharing",
                     "局域网联机、共享打印机、远程桌面连不上，关掉防火墙就正常。",
                     "LAN gaming, printer sharing or remote desktop fails, but works with the firewall off.",
@@ -424,7 +424,7 @@ namespace WINHELP
                         warnZh: "会清空全部自定义防火墙规则并恢复出厂默认，所有已放行的程序都要重新放行。此操作不可撤销。",
                         warnEn: "Wipes every custom firewall rule and restores defaults. All allowed apps must be re-added. This cannot be undone.")),
 
-                new IssueEntry("net-ipconfig", "🧾",
+                new IssueEntry("net-ipconfig", "",
                     "想查看完整网络配置信息", "Inspect the full network configuration",
                     "需要把 IP、网关、DNS、MAC 地址等信息发给网管或客服。",
                     "You need to send IP, gateway, DNS and MAC details to IT support.",
@@ -448,7 +448,7 @@ namespace WINHELP
             // ═══════════════ ② 系统与更新 ═══════════════
             new IssueCategory("sys", "🛠️", "系统与更新", "System & Updates",
 
-                new IssueEntry("sys-wu", "🔄",
+                new IssueEntry("sys-wu", "",
                     "Windows 更新失败或卡在 0%", "Windows Update stuck or failing",
                     "更新一直卡在某个百分比不动，或反复提示更新失败并回滚。",
                     "Updates hang at a percentage, or repeatedly fail and roll back.",
@@ -473,7 +473,7 @@ namespace WINHELP
                         warnZh: "会重置更新缓存与更新历史记录，已下载但未安装的更新需要重新下载。不影响已安装的更新。",
                         warnEn: "Resets the update cache and history; downloaded-but-not-installed updates must be fetched again. Installed updates are unaffected.")),
 
-                new IssueEntry("sys-sfc", "🩹",
+                new IssueEntry("sys-sfc", "",
                     "系统文件损坏导致功能异常", "Corrupted system files break Windows features",
                     "设置打不开、右键菜单卡死、某些系统功能报错找不到文件。",
                     "Settings will not open, right-click menus freeze, or features report missing files.",
@@ -497,7 +497,7 @@ namespace WINHELP
                         warnZh: "预计耗时 5 到 20 分钟，期间请勿关机或强制结束。修复完成后建议重启。",
                         warnEn: "Takes 5 to 20 minutes. Do not power off or kill the process. Reboot after it finishes.")),
 
-                new IssueEntry("sys-dism", "🧬",
+                new IssueEntry("sys-dism", "",
                     "sfc 修不好 / 组件存储损坏", "sfc cannot fix it, component store is corrupt",
                     "运行 sfc 后提示发现损坏文件但无法修复其中某些文件。",
                     "sfc reports it found corrupt files but was unable to fix some of them.",
@@ -522,7 +522,7 @@ namespace WINHELP
                         warnZh: "需要联网，预计耗时 10 到 30 分钟。进度长时间停滞属正常现象，请勿中断。",
                         warnEn: "Requires internet, takes 10 to 30 minutes. Long pauses in progress are normal, do not interrupt.")),
 
-                new IssueEntry("sys-checkhealth", "🩺",
+                new IssueEntry("sys-checkhealth", "",
                     "只想体检不想动系统", "Check health without repairing anything",
                     "怀疑系统有问题，但不想执行任何会修改系统的操作。",
                     "You suspect a problem but do not want to run anything that modifies the system.",
@@ -543,7 +543,7 @@ namespace WINHELP
                         "DISM /Online /Cleanup-Image /CheckHealth",
                         needAdmin: true, timeoutSec: TNormal, risk: RiskLevel.Safe)),
 
-                new IssueEntry("sys-store", "🏪",
+                new IssueEntry("sys-store", "",
                     "应用商店打不开或下载失败", "Microsoft Store will not open or download",
                     "点开应用商店一片空白、闪退，或下载一直卡在 0MB。",
                     "The Store shows a blank page, crashes, or downloads stall at zero bytes.",
@@ -567,7 +567,7 @@ namespace WINHELP
                         warnZh: "会清空商店下载缓存并自动重新打开商店窗口，不会卸载已安装的应用。",
                         warnEn: "Clears the Store download cache and reopens the Store. Installed apps are not removed.")),
 
-                new IssueEntry("sys-time", "⏰",
+                new IssueEntry("sys-time", "",
                     "系统时间总是不准", "The system clock keeps drifting",
                     "每次开机时间都差好几分钟甚至几小时，手动改完过一会又变了。",
                     "The clock is off by minutes or hours on every boot and drifts back after fixing it.",
@@ -590,7 +590,7 @@ namespace WINHELP
                         "net start w32time && w32tm /resync /force",
                         needAdmin: true, timeoutSec: TQuick, risk: RiskLevel.Safe)),
 
-                new IssueEntry("sys-gpupdate", "📋",
+                new IssueEntry("sys-gpupdate", "",
                     "策略修改后没有生效", "Policy changes are not taking effect",
                     "在组策略里改了设置，但重启后依然是旧的行为。",
                     "You changed a Group Policy setting but the old behaviour persists after reboot.",
@@ -612,7 +612,7 @@ namespace WINHELP
                     new FixAction("强制刷新组策略", "Force policy refresh", "gpupdate /force",
                         needAdmin: false, timeoutSec: TNormal, risk: RiskLevel.Safe)),
 
-                new IssueEntry("sys-safeboot", "🆘",
+                new IssueEntry("sys-safeboot", "",
                     "卡在安全模式循环出不来", "Stuck in a safe mode boot loop",
                     "每次开机都自动进入安全模式，正常重启也没用。",
                     "The PC boots into safe mode every time, even after a normal restart.",
@@ -637,7 +637,7 @@ namespace WINHELP
                         warnZh: "修改的是启动配置，执行成功后需要重启才能恢复正常启动。",
                         warnEn: "Modifies the boot configuration; reboot afterwards to start normally.")),
 
-                new IssueEntry("sys-bcdenum", "📑",
+                new IssueEntry("sys-bcdenum", "",
                     "想查看当前启动配置", "Inspect the current boot configuration",
                     "多系统引导顺序异常，或想确认是否开启了安全模式、测试签名等标志。",
                     "Multi-boot order looks wrong, or you want to check flags like safe mode or test signing.",
@@ -661,7 +661,7 @@ namespace WINHELP
             // ═══════════════ ③ 性能与启动 ═══════════════
             new IssueCategory("perf", "🚀", "性能与启动", "Performance & Startup",
 
-                new IssueEntry("perf-explorer", "🖥️",
+                new IssueEntry("perf-explorer", "",
                     "任务栏卡死 / 桌面无响应", "Taskbar frozen or desktop unresponsive",
                     "点开始菜单没反应、任务栏图标转圈、桌面右键卡住，但鼠标还能动。",
                     "The Start menu does not respond, taskbar icons spin, right-click hangs, but the mouse still moves.",
@@ -686,7 +686,7 @@ namespace WINHELP
                         warnZh: "桌面会短暂黑屏一到两秒，已打开的文件夹窗口会全部关闭，请先保存正在编辑的内容。",
                         warnEn: "The desktop blacks out briefly and all open folder windows close. Save your work first.")),
 
-                new IssueEntry("perf-iconcache", "🖼️",
+                new IssueEntry("perf-iconcache", "",
                     "桌面图标变成白纸或显示错乱", "Desktop icons show as blank pages",
                     "快捷方式图标全变成白色文档图标，或图标张冠李戴。",
                     "Shortcut icons turn into blank white document icons, or show the wrong image.",
@@ -711,7 +711,7 @@ namespace WINHELP
                         warnZh: "桌面会短暂黑屏，已打开的文件夹窗口会关闭。图标会重新逐个加载。",
                         warnEn: "The desktop blacks out briefly and open folder windows close. Icons reload one by one.")),
 
-                new IssueEntry("perf-hiberfil", "💤",
+                new IssueEntry("perf-hiberfil", "",
                     "C 盘被休眠文件占用几个 G", "hiberfil.sys eats several gigabytes of C drive",
                     "C 盘空间莫名少了很多，根目录有个几个 G 的 hiberfil.sys 删不掉。",
                     "The C drive lost several gigabytes to an undeletable hiberfil.sys in the root.",
@@ -735,7 +735,7 @@ namespace WINHELP
                         warnZh: "会同时关闭休眠与快速启动功能，开机速度可能略慢。执行 powercfg /h on 可恢复。",
                         warnEn: "Also disables Fast Startup, so boot may be slightly slower. Run powercfg /h on to restore.")),
 
-                new IssueEntry("perf-power", "⚡",
+                new IssueEntry("perf-power", "",
                     "游戏剪辑时性能被限制", "Performance is throttled during games or rendering",
                     "CPU 频率上不去、游戏帧数偏低，任务管理器显示 CPU 占用不高但就是卡。",
                     "The CPU will not boost, frame rates are low, and usage stays low while everything feels sluggish.",
@@ -760,7 +760,7 @@ namespace WINHELP
                         warnZh: "笔记本使用电池时会明显缩短续航，建议插电时再切换。",
                         warnEn: "Noticeably shortens laptop battery life; prefer switching only while plugged in.")),
 
-                new IssueEntry("perf-wake", "🌙",
+                new IssueEntry("perf-wake", "",
                     "电脑自动唤醒或无法进入睡眠", "The PC wakes by itself or will not sleep",
                     "半夜电脑自己亮屏开机，或点睡眠后屏幕黑一下又立刻醒来。",
                     "The PC wakes up on its own at night, or wakes immediately after being put to sleep.",
@@ -782,7 +782,7 @@ namespace WINHELP
                     new FixAction("列出阻止睡眠的请求", "List sleep blockers", "powercfg /requests",
                         needAdmin: true, timeoutSec: TQuick, risk: RiskLevel.Safe)),
 
-                new IssueEntry("perf-battery", "🔋",
+                new IssueEntry("perf-battery", "",
                     "笔记本续航明显变差", "Laptop battery life has dropped noticeably",
                     "以前能用 6 小时，现在两三个小时就没电了。",
                     "It used to last six hours and now dies in two or three.",
@@ -805,7 +805,7 @@ namespace WINHELP
                         @"powercfg /batteryreport /output ""%userprofile%\Desktop\battery-report.html""",
                         needAdmin: false, timeoutSec: TQuick, risk: RiskLevel.Safe)),
 
-                new IssueEntry("perf-mem", "🧠",
+                new IssueEntry("perf-mem", "",
                     "内存占用异常高", "Abnormally high memory usage",
                     "什么都没开内存就占了 80%，电脑越用越卡。",
                     "Memory sits at 80 percent with nothing open and the PC gets slower over time.",
@@ -832,7 +832,7 @@ namespace WINHELP
             // ═══════════════ ④ 外设与驱动 ═══════════════
             new IssueCategory("dev", "🖨️", "外设与驱动", "Devices & Drivers",
 
-                new IssueEntry("dev-spooler", "🖨️",
+                new IssueEntry("dev-spooler", "",
                     "打印机脱机 / 点打印没反应", "Printer shows offline or nothing prints",
                     "打印机明明开着，电脑上却显示脱机；点打印后毫无动静。",
                     "The printer is powered on but shows as offline, and printing does nothing.",
@@ -857,7 +857,7 @@ namespace WINHELP
                         warnZh: "重启服务期间正在打印的任务会中断。",
                         warnEn: "Any job currently printing will be interrupted.")),
 
-                new IssueEntry("dev-printqueue", "🗑️",
+                new IssueEntry("dev-printqueue", "",
                     "打印队列卡死删不掉", "Print queue is stuck and will not clear",
                     "队列里有一个正在删除的任务卡住不走，后面的文档全都印不出来。",
                     "A job stuck in deleting state blocks the queue and nothing else prints.",
@@ -882,7 +882,7 @@ namespace WINHELP
                         warnZh: "会删除全部等待中的打印任务，包括别人提交到这台电脑共享打印机的任务。此操作不可撤销。",
                         warnEn: "Deletes every pending print job, including those queued by others on a shared printer. This cannot be undone.")),
 
-                new IssueEntry("dev-audio", "🔇",
+                new IssueEntry("dev-audio", "",
                     "电脑突然没有声音", "Sound suddenly stopped working",
                     "音量图标正常、没有静音，但扬声器和耳机都没声音。",
                     "The volume icon looks fine and nothing is muted, yet neither speakers nor headphones produce sound.",
@@ -907,7 +907,7 @@ namespace WINHELP
                         warnZh: "会连带重启依赖音频的服务，正在播放的音视频会中断。",
                         warnEn: "Dependent services also restart and any playing audio or video is interrupted.")),
 
-                new IssueEntry("dev-bluetooth", "📲",
+                new IssueEntry("dev-bluetooth", "",
                     "蓝牙搜不到或连不上设备", "Bluetooth cannot find or pair devices",
                     "蓝牙开关正常但搜不到耳机鼠标，或配对后立刻断开。",
                     "Bluetooth is on but no headset or mouse appears, or it disconnects right after pairing.",
@@ -932,7 +932,7 @@ namespace WINHELP
                         warnZh: "已连接的蓝牙设备会全部断开，需要重新连接。",
                         warnEn: "All connected Bluetooth devices disconnect and must reconnect.")),
 
-                new IssueEntry("dev-usb", "🔌",
+                new IssueEntry("dev-usb", "",
                     "USB 设备不识别 / 黄色感叹号", "USB device not recognised",
                     "插上 U 盘或外设后提示无法识别的 USB 设备，设备管理器里有黄色感叹号。",
                     "Plugging in a USB device shows an unrecognised device error with a warning icon in Device Manager.",
@@ -958,7 +958,7 @@ namespace WINHELP
             // ═══════════════ ⑤ 存储与磁盘 ═══════════════
             new IssueCategory("disk", "💽", "存储与磁盘", "Storage & Disk",
 
-                new IssueEntry("disk-temp", "🧹",
+                new IssueEntry("disk-temp", "",
                     "C 盘飘红 / 临时文件堆积", "C drive is full of temporary files",
                     "C 盘变红，可用空间只剩几个 G，清空回收站也没用。",
                     "The C drive turns red with only a few gigabytes left, and emptying the Recycle Bin does not help.",
@@ -983,7 +983,7 @@ namespace WINHELP
                         warnZh: "会删除临时目录下的全部文件。正在被程序使用的文件会自动跳过，不影响已安装软件。",
                         warnEn: "Deletes everything in the temp directory. Files in use are skipped and installed software is unaffected.")),
 
-                new IssueEntry("disk-chkdsk", "🔎",
+                new IssueEntry("disk-chkdsk", "",
                     "怀疑硬盘有坏道", "Suspect the disk has bad sectors",
                     "复制文件时卡住或报错、开机偶尔提示正在检查磁盘、系统频繁无故卡顿。",
                     "File copies stall or error out, boot sometimes runs a disk check, or the system freezes randomly.",
@@ -1007,7 +1007,7 @@ namespace WINHELP
                         warnZh: "只读扫描，不会修改任何数据。大容量硬盘可能需要数分钟。",
                         warnEn: "Read-only scan that modifies nothing. Large drives may take several minutes.")),
 
-                new IssueEntry("disk-chkdskfix", "🔧",
+                new IssueEntry("disk-chkdskfix", "",
                     "磁盘错误需要修复", "Repair confirmed disk errors",
                     "只读扫描已确认存在文件系统错误或坏扇区，需要实际修复。",
                     "The read-only scan confirmed file system errors or bad sectors that need fixing.",
@@ -1032,7 +1032,7 @@ namespace WINHELP
                         warnZh: "会在下次开机时独占执行磁盘修复，机械硬盘可能耗时数小时且期间无法使用电脑。请务必先备份重要数据。",
                         warnEn: "Runs an exclusive disk repair at next boot that may take hours on a mechanical drive. Back up important data first.")),
 
-                new IssueEntry("disk-health", "❤️‍🩹",
+                new IssueEntry("disk-health", "",
                     "想查看硬盘健康状态与型号", "Check disk health and model",
                     "想确认电脑装的是固态还是机械硬盘，以及健康状况是否正常。",
                     "You want to know whether the drive is an SSD or HDD and whether it is healthy.",
@@ -1055,7 +1055,7 @@ namespace WINHELP
                         @"powershell -NoProfile -Command ""Get-PhysicalDisk | Select-Object FriendlyName,MediaType,HealthStatus,Size | Format-List""",
                         needAdmin: true, timeoutSec: TNormal, risk: RiskLevel.Safe)),
 
-                new IssueEntry("disk-vss", "🗂️",
+                new IssueEntry("disk-vss", "",
                     "系统还原点占用大量空间", "Restore points are eating disk space",
                     "C 盘空间莫名被占用，但找不到大文件，系统保护里显示占用几十 G。",
                     "The C drive is full but no large files are visible; System Protection shows tens of gigabytes used.",
@@ -1081,7 +1081,7 @@ namespace WINHELP
             // ═══════════════ ⑥ 账户与安全 ═══════════════
             new IssueCategory("acct", "🔐", "账户与安全", "Account & Security",
 
-                new IssueEntry("acct-activate", "🏷️",
+                new IssueEntry("acct-activate", "",
                     "提示系统未激活", "Windows is not activated",
                     "桌面右下角出现激活水印，个性化设置被锁定无法修改。",
                     "An activation watermark appears and personalisation settings are locked.",
@@ -1104,7 +1104,7 @@ namespace WINHELP
                         @"cscript //nologo %windir%\System32\slmgr.vbs /xpr",
                         needAdmin: false, timeoutSec: TQuick, risk: RiskLevel.Safe)),
 
-                new IssueEntry("acct-license", "📜",
+                new IssueEntry("acct-license", "",
                     "想查看激活详细信息与版本", "View detailed licence information",
                     "需要确认系统版本、许可证类型与部分产品密钥信息。",
                     "You need the edition, licence type and partial product key.",
@@ -1125,7 +1125,7 @@ namespace WINHELP
                         @"cscript //nologo %windir%\System32\slmgr.vbs /dli",
                         needAdmin: false, timeoutSec: TQuick, risk: RiskLevel.Safe)),
 
-                new IssueEntry("acct-defupd", "🦠",
+                new IssueEntry("acct-defupd", "",
                     "病毒库过期无法更新", "Antivirus definitions are outdated",
                     "安全中心提示病毒和威胁防护定义已过期。",
                     "Windows Security reports that virus and threat protection definitions are out of date.",
@@ -1148,7 +1148,7 @@ namespace WINHELP
                         @"""%ProgramFiles%\Windows Defender\MpCmdRun.exe"" -SignatureUpdate",
                         needAdmin: true, timeoutSec: TNormal, risk: RiskLevel.Safe)),
 
-                new IssueEntry("acct-scan", "🔬",
+                new IssueEntry("acct-scan", "",
                     "怀疑中毒想快速查杀", "Suspect malware and want a quick scan",
                     "电脑莫名变慢、弹广告、浏览器主页被改、出现陌生进程。",
                     "The PC slowed down, shows pop-up ads, the browser home page changed, or unknown processes appeared.",
@@ -1173,7 +1173,7 @@ namespace WINHELP
                         warnZh: "预计耗时 5 到 15 分钟，扫描期间可正常使用电脑。",
                         warnEn: "Takes 5 to 15 minutes; you can keep using the PC while it runs.")),
 
-                new IssueEntry("acct-users", "👥",
+                new IssueEntry("acct-users", "",
                     "想确认本机有哪些账户", "List the local accounts on this PC",
                     "怀疑被人偷偷建了账户，或忘记了本机管理员账户的名字。",
                     "You suspect a hidden account was created, or forgot the local administrator name.",

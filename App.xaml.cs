@@ -71,6 +71,9 @@ namespace WINHELP
             // 2. 加载应用设置
             SettingsManager.Load();
 
+            // 2.02 加载显示模式（普通/专业，v5.0.0）
+            UiMode.Load();
+
             // 2.05 加载插件清单（New B：轻量扩展机制，无插件时静默跳过）
             PluginLoader.Load();
 
@@ -86,15 +89,25 @@ namespace WINHELP
             // 4. 从 SiteFinderPage "软件版本"文字模块初始化版本号（版本检测的检测路径）
             //    实际解析（构造隐藏的 SiteFinderPage 实例）开销较大，推迟到首帧渲染后执行。
 
-            // 5. 创建系统托盘图标（必须在主窗口显示前完成）
-            SetupTrayIcon();
+            // 5. 创建系统托盘图标（v4.9.1：推迟到主窗口首帧渲染后执行 ——
+            //    Icon.ExtractAssociatedIcon 需从 193MB 单文件 exe 提取图标，排在 Show 前会拖慢主窗口出现；
+            //    延迟到 Loaded 之后用 Background 优先级执行，不阻塞首屏）
+            // SetupTrayIcon();
 
             // 6. 创建并显示主窗口
             _mainWindow = new MainWindow();
             _mainWindow.Show();
 
-            // 6.x 主窗口首帧稳定后再淡出启动动画
-            await Task.Delay(250);
+            // 6.x 主窗口首帧渲染完成即淡出启动动画（不再固定等 250ms，减少无谓等待；
+            //    用 ContentRendered 信号替代，首帧稳定就切换，最多兜底等 3s 防止事件缺失）
+            var firstFrame = new System.Threading.Tasks.TaskCompletionSource<bool>();
+            void OnRendered(object? s, EventArgs e)
+            {
+                if (_mainWindow != null) _mainWindow.ContentRendered -= OnRendered;
+                firstFrame.TrySetResult(true);
+            }
+            _mainWindow.ContentRendered += OnRendered;
+            await Task.WhenAny(firstFrame.Task, Task.Delay(3000));
             splash?.FadeOutAndClose();
 
             // 6.x 启动后的非关键初始化：推迟到首帧渲染（Loaded）之后执行，
@@ -105,6 +118,9 @@ namespace WINHELP
             {
                 try
                 {
+                    // 5. 创建系统托盘图标（推迟到主窗口首帧后，见上文注释）
+                    SetupTrayIcon();
+
                     // 4. 解析软件版本号
                     SiteFinderPage.EnsureVersionInitialized();
 

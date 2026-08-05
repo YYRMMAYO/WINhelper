@@ -29,6 +29,24 @@ namespace WINHELP
             InitializeComponent();
             ApplyTheme();
             ThemeManager.ThemeChanged += () => Dispatcher.Invoke(ApplyTheme);
+            UiMode.Changed += OnModeChanged;
+            Unloaded += (_, __) => UiMode.Changed -= OnModeChanged;
+        }
+
+        /// <summary>普通/专业模式切换：若已生成过报告，按新模式重新生成</summary>
+        private void OnModeChanged()
+        {
+            Dispatcher.Invoke(async () =>
+            {
+                if (_busy || string.IsNullOrEmpty(_lastText)) return;
+                try
+                {
+                    var (text, html) = await BuildReportAsync();
+                    _lastText = text;
+                    TxtReport.Text = text;
+                }
+                catch { /* 保持旧报告 */ }
+            });
         }
 
         private void ApplyTheme()
@@ -104,7 +122,7 @@ namespace WINHELP
             {
                 var items = await HardwareInfo.CollectAsync();
                 foreach (var it in items.Take(24))
-                    sb.AppendLine($"{it.Label}：{Sanitize(it.Value, username)}");
+                    sb.AppendLine($"{Glossary.Hint(it.Label)}：{Sanitize(it.Value, username)}");
             }
             catch (Exception ex) { sb.AppendLine("（硬件信息获取失败：" + ex.Message + "）"); }
             sb.AppendLine();
@@ -122,6 +140,10 @@ namespace WINHELP
                 sb.AppendLine($"浏览器缓存：{FormatSize(brSize)}");
                 sb.AppendLine($"更新缓存：{FormatSize(upSize)}");
                 sb.AppendLine($"合计可清理：{FormatSize(junk)}");
+                if (!UiMode.IsPro)
+                    sb.AppendLine("说明：这些是系统运行产生的临时数据，清理后不影响系统和已装软件。");
+                if (!UiMode.IsPro)
+                    sb.AppendLine("（提示：这些都是程序运行产生的临时数据，清理后不影响系统和已装软件）");
             }
             catch (Exception ex) { sb.AppendLine("（扫描失败：" + ex.Message + "）"); }
             sb.AppendLine();
@@ -198,7 +220,7 @@ h1{{font-size:20px;margin:0 0 4px;}}
 li{{font-size:12.5px;line-height:1.7;}}
 .foot{{color:{sub};font-size:11px;margin-top:18px;text-align:center;}}
 </style></head><body><div class=""wrap"">
-<h1>🩺 司南工具箱体检报告</h1>
+<h1>司南工具箱体检报告</h1>
 <div class=""sub"">生成时间：{DateTime.Now:yyyy-MM-dd HH:mm} ｜ 软件版本 v{UpdateManager.LocalVersion} ｜ 用户：&lt;user&gt;</div>
 <div class=""score"">健康分 {health.Score} / 100（{health.Grade}）</div>
 <div class=""bar""><i></i></div>

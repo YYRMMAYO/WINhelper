@@ -251,7 +251,7 @@ namespace WINHELP
 
             if (sb.Length == 0) return output.Length > 1500 ? output[..1500] : output;
 
-            // 常见蓝屏错误码释义（补充提示）
+            // 常见蓝屏错误码释义（扩充至 26 条，普通/专业模式均显示，帮用户看懂错误码）
             var hints = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
                 ["0x0000007B"] = "INACCESSIBLE_BOOT_DEVICE：磁盘控制器/启动驱动问题",
@@ -261,7 +261,25 @@ namespace WINHELP
                 ["0x0000001A"] = "MEMORY_MANAGEMENT：内存管理错误（可测内存）",
                 ["0x0000003B"] = "SYSTEM_SERVICE_EXCEPTION：系统服务异常（驱动）",
                 ["0x000000EF"] = "CRITICAL_PROCESS_DIED：关键进程崩溃",
-                ["0x00000124"] = "WHEA_UNCORRECTABLE_ERROR：硬件错误（CPU/内存/主板）"
+                ["0x00000124"] = "WHEA_UNCORRECTABLE_ERROR：硬件错误（CPU/内存/主板）",
+                ["0x0000000A"] = "IRQL_NOT_LESS_OR_EQUAL：驱动与系统内核冲突（常见于驱动问题）",
+                ["0x0000007A"] = "KERNEL_DATA_INPAGE_ERROR：内存或硬盘读取失败",
+                ["0x000000C2"] = "BAD_POOL_CALLER：内存池调用错误（多为驱动问题）",
+                ["0x000000C4"] = "DRIVER_VERIFIER_DETECTED_VIOLATION：驱动验证器检测到违规",
+                ["0x00000116"] = "VIDEO_TDR_FAILURE：显卡驱动停止响应（建议更新显卡驱动）",
+                ["0x00000133"] = "DPC_WATCHDOG_VIOLATION：驱动响应超时（常见于磁盘/存储驱动）",
+                ["0x000000EA"] = "THREAD_STUCK_IN_DEVICE_DRIVER：显卡驱动卡死",
+                ["0x00000139"] = "KERNEL_SECURITY_CHECK_FAILURE：内核安全检测失败（驱动或系统文件损坏）",
+                ["0x0000009F"] = "DRIVER_POWER_STATE_FAILURE：驱动电源状态错误（电源管理问题）",
+                ["0x00000077"] = "KERNEL_STACK_INPAGE_ERROR：内核页面读取错误（硬盘或内存问题）",
+                ["0x000000F4"] = "CRITICAL_OBJECT_TERMINATION：关键系统进程终止（硬件或驱动）",
+                ["0x0000001E"] = "KMODE_EXCEPTION_NOT_HANDLED：内核模式异常（驱动或硬件）",
+                ["0x0000002E"] = "DATA_BUS_ERROR：数据总线错误（内存或硬件）",
+                ["0x0000003F"] = "NO_MORE_SYSTEM_PTES：系统内存不足",
+                ["0x0000008E"] = "KERNEL_MODE_EXCEPTION_NOT_HANDLED：内核异常（内存或驱动）",
+                ["0x00000101"] = "CLOCK_WATCHDOG_TIMEOUT：CPU 核心无响应（超频或 CPU 故障）",
+                ["0x00000112"] = "MACHINE_CHECK_EXCEPTION：硬件机器检查错误（CPU 或内存）",
+                ["0x0000013E"] = "KERNEL_MODE_HEAP_CORRUPTION：内核内存堆损坏"
             };
             foreach (var kv in hints)
                 if (output.Contains(kv.Key, StringComparison.OrdinalIgnoreCase))
@@ -269,10 +287,11 @@ namespace WINHELP
             return sb.ToString();
         }
 
-        /// <summary>解析 netstat -ano 输出，映射进程名，可选按端口过滤。</summary>
+        /// <summary>解析 netstat -ano 输出，映射进程名，可选按端口过滤。普通模式输出中文列名。</summary>
         private static string ParsePorts(string output, string filter)
         {
             if (string.IsNullOrWhiteSpace(output)) return UiLanguage.L("（无输出）", "(no output)");
+            bool pro = UiMode.IsPro;
             var rows = new List<string>();
             var pidCache = new Dictionary<int, string>();
             string? ProcName(int pid)
@@ -287,6 +306,18 @@ namespace WINHELP
                 pidCache[pid] = n;
                 return n;
             }
+            // 普通模式把连接状态翻译成中文
+            static string StateZh(string s) => s.ToUpperInvariant() switch
+            {
+                "LISTENING" => "监听中",
+                "ESTABLISHED" => "已连接",
+                "TIME_WAIT" => "等待关闭",
+                "CLOSE_WAIT" => "关闭等待",
+                "SYN_SENT" => "连接中",
+                "FIN_WAIT" => "结束等待",
+                "SYN_RECEIVED" => "接收连接",
+                _ => s
+            };
 
             foreach (var raw in output.Split('\n'))
             {
@@ -306,12 +337,16 @@ namespace WINHELP
                 if (!string.IsNullOrEmpty(filter) && !local.Contains(":" + filter + " ", StringComparison.OrdinalIgnoreCase)
                     && !local.EndsWith(":" + filter, StringComparison.OrdinalIgnoreCase))
                     continue;
-                rows.Add($"{proto,-5} {local,-28} {foreign,-24} {state,-14} {ProcName(pid)}  (PID {pid})");
+                rows.Add(pro
+                    ? $"{proto,-5} {local,-28} {foreign,-24} {state,-14} {ProcName(pid)}  (PID {pid})"
+                    : $"{proto,-5} {local,-28} {foreign,-24} {StateZh(state),-12} {ProcName(pid)}  (PID {pid})");
             }
 
             if (rows.Count == 0)
                 return UiLanguage.L("（无匹配结果）", "(no match)");
-            var header = string.Format("{0,-5} {1,-28} {2,-24} {3,-14} {4}", "Proto", "Local", "Foreign", "State", "Process");
+            var header = pro
+                ? string.Format("{0,-5} {1,-28} {2,-24} {3,-14} {4}", "Proto", "Local", "Foreign", "State", "Process")
+                : string.Format("{0,-6} {1,-28} {2,-24} {3,-12} {4}", "协议", "本地地址", "远程地址", "状态", "进程");
             return header + "\n" + string.Join("\n", rows.Take(400));
         }
     }

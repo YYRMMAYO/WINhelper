@@ -71,6 +71,8 @@ public partial class StartupPage : UserControl
         ApplyTheme();
         ThemeManager.ThemeChanged += () => Dispatcher.Invoke(ApplyTheme);
         UiLanguage.Changed += () => Dispatcher.Invoke(Render);
+        UiMode.Changed += () => Dispatcher.Invoke(Render); // 来源术语解释随模式变化
+        UiMode.Changed += () => Dispatcher.Invoke(Render); // 来源术语解释随模式变化
         LoadAll();
         Render();
         // 计划任务扫描较慢，异步执行，完成后重绘
@@ -173,8 +175,8 @@ public partial class StartupPage : UserControl
             Enabled = enabled,
             LegacyDisabled = legacyDisabled,
             ReadOnly = readOnly,
-            ReadOnlyNote = readOnly ? UiLanguage.L("HKLM 项：请以管理员身份重启本程序后可修改",
-                "HKLM item: restart as admin to modify") : ""
+            ReadOnlyNote = readOnly ? UiLanguage.L("系统级启动项：需管理员权限，重启本程序后即可修改",
+                "System-level item: restart as admin to modify") : ""
         };
     }
 
@@ -548,7 +550,7 @@ public partial class StartupPage : UserControl
         var bootSp = new StackPanel();
         bootSp.Children.Add(new TextBlock
         {
-            Text = "⏱️ " + UiLanguage.L("本次开机信息", "Boot Information"),
+            Text = UiLanguage.L("本次开机信息", "Boot Information"),
             FontSize = 13,
             FontWeight = FontWeights.SemiBold,
             Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#2C3E50"))
@@ -726,7 +728,7 @@ public partial class StartupPage : UserControl
 
             sp.Children.Add(new TextBlock
             {
-                Text = $"来源：{e.Source}",
+                Text = UiLanguage.L("来源：", "Source: ") + Glossary.Hint(e.Source),
                 FontSize = 11,
                 Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#95A5A6")),
                 Margin = new Thickness(0, 3, 0, 0)

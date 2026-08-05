@@ -7,17 +7,29 @@
              mc:Ignorable="d"
              Background="Transparent">
     <UserControl.Resources>
-        <Style x:Key="GroupHeader" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="13"/>
-            <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
-            <Setter Property="Margin" Value="0,12,0,4"/>
-        </Style>
         <Style x:Key="SectionHeader" TargetType="TextBlock">
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="FontWeight" Value="Bold"/>
             <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
             <Setter Property="Margin" Value="0,12,0,4"/>
+        </Style>
+
+        <!-- 列表项容器：透明、无默认选中蓝底，点击整卡生效（SelectionChanged 100% 可靠） -->
+        <Style x:Key="GlassIssueItem" TargetType="ListBoxItem">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Margin" Value="0"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="Transparent"/>
+                </Trigger>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="Transparent"/>
+                </Trigger>
+            </Style.Triggers>
         </Style>
     </UserControl.Resources>
 
@@ -52,16 +64,11 @@
                     <TextBlock x:Name="AdminBadgeText" FontSize="11" FontWeight="SemiBold" Foreground="White"/>
                 </Border>
 
-                <!-- 搜索框 -->
+                <!-- 搜索框（无装饰图标） -->
                 <Border Grid.Column="2" Style="{StaticResource GlassSearchFrame}">
                     <Grid Margin="8,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="🔍" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                        <TextBox x:Name="TxtSearch" Grid.Column="1" BorderThickness="0" Background="Transparent"
-                                 VerticalAlignment="Center" Foreground="{DynamicResource TextPrimaryBrush}"
+                        <TextBox x:Name="TxtSearch" Grid.Column="0" BorderThickness="0" Background="Transparent"
+                                 VerticalAlignment="Center" MinWidth="140" Foreground="{DynamicResource TextPrimaryBrush}"
                                  CaretBrush="{DynamicResource TextPrimaryBrush}"
                                  TextChanged="TxtSearch_TextChanged"/>
                     </Grid>
@@ -69,40 +76,75 @@
             </Grid>
         </Border>
 
-        <!-- 中间两列 -->
+        <!-- 中间：列表 / 详情双视图（点击进入详情页，返回回列表） -->
         <Grid Grid.Row="1" Margin="0,12,0,0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="360"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
 
-            <!-- 左：分类芯片 + 问题列表 -->
-            <Grid Grid.Column="0">
+            <!-- ===== 列表视图 ===== -->
+            <Grid x:Name="ListView">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
-                <WrapPanel x:Name="ChipsPanel" Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,4"/>
-                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                    <StackPanel x:Name="ListPanel"/>
-                </ScrollViewer>
+
+                <WrapPanel x:Name="ChipsPanel" Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8"/>
+
+                <Grid Grid.Row="1">
+                    <ListBox x:Name="IssueList"
+                             Padding="0,0,14,0"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             VirtualizingPanel.VirtualizationMode="Recycling"
+                             VirtualizingPanel.IsVirtualizing="True"
+                             ScrollViewer.CanContentScroll="True"
+                             SelectionChanged="IssueList_SelectionChanged"
+                             ItemContainerStyle="{StaticResource GlassIssueItem}"
+                             BorderThickness="0" Background="Transparent">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource GlassInnerCard}" Margin="0,0,0,8"
+                                        Padding="14,11" Cursor="Hand">
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}" TextWrapping="Wrap"/>
+                                        <TextBlock Text="{Binding Symptom}" FontSize="11"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                                   TextWrapping="Wrap" Margin="0,3,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                    <TextBlock x:Name="TxtEmpty" Visibility="Collapsed"
+                               FontSize="12" Foreground="{DynamicResource TextMutedBrush}"
+                               TextWrapping="Wrap" Margin="6,20,6,0"
+                               HorizontalAlignment="Center"/>
+                </Grid>
             </Grid>
 
-            <!-- 右：详情 + 控制台 -->
-            <Grid Grid.Column="1" Margin="14,0,0,0">
+            <!-- ===== 详情视图 ===== -->
+            <Grid x:Name="DetailView" Visibility="Collapsed">
                 <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
-                <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
+
+                <Button x:Name="BtnBack" Grid.Row="0"
+                        Content="{loc:Loc ← 返回问题列表|← Back to issues}"
+                        Style="{StaticResource GlassToolbarButton}"
+                        HorizontalAlignment="Left" Padding="16,6"
+                        Margin="0,0,0,10" Click="BtnBack_Click"/>
+
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                     <StackPanel x:Name="DetailPanel"/>
                 </ScrollViewer>
-                <Border x:Name="ConsoleCard" Grid.Row="1" Style="{StaticResource GlassCard}"
+
+                <!-- 执行输出（运行修复时展开） -->
+                <Border x:Name="ConsoleCard" Grid.Row="2" Style="{StaticResource GlassCard}"
                         Visibility="Collapsed" Margin="0,12,0,0">
                     <Grid Margin="12">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="200"/>
+                            <RowDefinition Height="160"/>
                         </Grid.RowDefinitions>
                         <TextBlock Grid.Row="0" Text="{loc:Loc 执行输出|Execution output}"
                                    FontSize="12" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}"

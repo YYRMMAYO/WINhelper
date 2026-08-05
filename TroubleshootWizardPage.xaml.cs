@@ -218,6 +218,7 @@ public partial class TroubleshootWizardPage : UserControl
         InitializeComponent();
         ThemeManager.ThemeChanged += () => Dispatcher.Invoke(RenderCurrent);
         UiLanguage.Changed += () => Dispatcher.Invoke(() => { LocalizeStatic(); RenderCurrent(); });
+        UiMode.Changed += () => Dispatcher.Invoke(RenderCurrent); // 步骤术语解释随模式变化
         LocalizeStatic();
         RenderCategories();
     }
@@ -355,7 +356,7 @@ public partial class TroubleshootWizardPage : UserControl
             };
             row.Child = new TextBlock
             {
-                Text = $"{i}. {step}",
+                Text = $"{i}. {Glossary.Hint(step)}",
                 FontSize = 13,
                 Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#2C3E50")),
                 TextWrapping = TextWrapping.Wrap
@@ -370,7 +371,7 @@ public partial class TroubleshootWizardPage : UserControl
         {
             var fixBtn = new Button
             {
-                Content = "⚡ " + UiLanguage.L("去一键修复", "Go to one-click fix"),
+                Content = UiLanguage.L("去一键修复", "Go to one-click fix"),
                 Height = 40,
                 Margin = new Thickness(0, 0, 0, 12),
                 FontSize = 14,

@@ -224,9 +224,9 @@ namespace WINHELP
         /// <summary>语言切换时重新设置所有卡片 / 英雄文本</summary>
         private void Localize()
         {
-            SecSystem.Text = UiLanguage.L("🖥️ 系统工具", "🖥️ System Tools");
-            SecTools.Text = UiLanguage.L("⚡ 效率工具", "⚡ Efficiency Tools");
-            SecAssist.Text = UiLanguage.L("🤖 助手与信息", "🤖 Assistants & Info");
+            SecSystem.Text = UiLanguage.L("系统工具", "System Tools");
+            SecTools.Text = UiLanguage.L("效率工具", "Efficiency Tools");
+            SecAssist.Text = UiLanguage.L("助手与信息", "Assistants & Info");
 
             foreach (var (card, key, _, _) in _cards)
             {

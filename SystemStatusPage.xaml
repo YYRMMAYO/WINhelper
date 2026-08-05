@@ -1,4 +1,4 @@
-<!-- 导航模块 key="system"：对应 SystemStatusPage.xaml.cs，由 MainWindow._factories 注册。详见 MODULES.md -->
+﻿<!-- 导航模块 key="system"：对应 SystemStatusPage.xaml.cs，由 MainWindow._factories 注册。详见 MODULES.md -->
 <UserControl x:Class="WINHELP.SystemStatusPage"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -75,7 +75,7 @@
                                        HorizontalAlignment="Center" Margin="0,2,0,0"/>
                         </StackPanel>
                     </Grid>
-                    <Button x:Name="BtnStart" Content="{loc:Loc ▶ 开始检测|▶ Start Detection}" Height="40" Width="150" Margin="0,16,0,0"
+                    <Button x:Name="BtnStart" Content="{loc:Loc 开始检测|Start Detection}" Height="40" Width="150" Margin="0,16,0,0"
                             FontSize="14" FontWeight="SemiBold" Foreground="White" BorderThickness="0"
                             Cursor="Hand" Click="Button_Click_Start"/>
                 </StackPanel>
@@ -99,7 +99,7 @@
                         <Button Name="BtnRefreshHw" Height="32" Width="92"
                                 FontSize="12" FontWeight="SemiBold"
                                 Foreground="White" BorderThickness="0" Cursor="Hand"
-                                Content="{loc:Loc ↻ 刷新|↻ Refresh}" HorizontalAlignment="Right"
+                                Content="{loc:Loc 刷新|Refresh}" HorizontalAlignment="Right"
                                 Click="Button_RefreshHw_Click"/>
                     </Grid>
 
@@ -164,9 +164,9 @@
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                         <Button Name="BtnKillProc" Height="34" MinWidth="124" FontSize="12" FontWeight="SemiBold"
                                 Foreground="White" BorderThickness="0" Cursor="Hand" Margin="0,0,8,0"
-                                Content="{loc:Loc ⛔ 结束选中进程|⛔ End Selected Process}" Click="BtnKillProc_Click"/>
+                                Content="{loc:Loc 结束选中进程|End Selected Process}" Click="BtnKillProc_Click"/>
                         <Button Name="BtnProcRefresh" Height="34" MinWidth="92" FontSize="12" FontWeight="SemiBold"
-                                Foreground="White" BorderThickness="0" Cursor="Hand" Content="{loc:Loc ↻ 刷新|↻ Refresh}"
+                                Foreground="White" BorderThickness="0" Cursor="Hand" Content="{loc:Loc 刷新|Refresh}"
                                 Click="BtnProcRefresh_Click"/>
                     </StackPanel>
                 </Grid>
@@ -231,10 +231,10 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
                     <Grid Grid.Row="0" Margin="0,0,0,10">
-                        <TextBlock x:Name="TxtTempTitle" Text="{loc:Loc 🌡 温度 / 传感器|🌡 Temperature / Sensors}" FontSize="15" FontWeight="Bold" Foreground="#2C3E50" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="TxtTempTitle" Text="{loc:Loc 温度 / 传感器|Temperature / Sensors}" FontSize="15" FontWeight="Bold" Foreground="#2C3E50" VerticalAlignment="Center"/>
                         <Button Name="BtnTempRefresh" Height="32" Width="92" FontSize="12" FontWeight="SemiBold"
                                 Foreground="White" BorderThickness="0" Cursor="Hand" HorizontalAlignment="Right"
-                                Content="↻ 刷新" Click="BtnTempRefresh_Click"/>
+                                Content="刷新" Click="BtnTempRefresh_Click"/>
                     </Grid>
                     <StackPanel Grid.Row="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,4,0,4">
                         <TextBlock Text="CPU" FontSize="13" Foreground="#7F8C8D" VerticalAlignment="Center" Margin="0,0,10,0"/>
@@ -252,10 +252,10 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
                     <Grid Grid.Row="0" Margin="0,0,0,10">
-                        <TextBlock x:Name="TxtDiagTitle" Text="{loc:Loc 🤖 智能诊断|🤖 Smart Diagnosis}" FontSize="15" FontWeight="Bold" Foreground="#2C3E50" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="TxtDiagTitle" Text="{loc:Loc 智能诊断|Smart Diagnosis}" FontSize="15" FontWeight="Bold" Foreground="#2C3E50" VerticalAlignment="Center"/>
                         <Button Name="BtnDiag" Height="34" MinWidth="100" FontSize="12" FontWeight="SemiBold"
                                 Foreground="White" BorderThickness="0" Cursor="Hand" HorizontalAlignment="Right"
-                                Content="{loc:Loc ▶ 开始诊断|▶ Start Diagnosis}" Click="BtnDiag_Click"/>
+                                Content="{loc:Loc 开始诊断|Start Diagnosis}" Click="BtnDiag_Click"/>
                     </Grid>
                     <ScrollViewer Grid.Row="1" MaxHeight="240" VerticalScrollBarVisibility="Auto">
                         <StackPanel x:Name="DiagPanel"/>

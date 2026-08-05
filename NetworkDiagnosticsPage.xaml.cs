@@ -78,17 +78,17 @@ public partial class NetworkDiagnosticsPage : UserControl
                         var reply = ping.Send(target, 2000);
                         if (reply != null && reply.Status == IPStatus.Success)
                         {
-                            AddRow($"Ping {target}", $"成功 · 延迟 {reply.RoundtripTime} ms", "#27AE60");
+                            AddRow(Glossary.Hint($"Ping {target}"), $"成功 · 延迟 {reply.RoundtripTime} ms", "#27AE60");
                             okCount++;
                         }
                         else
                         {
-                            AddRow($"Ping {target}", $"失败：{reply?.Status}", "#E74C3C");
+                            AddRow(Glossary.Hint($"Ping {target}"), $"失败：{reply?.Status}", "#E74C3C");
                         }
                     }
                     catch (Exception ex)
                     {
-                        AddRow($"Ping {target}", "失败：" + ex.Message, "#E74C3C");
+                        AddRow(Glossary.Hint($"Ping {target}"), "失败：" + ex.Message, "#E74C3C");
                     }
                 }
 
@@ -163,27 +163,27 @@ public partial class NetworkDiagnosticsPage : UserControl
                         count++;
                         if (reply.RoundtripTime < min) min = reply.RoundtripTime;
                         if (reply.RoundtripTime > max) max = reply.RoundtripTime;
-                        AddRow($"Ping {target}", $"成功 · 延迟 {reply.RoundtripTime} ms", "#27AE60");
+                        AddRow(Glossary.Hint($"Ping {target}"), $"成功 · 延迟 {reply.RoundtripTime} ms", "#27AE60");
                     }
                     else
                     {
-                        AddRow($"Ping {target}", $"失败：{reply?.Status}", "#E74C3C");
+                        AddRow(Glossary.Hint($"Ping {target}"), $"失败：{reply?.Status}", "#E74C3C");
                     }
                 }
                 catch (Exception ex)
                 {
-                    AddRow($"Ping {target}", "失败：" + ex.Message, "#E74C3C");
+                    AddRow(Glossary.Hint($"Ping {target}"), "失败：" + ex.Message, "#E74C3C");
                 }
             }
 
             if (count > 0)
             {
                 double avg = total / (double)count;
-                AddRow("平均延迟 (Ping)", $"{avg:F1} ms（最小 {min} / 最大 {max}，{count} 个节点）", "#27AE60");
+                AddRow(Glossary.Hint("平均延迟 (Ping)"), $"{avg:F1} ms（最小 {min} / 最大 {max}，{count} 个节点）", "#27AE60");
             }
             else
             {
-                AddRow("平均延迟 (Ping)", "无法 Ping 通任何测试节点", "#E74C3C");
+                AddRow(Glossary.Hint("平均延迟 (Ping)"), "无法 Ping 通任何测试节点", "#E74C3C");
             }
 
             // 2) 下行带宽测试：下载固定大小文件，按字节/耗时换算 Mbps
@@ -293,7 +293,7 @@ public partial class NetworkDiagnosticsPage : UserControl
         var sp = new StackPanel();
         sp.Children.Add(new TextBlock
         {
-            Text = (isGood ? "✅ " : "💡 ") + title,
+            Text = title,
             FontSize = 14,
             FontWeight = FontWeights.SemiBold,
             Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#2C3E50"))
@@ -302,7 +302,7 @@ public partial class NetworkDiagnosticsPage : UserControl
         {
             sp.Children.Add(new TextBlock
             {
-                Text = "• " + tip,
+                Text = "• " + Glossary.Hint(tip),
                 FontSize = 12,
                 Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(isGood ? "#2E7D32" : "#BF360C")),
                 Margin = new Thickness(0, 4, 0, 0),

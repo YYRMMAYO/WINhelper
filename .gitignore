@@ -26,6 +26,9 @@ _smoketest/*.exe
 _smoketest/*.dll
 _smoketest/*.cache
 _crashdiag_out.txt
+_copy_done.txt
+_startup_time.txt
+winhelp_navsmoke.txt
 
 # ===== 本地数据 / 缓存（含项目记忆，不应上传） =====
 .workbuddy/

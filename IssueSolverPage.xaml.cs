@@ -12,7 +12,10 @@ using System.Windows.Media;
 namespace WINHELP
 {
     /// <summary>
-    /// 「问题解决」页面（导航 key="issue"）：常见故障知识库 + 白名单命令一键修复，实时回显。
+    /// 「问题解决」页面（导航 key="issue"，v5.0.0 重设计）：
+    /// 列表 / 详情双视图（点击卡片进入详情页，返回按钮回列表），
+    /// 列表用虚拟化 ListBox（SelectionChanged 触发，点击 100% 可靠），
+    /// 详情含风险徽标与术语通俗解释（Glossary.Hint）。
     /// 所有命令均经 CommandRunner 白名单精确校验，无任何参数拼接，无命令注入面。
     /// </summary>
     public partial class IssueSolverPage : UserControl
@@ -42,6 +45,12 @@ namespace WINHELP
 
             Localize();
             UiLanguage.Changed += () => Dispatcher.Invoke(Localize);
+            UiMode.Changed += () => Dispatcher.Invoke(() =>
+            {
+                // 专业模式切换后重渲当前详情（命令通俗解释随模式变化）
+                if (DetailView.Visibility == Visibility.Visible && _current != null)
+                    ShowDetail(_current);
+            });
 
             BtnCancel.Click += BtnCancel_Click;
             BtnCopy.Click += BtnCopy_Click;
@@ -78,8 +87,8 @@ namespace WINHELP
             AdminBadgeText.Foreground = new SolidColorBrush(Colors.White);
 
             BuildChips();
-            ApplyFilter();
-            if (_current != null) ShowDetail(_current);
+            ApplyFilter(); // 重建 ItemsSource，重新读取本地化 Title/Symptom
+            if (DetailView.Visibility == Visibility.Visible && _current != null) ShowDetail(_current);
         }
 
         // ===== 分类芯片 =====
@@ -127,40 +136,24 @@ namespace WINHELP
 
         private void ApplyFilter()
         {
-            if (ListPanel == null) return;
-            ListPanel.Children.Clear();
+            if (IssueList == null) return;
 
             string q = (TxtSearch.Text ?? "").Trim().ToLowerInvariant();
             string[] words = q.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
 
-            bool any = false;
+            var result = new List<IssueEntry>();
             foreach (var c in IssueCatalog.Categories)
             {
                 if (_activeCat != "all" && c.Key != _activeCat) continue;
-                var items = c.Items.Where(it => Matches(it, words)).ToList();
-                if (items.Count == 0) continue;
-                any = true;
-
-                ListPanel.Children.Add(new TextBlock
-                {
-                    Text = c.Icon + "  " + c.Title,
-                    Style = (Style)FindResource("GroupHeader")
-                });
-                foreach (var it in items)
-                    ListPanel.Children.Add(BuildIssueCard(it));
+                foreach (var it in c.Items)
+                    if (Matches(it, words)) result.Add(it);
             }
 
-            if (!any)
-            {
-                ListPanel.Children.Add(new TextBlock
-                {
-                    Text = UiLanguage.L("没有匹配的问题，换个关键词试试。", "No matching issue. Try another keyword."),
-                    FontSize = 12,
-                    Foreground = new SolidColorBrush(Color.FromRgb(0x95, 0xA5, 0xA6)),
-                    TextWrapping = TextWrapping.Wrap,
-                    Margin = new Thickness(6, 16, 6, 0)
-                });
-            }
+            IssueList.ItemsSource = result;
+
+            bool any = result.Count > 0;
+            TxtEmpty.Text = UiLanguage.L("没有匹配的问题，换个关键词试试。", "No matching issue. Try another keyword.");
+            TxtEmpty.Visibility = any ? Visibility.Collapsed : Visibility.Visible;
         }
 
         private static bool Matches(IssueEntry it, string[] words)
@@ -171,40 +164,25 @@ namespace WINHELP
             return true;
         }
 
-        private Border BuildIssueCard(IssueEntry e)
-        {
-            var sp = new StackPanel
-            {
-                Margin = new Thickness(4, 0, 4, 0),
-                VerticalAlignment = VerticalAlignment.Center
-            };
-            sp.Children.Add(new TextBlock
-            {
-                Text = e.Icon + "  " + e.Title,
-                FontSize = 13,
-                FontWeight = FontWeights.SemiBold,
-                Foreground = new SolidColorBrush(Color.FromRgb(0x2C, 0x3E, 0x50))
-            });
-            sp.Children.Add(new TextBlock
-            {
-                Text = e.Symptom,
-                FontSize = 11,
-                Foreground = new SolidColorBrush(Color.FromRgb(0x7F, 0x8C, 0x8D)),
-                TextWrapping = TextWrapping.Wrap,
-                Margin = new Thickness(0, 2, 0, 0)
-            });
+        // ===== 列表 / 详情 视图切换 =====
 
-            var b = new Border
+        private void IssueList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (IssueList.SelectedItem is IssueEntry entry)
             {
-                Style = (Style)FindResource("GlassInnerCard"),
-                Margin = new Thickness(0, 0, 0, 8),
-                Cursor = Cursors.Hand,
-                Tag = e
-            };
-            b.Child = sp;
-            b.MouseLeftButtonUp += (s, ev) => ShowDetail(e);
-            return b;
+                ShowDetail(entry);
+                ShowList(false);
+                IssueList.SelectedItem = null; // 清除选中，返回列表时不再触发
+            }
         }
+
+        private void ShowList(bool showList)
+        {
+            ListView.Visibility = showList ? Visibility.Visible : Visibility.Collapsed;
+            DetailView.Visibility = showList ? Visibility.Collapsed : Visibility.Visible;
+        }
+
+        private void BtnBack_Click(object sender, RoutedEventArgs e) => ShowList(true);
 
         // ===== 详情 =====
 
@@ -214,15 +192,24 @@ namespace WINHELP
             if (DetailPanel == null) return;
             DetailPanel.Children.Clear();
 
+            // 标题
             DetailPanel.Children.Add(new TextBlock
             {
-                Text = e.Icon + "  " + e.Title,
+                Text = UiLanguage.L(e.TitleZh, e.TitleEn),
                 FontSize = 18,
                 FontWeight = FontWeights.Bold,
                 Foreground = new SolidColorBrush(Color.FromRgb(0x2C, 0x3E, 0x50)),
                 TextWrapping = TextWrapping.Wrap,
                 Margin = new Thickness(0, 0, 0, 4)
             });
+
+            // 风险徽标行
+            var badgeRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 2, 0, 6) };
+            if (e.NeedAdmin) badgeRow.Children.Add(Badge(UiLanguage.L("需管理员", "Admin"), Color.FromRgb(0xE6, 0x7E, 0x22)));
+            if (e.Risk == RiskLevel.Danger) badgeRow.Children.Add(Badge(UiLanguage.L("危险", "Danger"), Color.FromRgb(0xE7, 0x4C, 0x3C)));
+            else if (e.Risk == RiskLevel.Caution) badgeRow.Children.Add(Badge(UiLanguage.L("注意", "Caution"), Color.FromRgb(0xF1, 0xC4, 0x0F)));
+            DetailPanel.Children.Add(badgeRow);
+
             DetailPanel.Children.Add(Para(e.Symptom));
 
             DetailPanel.Children.Add(SectionHead(UiLanguage.L("常见成因", "Common causes")));
@@ -234,7 +221,7 @@ namespace WINHELP
             {
                 DetailPanel.Children.Add(new TextBlock
                 {
-                    Text = string.Format("{0}. {1}", idx++, step),
+                    Text = string.Format("{0}. {1}", idx++, Glossary.Hint(step)),
                     FontSize = 12,
                     Foreground = new SolidColorBrush(Color.FromRgb(0x2C, 0x3E, 0x50)),
                     TextWrapping = TextWrapping.Wrap,
@@ -272,13 +259,14 @@ namespace WINHELP
             else if (f.Risk == RiskLevel.Caution) head.Children.Add(Badge(UiLanguage.L("注意", "Caution"), Color.FromRgb(0xF1, 0xC4, 0x0F)));
             sp.Children.Add(head);
 
+            // 命令原文 + 普通模式追加术语通俗解释
             var cmdBox = new Border
             {
                 Style = (Style)FindResource("GlassInnerCard"),
                 Margin = new Thickness(0, 0, 0, 4),
                 Child = new TextBlock
                 {
-                    Text = f.Command,
+                    Text = Glossary.Hint(f.Command),
                     FontFamily = new FontFamily("Consolas"),
                     FontSize = 12,
                     Foreground = new SolidColorBrush(Color.FromRgb(0x2C, 0x3E, 0x50)),

@@ -101,6 +101,7 @@ namespace WINHELP
             ApplyTheme();
             ThemeManager.ThemeChanged += () => Dispatcher.Invoke(ApplyTheme);
             UiLanguage.Changed += () => Dispatcher.Invoke(Localize);
+            UiMode.Changed += () => Dispatcher.Invoke(UpdateModeButton);
 
             Title = $"司南工具箱 v{UpdateManager.LocalVersion}";
 
@@ -128,7 +129,37 @@ namespace WINHELP
 
             // 默认显示首页：推迟到 Loaded，先让窗口框架与英雄横幅呈现，提升启动响应速度
             Localize();
-            Loaded += (_, _) => SetActiveNav("home", NavHome);
+            Loaded += (_, _) =>
+            {
+                SetActiveNav("home", NavHome);
+                RunNavSmokeIfRequested();
+            };
+        }
+
+        /// <summary>
+        /// 冒烟测试钩子：WINHELP_NAV_SMOKE=1 → 自动遍历全部模块页（每页停留片刻），
+        /// 任何页面 XAML 运行期异常都会被全局异常捕获写入 crash.log（供 CI/人工验证，正式运行不触发）。
+        /// </summary>
+        private void RunNavSmokeIfRequested()
+        {
+            if (Environment.GetEnvironmentVariable("WINHELP_NAV_SMOKE") != "1") return;
+            string marker = Path.Combine(Path.GetTempPath(), "winhelp_navsmoke.txt");
+            try { File.WriteAllText(marker, "start " + DateTime.Now.ToString("HH:mm:ss")); } catch { }
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, async () =>
+            {
+                try
+                {
+                    var keys = ModuleRegistry.All.Select(m => m.Key).ToList();
+                    foreach (var k in keys)
+                    {
+                        try { NavigateByKey(k); await Task.Delay(700); }
+                        catch (Exception ex) { App.LogCrash(ex, "NavSmoke:" + k); }
+                    }
+                    try { File.WriteAllText(marker, "done " + DateTime.Now.ToString("HH:mm:ss")); } catch { }
+                    Dispatcher.Invoke(() => Close());
+                }
+                catch { }
+            });
         }
 
         private void ApplyTheme()
@@ -424,7 +455,10 @@ namespace WINHELP
 
             TxtDailyTipTitle.Text = UiLanguage.L("每日使用贴士", "Daily Tip");
             BtnNextTip.Content = UiLanguage.L("换一个", "Next");
-            BtnOptimize.Content = "✨ " + UiLanguage.L("一键优化", "One-Click Optimize");
+            BtnOptimize.Content = UiLanguage.L("一键优化", "One-Click Optimize");
+
+            // 显示模式按钮（v5.0.0）
+            UpdateModeButton();
 
             HeroLabelCpu.Text = UiLanguage.L("CPU", "CPU");
             HeroLabelMem.Text = UiLanguage.L("内存", "Memory");
@@ -521,6 +555,24 @@ namespace WINHELP
             DailyTipCard.Visibility = Visibility.Collapsed;
         }
 
+        // ===== 显示模式快速切换（普通/专业，v5.0.0） =====
+
+        /// <summary>刷新顶栏模式按钮：显示当前模式，专业模式高亮</summary>
+        private void UpdateModeButton()
+        {
+            if (BtnModeToggle == null) return;
+            bool pro = UiMode.IsPro;
+            BtnModeToggle.Content = UiLanguage.L(pro ? "专业" : "普通", pro ? "Pro" : "Simple");
+            BtnModeToggle.Background = pro
+                ? new SolidColorBrush(Color.FromArgb(0x66, 0xFF, 0xFF, 0xFF))
+                : new SolidColorBrush(Color.FromArgb(0x1A, 0xFF, 0xFF, 0xFF));
+        }
+
+        private void BtnModeToggle_Click(object sender, RoutedEventArgs e)
+        {
+            UiMode.Toggle();
+        }
+
         // ===== 一键优化 =====
 
         private async void BtnOptimize_Click(object sender, RoutedEventArgs e)
@@ -606,7 +658,7 @@ namespace WINHELP
             }
             finally
             {
-                BtnOptimize.Content = "✨ " + UiLanguage.L("一键优化", "One-Click Optimize");
+                BtnOptimize.Content = UiLanguage.L("一键优化", "One-Click Optimize");
                 BtnOptimize.IsEnabled = true;
             }
         }

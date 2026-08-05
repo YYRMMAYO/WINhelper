@@ -34,8 +34,8 @@ namespace WINHELP
         // 下载源（备）：蓝奏云下载页面
         public const string BackupDownloadUrl =
             "https://wwbpq.lanzouu.com/b01d71xtzg";
-        // 安装包 SHA-256 校验值：发布流程（P5）计算 dist/BAND/司南工具箱_Setup_v4.9.0.exe 后回填此处
-        public const string ReleaseSha256 = "D63B7BFCFD12EC1B654C50CD85A09B84D91EF6B87C19A10562306E120F6B3B55";
+        // 安装包 SHA-256 校验值：发布流程（P5）计算 dist/BAND/司南工具箱_Setup_v5.0.0.exe 后回填此处
+        public const string ReleaseSha256 = "4F7A4A8174A4861C1F782D379B63DAFA784AF76BD4CBC4AF1121ACA2EF043DCB";
 
         static UpdateManager()
         {
