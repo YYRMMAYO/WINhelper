@@ -81,10 +81,12 @@
             <Setter Property="Margin" Value="24,14,0,4"/>
         </Style>
 
-        <!-- 标题栏按钮（浅色主题）：悬停浅灰、关闭悬停红 -->
+        <!-- 标题栏按钮（Win11 风格：40×32 悬浮胶囊，悬停浅灰，关闭悬停红） -->
         <Style x:Key="CaptionBtn" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-            <Setter Property="Width" Value="46"/>
-            <Setter Property="Height" Value="48"/>
+            <Setter Property="Width" Value="40"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Margin" Value="0,0,4,0"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Cursor" Value="Hand"/>
@@ -92,7 +94,7 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="Bg" Background="{TemplateBinding Background}">
+                        <Border x:Name="Bg" Background="{TemplateBinding Background}" CornerRadius="6">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
@@ -108,21 +110,21 @@
             </Setter>
         </Style>
 
-        <!-- 关闭按钮：悬停红底白叉 -->
+        <!-- 关闭按钮：悬停 Win11 红（#C42B1C）圆角底 + 白叉（字形随 Foreground 变色） -->
         <Style x:Key="CaptionCloseBtn" TargetType="Button" BasedOn="{StaticResource CaptionBtn}">
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="Bg" Background="{TemplateBinding Background}">
+                        <Border x:Name="Bg" Background="{TemplateBinding Background}" CornerRadius="6">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bg" Property="Background" Value="#E74C3C"/>
+                                <Setter TargetName="Bg" Property="Background" Value="#C42B1C"/>
                                 <Setter Property="Foreground" Value="White"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="Bg" Property="Background" Value="#C0392B"/>
+                                <Setter TargetName="Bg" Property="Background" Value="#A02315"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -227,7 +229,7 @@
                     <Button x:Name="BtnMin" Style="{StaticResource CaptionBtn}"
                             Click="BtnMin_Click" ToolTip="{loc:Loc 最小化|Minimize}"
                             shell:WindowChrome.IsHitTestVisibleInChrome="True">
-                        <Path Data="M0,5 H10" Stroke="{DynamicResource TextPrimaryBrush}" StrokeThickness="1"
+                        <Path Data="M0,5 H10" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1"
                               Stretch="None" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Button>
                     <Button x:Name="BtnMax" Style="{StaticResource CaptionBtn}"
@@ -235,14 +237,14 @@
                             shell:WindowChrome.IsHitTestVisibleInChrome="True">
                         <Grid>
                             <Path x:Name="BtnMaxRestore" Data="M0,0 H10 V10 H0 Z"
-                                  Stroke="{DynamicResource TextPrimaryBrush}" StrokeThickness="1"
+                                  Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1"
                                   Stretch="None" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Grid>
                     </Button>
                     <Button x:Name="BtnClose" Style="{StaticResource CaptionCloseBtn}"
                             Click="BtnClose_Click" ToolTip="{loc:Loc 关闭|Close}"
                             shell:WindowChrome.IsHitTestVisibleInChrome="True">
-                        <Path Data="M0,0 L10,10 M10,0 L0,10" Stroke="{DynamicResource TextPrimaryBrush}" StrokeThickness="1.2"
+                        <Path Data="M0,0 L10,10 M10,0 L0,10" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.2"
                               Stretch="None" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Button>
                 </StackPanel>

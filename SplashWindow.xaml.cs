@@ -15,6 +15,8 @@ namespace WINHELP
         public SplashWindow()
         {
             InitializeComponent();
+            // Win11 圆角适配：启动窗口同样跟随系统圆角（Win10 及以下自动跳过）
+            Win11Chrome.Apply(this, true);
         }
 
         /// <summary>淡出并最终关闭本窗口（由 App 在主窗口就绪后调用）。</summary>

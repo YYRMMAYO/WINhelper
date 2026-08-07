@@ -90,6 +90,10 @@ namespace WINHELP
             ThemeManager.ThemeChanged += () => Dispatcher.Invoke(ApplyTheme);
             UiLanguage.Changed += () => Dispatcher.Invoke(Localize);
 
+            // Win11 圆角适配：自绘标题栏窗口默认方角，DWM 显式开启圆角；最大化时恢复方角（防贴边漏缝）
+            Win11Chrome.Apply(this, true);
+            StateChanged += (_, _) => Win11Chrome.Apply(this, WindowState != WindowState.Maximized);
+
             Title = $"司南工具箱 v{UpdateManager.LocalVersion}";
             TxtVersion.Text = "v" + UpdateManager.LocalVersion;
             TxtNavFooter.Text = $"v{UpdateManager.LocalVersion} · GPL v2 · 免费开源";
