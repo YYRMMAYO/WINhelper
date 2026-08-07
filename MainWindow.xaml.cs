@@ -58,6 +58,8 @@ namespace WINHELP
         // 动态导航按钮与分组标题（BuildNav 生成）
         private readonly List<Button> _navButtons = new();
         private readonly List<(TextBlock tb, string zh, string en)> _navHeaders = new();
+        // 导航项内的「首字徽标」引用（激活时切换为实底强调色）：button → (徽标底, 徽标文字, 标题文字)
+        private readonly Dictionary<Button, (Border chip, TextBlock chipText, TextBlock label)> _navChips = new();
         private Button NavHome = null!;
         /// <summary>陪伴运行导航按钮（App.xaml.cs 需要设置 ToolTip 显示热键）</summary>
         public Button NavCompanion { get; private set; } = null!;
@@ -69,9 +71,12 @@ namespace WINHELP
         private static readonly (string GroupZh, string GroupEn, string[] Keys)[] NavSpec =
         {
             ("", "", new[] { "home" }),
-            ("系统工具", "System Tools", new[] { "clean", "startup", "system", "net", "issue", "rescue" }),
+            ("系统工具", "System Tools", new[] { "clean", "startup", "system", "net", "issue", "rescue", "driver" }),
             ("设置", "Settings", new[] { "theme", "settings", "companion" }),
         };
+
+        // 关怀模式缩放基准窗口尺寸（随缩放倍率等比放大）
+        private const double BaseWidth = 1100, BaseHeight = 820, BaseMinWidth = 920, BaseMinHeight = 700;
 
         // 优化结果提示自动隐藏计时器
         private readonly DispatcherTimer _resultTimer =
@@ -99,6 +104,10 @@ namespace WINHELP
             };
 
             UpdateManager.UpdateAvailable += info => Dispatcher.Invoke(() => ShowUpdateBar(info));
+
+            // 关怀模式缩放：随 ThemeManager.UiScale 变化实时应用
+            ThemeManager.UiScaleChanged += () => Dispatcher.Invoke(ApplyUiScale);
+            ApplyUiScale();
 
             Localize();
             // 默认显示首页：推迟到 Loaded，先让窗口框架呈现，提升启动响应速度
@@ -139,7 +148,12 @@ namespace WINHELP
         {
             // 全局背景（共享单例 Brush）只应用于主窗口根网格（RootGrid）。
             // 内容容器 PageHost 保持透明，避免被页面再次叠加同一张壁纸造成"图片背景二次重叠"。
-            RootGrid.Background = ThemeManager.BackgroundBrush;
+            // Acrylic 模式：RootGrid 用浅灰底色，模糊图由 BackdropImage 整窗呈现，
+            // 避免"清晰壁纸 + 半透明玻璃 + 模糊壁纸"三重叠加导致发白发虚（白色默认框感）。
+            RootGrid.Background =
+                ThemeManager.GlassEffect == GlassMode.Acrylic && ThemeManager.HasBackgroundImage
+                ? new SolidColorBrush(Color.FromRgb(0xF0, 0xF2, 0xF5))
+                : ThemeManager.BackgroundBrush;
             PageHost.Background = Brushes.Transparent;
 
             // 同步玻璃模糊背景层（Acrylic 模式可见）
@@ -250,9 +264,35 @@ namespace WINHELP
             }
         }
 
-        /// <summary>依据 NavSpec 动态生成左侧导航（按钮 + 分组标题），Tag 即模块 key。</summary>
+        /// <summary>
+        /// 关怀模式界面缩放：根元素 LayoutTransform 等比缩放 + 窗口尺寸同步放大。
+        /// 上限夹到屏幕工作区：防止 1366×768 等小屏在 140% 时窗口超出屏幕、底部不可达。
+        /// </summary>
+        private void ApplyUiScale()
+        {
+            double s = ThemeManager.UiScale;
+            try
+            {
+                var wa = SystemParameters.WorkArea;
+                if (wa.Width > 0 && wa.Height > 0)
+                {
+                    double maxScale = Math.Min(wa.Width / BaseWidth, wa.Height / BaseHeight);
+                    s = Math.Min(s, Math.Max(1.0, maxScale));
+                }
+            }
+            catch { }
+            RootGrid.LayoutTransform = new ScaleTransform(s, s);
+            Width = BaseWidth * s;
+            Height = BaseHeight * s;
+            MinWidth = BaseMinWidth * s;
+            MinHeight = BaseMinHeight * s;
+        }
+
+        /// <summary>依据 NavSpec 动态生成右侧导航（按钮 + 分组标题），Tag 即模块 key。</summary>
         private void BuildNav()
         {
+            _navButtons.Clear();
+            _navChips.Clear();
             foreach (var (gZh, gEn, keys) in NavSpec)
             {
                 if (!string.IsNullOrEmpty(gZh))
@@ -273,8 +313,11 @@ namespace WINHELP
                     {
                         Tag = k,
                         Style = (Style)FindResource("NavItemStyle"),
-                        Content = UiLanguage.L(m.TitleZh, m.TitleEn),
                     };
+                    // 内容 = 首字徽标 + 标题（与首页卡片视觉语言一致）
+                    var (chip, chipText, label) = BuildNavContent(m);
+                    _navChips[b] = (chip, chipText, label);
+                    b.Content = BuildNavStack(chip, label);
                     b.Click += NavBtn_Click;
                     _navButtons.Add(b);
                     NavPanel.Children.Add(b);
@@ -283,6 +326,55 @@ namespace WINHELP
                 }
             }
         }
+
+        /// <summary>构建导航项内容：首字徽标（Border）+ 标题（TextBlock）横向排列。</summary>
+        private static (Border chip, TextBlock chipText, TextBlock label) BuildNavContent(ModuleDefinition m)
+        {
+            var chipText = new TextBlock
+            {
+                Text = NavFirstChar(m),
+                FontSize = 12.5,
+                FontWeight = FontWeights.SemiBold,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+            };
+            // 徽标底色 / 文字色用 DynamicResource 引用（SetResourceReference）：
+            // 换主题时随共享画刷实时刷新，不会停留在 BuildNav 时的旧强调色。
+            chipText.SetResourceReference(TextBlock.ForegroundProperty, "AccentTextBrush");
+            var chip = new Border
+            {
+                Width = 26, Height = 26,
+                CornerRadius = new CornerRadius(8),
+                VerticalAlignment = VerticalAlignment.Center,
+            };
+            chip.SetResourceReference(Border.BackgroundProperty, "GlassNavActiveBrush");
+            chip.Child = chipText;
+            var label = new TextBlock
+            {
+                Text = UiLanguage.L(m.TitleZh, m.TitleEn),
+                FontSize = 13.5,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(10, 0, 0, 0),
+            };
+            return (chip, chipText, label);
+        }
+
+        private static StackPanel BuildNavStack(Border chip, TextBlock label)
+        {
+            var sp = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                VerticalAlignment = VerticalAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+            };
+            sp.Children.Add(chip);
+            sp.Children.Add(label);
+            return sp;
+        }
+
+        /// <summary>导航徽标首字：中文取标题首字，英文取标题首字母（大写）。</summary>
+        private static string NavFirstChar(ModuleDefinition m)
+            => UiLanguage.Current == Lang.En ? FirstEn(m.TitleEn) : FirstChar(m.TitleZh);
 
         private void NavBtn_Click(object sender, RoutedEventArgs e)
         {
@@ -299,12 +391,24 @@ namespace WINHELP
                 b.Style = (Style)FindResource("NavItemStyle");
                 b.FontWeight = FontWeights.Normal;
                 NavProps.SetIsActive(b, false);
+                // 徽标回到「淡强调色底 + 强调色文字」（资源引用，换主题自动刷新）
+                if (_navChips.TryGetValue(b, out var parts))
+                {
+                    parts.chip.SetResourceReference(Border.BackgroundProperty, "GlassNavActiveBrush");
+                    parts.chipText.SetResourceReference(TextBlock.ForegroundProperty, "AccentTextBrush");
+                }
             }
             if (active != null)
             {
                 active.Style = (Style)FindResource("NavItemActiveStyle");
                 active.FontWeight = FontWeights.SemiBold;
                 NavProps.SetIsActive(active, true);
+                // 激活项徽标切换为「实底强调色 + 白字」
+                if (_navChips.TryGetValue(active, out var parts))
+                {
+                    parts.chip.Background = ThemeManager.AccentBrush;
+                    parts.chipText.Foreground = Brushes.White;
+                }
             }
             ShowPage(key);
         }
@@ -400,7 +504,18 @@ namespace WINHELP
             foreach (var b in _navButtons)
             {
                 if (b.Tag is string k && ModuleRegistry.Find(k) is ModuleDefinition m)
-                    b.Content = UiLanguage.L(m.TitleZh, m.TitleEn);
+                {
+                    // 更新导航项标题文字与徽标首字（随语言切换）
+                    if (_navChips.TryGetValue(b, out var parts))
+                    {
+                        parts.label.Text = UiLanguage.L(m.TitleZh, m.TitleEn);
+                        parts.chipText.Text = NavFirstChar(m);
+                    }
+                    else
+                    {
+                        b.Content = UiLanguage.L(m.TitleZh, m.TitleEn);
+                    }
+                }
             }
             foreach (var (tb, zh, en) in _navHeaders)
                 tb.Text = UiLanguage.L(zh, en);
@@ -746,5 +861,14 @@ namespace WINHELP
 
         private static string FirstChar(string s)
             => string.IsNullOrEmpty(s) ? "" : s[..1];
+
+        /// <summary>英文标题首字母（大写），跳过空格 / 符号等非字母字符；无字母返回空串。</summary>
+        private static string FirstEn(string s)
+        {
+            if (string.IsNullOrEmpty(s)) return "";
+            foreach (char c in s)
+                if (char.IsLetter(c)) return char.ToUpperInvariant(c).ToString();
+            return "";
+        }
     }
 }

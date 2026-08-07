@@ -6,14 +6,14 @@
              xmlns:loc="clr-namespace:WINHELP"
              Background="Transparent">
     <UserControl.Resources>
-        <!-- 功能卡片（v5.3.0：统一尺寸、实心白底、轻边框、宽松内边距） -->
+        <!-- 功能卡片（v5.6.0：圆角更大、悬浮感更强，图标徽标更醒目） -->
         <Style x:Key="HomeCard" TargetType="Border">
-            <Setter Property="Width" Value="236"/>
-            <Setter Property="Height" Value="128"/>
+            <Setter Property="Width" Value="240"/>
+            <Setter Property="Height" Value="132"/>
             <Setter Property="Background" Value="{DynamicResource GlassCardBrush}"/>
             <Setter Property="BorderBrush" Value="#E6E9EF"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="CornerRadius" Value="14"/>
             <Setter Property="Margin" Value="0,0,16,16"/>
             <Setter Property="Padding" Value="18,14"/>
             <Setter Property="Cursor" Value="Hand"/>
@@ -21,16 +21,16 @@
             <Setter Property="local:ClickAnim.HoverScale" Value="1.02"/>
             <Setter Property="Effect">
                 <Setter.Value>
-                    <DropShadowEffect BlurRadius="14" ShadowDepth="1" Direction="270" Opacity="0.05"/>
+                    <DropShadowEffect BlurRadius="16" ShadowDepth="1" Direction="270" Opacity="0.06"/>
                 </Setter.Value>
             </Setter>
         </Style>
 
         <!-- 首字徽标底盘（强调色淡底圆角块） -->
         <Style x:Key="IconChip" TargetType="Border">
-            <Setter Property="Width" Value="38"/>
-            <Setter Property="Height" Value="38"/>
-            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="Width" Value="40"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="CornerRadius" Value="11"/>
             <Setter Property="Background" Value="{DynamicResource GlassNavActiveBrush}"/>
             <Setter Property="HorizontalAlignment" Value="Left"/>
             <Setter Property="VerticalAlignment" Value="Top"/>
@@ -43,21 +43,20 @@
             <Setter Property="Foreground" Value="{DynamicResource TextOnDarkBrush}"/>
             <Setter Property="Margin" Value="2,6,0,12"/>
         </Style>
-
-        <!-- 欢迎条内的小状态块 -->
-        <Style x:Key="WelcomePill" TargetType="Border">
-            <Setter Property="Background" Value="#F2F4F7"/>
-            <Setter Property="CornerRadius" Value="8"/>
-            <Setter Property="Padding" Value="12,8"/>
-            <Setter Property="Margin" Value="0,0,10,0"/>
-        </Style>
     </UserControl.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="2">
         <StackPanel>
 
-            <!-- ===== 欢迎条（轻量：问候 + 日期 + 统计 + 一键优化） ===== -->
-            <Border Style="{StaticResource GlassCard}" Padding="20,16" Margin="0,0,0,22">
+            <!-- ===== 欢迎条（v5.6.0：主题色渐变横幅，问候 + 日期 + 统计 + 一键优化 + 求助家人） ===== -->
+            <Border CornerRadius="16" Margin="0,0,0,22" Padding="26,22"
+                    Panel.ZIndex="0">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="{DynamicResource AccentColor}" Offset="0"/>
+                        <GradientStop Color="{DynamicResource DarkerColor}" Offset="1"/>
+                    </LinearGradientBrush>
+                </Border.Background>
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
@@ -66,31 +65,34 @@
                     </Grid.ColumnDefinitions>
 
                     <!-- 日期块 -->
-                    <Border Grid.Column="0" Width="52" Height="52" CornerRadius="12"
-                            Background="{DynamicResource GlassNavActiveBrush}" VerticalAlignment="Center">
+                    <Border Grid.Column="0" Width="58" Height="58" CornerRadius="14"
+                            Background="#33FFFFFF" VerticalAlignment="Center">
                         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                            <TextBlock x:Name="TxtHeroDay" Text="--" FontSize="19" FontWeight="Bold"
-                                       Foreground="{DynamicResource AccentTextBrush}" HorizontalAlignment="Center"/>
-                            <TextBlock x:Name="TxtHeroMonth" Text="--" FontSize="10"
-                                       Foreground="{DynamicResource TextMutedBrush}" HorizontalAlignment="Center" Margin="0,1,0,0"/>
+                            <TextBlock x:Name="TxtHeroDay" Text="--" FontSize="21" FontWeight="Bold"
+                                       Foreground="White" HorizontalAlignment="Center"/>
+                            <TextBlock x:Name="TxtHeroMonth" Text="--" FontSize="11"
+                                       Foreground="#E8FFFFFF" HorizontalAlignment="Center" Margin="0,1,0,0"/>
                         </StackPanel>
                     </Border>
 
                     <!-- 问候 + 统计 -->
-                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="16,0,12,0">
-                        <TextBlock x:Name="TxtHeroGreeting" FontSize="16" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource TextPrimaryBrush}"/>
-                        <TextBlock x:Name="TxtHeroExtra" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
-                                   Margin="0,5,0,0" TextTrimming="CharacterEllipsis"/>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="18,0,14,0">
+                        <TextBlock x:Name="TxtHeroGreeting" FontSize="18" FontWeight="SemiBold"
+                                   Foreground="White"/>
+                        <TextBlock x:Name="TxtHeroExtra" FontSize="12.5" Foreground="#E8FFFFFF"
+                                   Margin="0,6,0,0" TextTrimming="CharacterEllipsis"/>
                     </StackPanel>
 
-                    <!-- 一键优化按钮 -->
-                    <Button Grid.Column="2" x:Name="BtnWelcomeOptimize" Height="36" Padding="20,0"
-                            FontSize="13" FontWeight="SemiBold" Foreground="White"
-                            BorderThickness="0" Cursor="Hand"
-                            Content="{loc:Loc 一键优化|One-Click Optimize}"
-                            Click="BtnWelcomeOptimize_Click"
-                            VerticalAlignment="Center"/>
+                    <!-- 操作按钮 -->
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                        <!-- 一键优化 -->
+                        <Button x:Name="BtnWelcomeOptimize" Height="38" Padding="20,0"
+                                FontSize="13" FontWeight="SemiBold" Foreground="White"
+                                BorderThickness="0" Cursor="Hand"
+                                Content="{loc:Loc 一键优化|One-Click Optimize}"
+                                Click="BtnWelcomeOptimize_Click"
+                                VerticalAlignment="Center"/>
+                    </StackPanel>
                 </Grid>
             </Border>
 

@@ -41,6 +41,10 @@ namespace WINHELP
         private double? _pendingOpacity = null;
         private double? _pendingGlass = null;
 
+        // 关怀模式缩放节流（LayoutTransform + 窗口尺寸调整同样昂贵）
+        private readonly DispatcherTimer _scaleThrottle = new() { Interval = TimeSpan.FromMilliseconds(60) };
+        private double? _pendingScale = null;
+
         /// <summary>请求返回首页（由 MainWindow 注入）</summary>
         public Action? OnCloseRequest;
 
@@ -48,6 +52,7 @@ namespace WINHELP
         {
             InitializeComponent();
             _blurThrottle.Tick += BlurThrottle_Tick;
+            _scaleThrottle.Tick += ScaleThrottle_Tick;
 
             BuildSwatches();
             SwatchList.ItemsSource = _swatches;
@@ -64,6 +69,10 @@ namespace WINHELP
             else RadioTranslucent.IsChecked = true;
             UpdateOpacityLabel();
             UpdateGlassLabel();
+
+            // 关怀模式缩放：从已保存的倍率恢复滑块与标签
+            SliderScale.Value = ThemeManager.UiScale * 100;
+            UpdateScaleLabel();
 
             UpdateSelectedHighlight();
             UpdateBackgroundPreview();
@@ -204,6 +213,42 @@ namespace WINHELP
                 ThemeManager.SetGlassStrength(_pendingGlass.Value);
                 _pendingGlass = null;
             }
+        }
+
+        // ===== 关怀模式（界面缩放） =====
+
+        private void UpdateScaleLabel() => TxtScale.Text = $"{(int)SliderScale.Value}%";
+
+        private void Scale_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            UpdateScaleLabel();
+            if (!IsLoaded) return;
+            _pendingScale = SliderScale.Value / 100.0;
+            if (!_scaleThrottle.IsEnabled) _scaleThrottle.Start();
+        }
+
+        private void ScaleThrottle_Tick(object? sender, EventArgs e)
+        {
+            _scaleThrottle.Stop();
+            if (!_pendingScale.HasValue) return;
+            ThemeManager.SetUiScale(_pendingScale.Value);
+            _pendingScale = null;
+        }
+
+        private void ScaleNormal_Click(object sender, RoutedEventArgs e) => SetScalePreset(1.00);
+        private void ScaleCare_Click(object sender, RoutedEventArgs e) => SetScalePreset(1.25);
+        private void ScaleLarge_Click(object sender, RoutedEventArgs e) => SetScalePreset(1.40);
+
+        /// <summary>快捷预设：直接应用（与当前滑块值相同也不跳过），并同步滑块显示。</summary>
+        private void SetScalePreset(double scale)
+        {
+            // 先把滑块同步到目标值（可能触发 ValueChanged 排队一个节流任务），
+            // 再取消该排队任务并直接应用一次，避免重复 ApplyUiScale / 重复写配置。
+            SliderScale.Value = scale * 100;
+            UpdateScaleLabel();
+            _scaleThrottle.Stop();
+            _pendingScale = null;
+            ThemeManager.SetUiScale(scale);
         }
 
         private void GlassMode_Changed(object sender, RoutedEventArgs e)

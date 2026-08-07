@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
@@ -250,11 +250,16 @@ namespace WINHELP
             }
         }
 
-        /// <summary>一键优化按钮背景随主题强调色变化</summary>
+        /// <summary>一键优化按钮：白底 + 强调色文字（在主题色渐变横幅上），随主题变化</summary>
         private void ThemeWelcomeButton()
         {
             if (BtnWelcomeOptimize == null) return;
-            ThemeManager.ApplyButtonTheme(BtnWelcomeOptimize, ThemeManager.AccentColor);
+            ThemeManager.ApplyButtonTheme(
+                BtnWelcomeOptimize,
+                Colors.White,
+                hoverColor: Color.FromRgb(0xF0, 0xF3, 0xF7),
+                pressColor: Color.FromRgb(0xE2, 0xE8, 0xF0),
+                foregroundColor: ThemeManager.AccentColor);
         }
 
         private void BtnWelcomeOptimize_Click(object sender, RoutedEventArgs e) => OnOptimize?.Invoke();

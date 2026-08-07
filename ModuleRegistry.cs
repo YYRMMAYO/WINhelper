@@ -88,6 +88,7 @@ namespace WINHELP
             new("net",      "网络诊断",   "Network Diagnostics",   homeGroup: "system", isPrimary: true,  subtitleZh: "连通性检测与测速",           subtitleEn: "Connectivity test & speed"),
             new("issue",    "问题解决",   "Issue Solver",          homeGroup: "system", isPrimary: true,  subtitleZh: "常见故障速查 · 一键修复",     subtitleEn: "Common issues & one-click fix"),
             new("rescue",   "系统急救",   "System Rescue",         homeGroup: "system", isPrimary: true,  subtitleZh: "蓝屏 · 电池 · 端口 · 驱动备份", subtitleEn: "BSOD / battery / ports / driver backup"),
+            new("driver",   "驱动管理",   "Driver Management",     homeGroup: "system", isPrimary: true,  subtitleZh: "驱动健康检测 · 版本 · 备份",    subtitleEn: "Driver health / versions / backup"),
 
             // ===== 效率工具（首页常规卡片） =====
             new("shred",    "文件粉碎",   "File Shredder",         homeGroup: "tools", subtitleZh: "安全彻底删除敏感文件",        subtitleEn: "Securely delete sensitive files"),
@@ -107,7 +108,6 @@ namespace WINHELP
             new("report",   "月度报告",   "Monthly Report",        homeGroup: "assist", subtitleZh: "使用统计与成就",              subtitleEn: "Usage stats & achievements"),
             new("bug",      "BUG 反馈",   "Bug Report",            homeGroup: "assist", subtitleZh: "问题反馈与建议提交",          subtitleEn: "Report issues & suggestions"),
             new("setup",    "装机助手",   "Setup Assistant",       homeGroup: "assist", subtitleZh: "常用软件安装推荐",            subtitleEn: "Recommended software installer"),
-            new("protool",  "专业工具",   "Pro Tools",             homeGroup: "assist", subtitleZh: "绿色免安装专业工具官方下载",  subtitleEn: "Portable pro tools official downloads"),
 
             // ===== 仅导航 / 侧栏入口（不在首页显示） =====
             new("home",      "主界面",     "Home"),
@@ -142,6 +142,7 @@ namespace WINHELP
                 case "issue":    return new IssueSolverPage();
                 case "system":   return new SystemStatusPage { OnNavigate = host.Navigate };
                 case "rescue":   return new RescuePage();
+                case "driver":   return new DriverPage { OnNavigate = host.Navigate };
                 // —— 效率工具 ——
                 case "shred":    return new WindowShredder();
                 case "snapshot": return new WindowSnapshot();
@@ -159,7 +160,6 @@ namespace WINHELP
                 case "report":   return new WindowReport();
                 case "bug":      return new BugReportPage();
                 case "setup":    return new SetupPage();
-                case "protool":  return new ProToolPage { OnNavigate = host.Navigate };
                 // —— 设置 / 装扮 / 陪伴 / 教程 / 首页 ——
                 case "settings":   return new SettingsPage { OnCloseRequest = host.CloseToHome };
                 case "theme":      return new AppearancePage { OnCloseRequest = host.CloseToHome };

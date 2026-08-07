@@ -1,7 +1,6 @@
 ﻿<!-- 独立窗体：启动动画（Splash），由 App 启动流程 Show，就绪后 FadeOutAndClose。详见 MODULES.md -->
-<!-- 性能注记（v4.9.1）：曾用 AllowsTransparency=True + DropShadowEffect，透明窗口强制 WPF 走软件渲染
-     （禁用 GPU 合成），淡入/缩放/旋转/进度条 5 个并行动画全部 CPU 绘制导致卡顿。
-     已改为不透明窗口（硬件加速合成）：背景与卡片同色，圆角卡片四角自然融入，动画流畅。 -->
+<!-- 性能注记（v4.9.1）：不透明窗口（硬件加速合成），背景与卡片同色，避免透明窗口的软件渲染卡顿。 -->
+<!-- v5.6.0：全新启动动画——雷达扩散环 + 罗盘旋转弧 + 徽标渐入 + 文案交错浮现 + 流光进度条（全程无 emoji）。 -->
 <Window x:Class="WINHELP.SplashWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -14,104 +13,191 @@
         Topmost="True"
         ResizeMode="NoResize"
         WindowStartupLocation="CenterScreen"
-        Width="380" Height="240">
+        Width="400" Height="264">
 
-    <!-- 启动动画：加载时淡入 + 缩放，旋转环持续转动；关闭时淡出（见 SplashWindow.xaml.cs） -->
+    <!-- 缓动曲线 -->
+    <Window.Resources>
+        <CubicEase x:Key="EaseOut" EasingMode="EaseOut"/>
+        <SineEase x:Key="SineInOut" EasingMode="EaseInOut"/>
+    </Window.Resources>
+
+    <!-- 启动动画：徽标淡入缩放 + 雷达环扩散 + 弧线旋转 + 文案交错浮现 + 流光进度（见 SplashWindow.xaml.cs 淡出） -->
     <Window.Triggers>
+        <!-- 徽标 + 卡片渐入 -->
         <EventTrigger RoutedEvent="Loaded">
             <BeginStoryboard>
                 <Storyboard>
-                    <DoubleAnimation Storyboard.TargetName="Card"
+                    <DoubleAnimation Storyboard.TargetName="Badge"
                                      Storyboard.TargetProperty="Opacity"
-                                     From="0" To="1" Duration="0:0:0.45">
-                        <DoubleAnimation.EasingFunction>
-                            <CubicEase EasingMode="EaseOut"/>
-                        </DoubleAnimation.EasingFunction>
-                    </DoubleAnimation>
-                    <DoubleAnimation Storyboard.TargetName="CardScale"
+                                     From="0" To="1" Duration="0:0:0.4" EasingFunction="{StaticResource EaseOut}"/>
+                    <DoubleAnimation Storyboard.TargetName="BadgeScale"
                                      Storyboard.TargetProperty="ScaleX"
-                                     From="0.9" To="1" Duration="0:0:0.45">
-                        <DoubleAnimation.EasingFunction>
-                            <CubicEase EasingMode="EaseOut"/>
-                        </DoubleAnimation.EasingFunction>
-                    </DoubleAnimation>
-                    <DoubleAnimation Storyboard.TargetName="CardScale"
+                                     From="0.7" To="1" Duration="0:0:0.45" EasingFunction="{StaticResource EaseOut}"/>
+                    <DoubleAnimation Storyboard.TargetName="BadgeScale"
                                      Storyboard.TargetProperty="ScaleY"
-                                     From="0.9" To="1" Duration="0:0:0.45">
-                        <DoubleAnimation.EasingFunction>
-                            <CubicEase EasingMode="EaseOut"/>
-                        </DoubleAnimation.EasingFunction>
-                    </DoubleAnimation>
+                                     From="0.7" To="1" Duration="0:0:0.45" EasingFunction="{StaticResource EaseOut}"/>
                 </Storyboard>
             </BeginStoryboard>
+        </EventTrigger>
+
+        <!-- 文案交错浮现：标题 → 副标题 -->
+        <EventTrigger RoutedEvent="Loaded">
+            <BeginStoryboard>
+                <Storyboard>
+                    <DoubleAnimation Storyboard.TargetName="TxtTitle"
+                                     Storyboard.TargetProperty="Opacity"
+                                     From="0" To="1" BeginTime="0:0:0.30" Duration="0:0:0.35" EasingFunction="{StaticResource EaseOut}"/>
+                    <DoubleAnimation Storyboard.TargetName="TxtTitleSlide"
+                                     Storyboard.TargetProperty="Y"
+                                     From="12" To="0" BeginTime="0:0:0.30" Duration="0:0:0.35" EasingFunction="{StaticResource EaseOut}"/>
+                    <DoubleAnimation Storyboard.TargetName="TxtSub"
+                                     Storyboard.TargetProperty="Opacity"
+                                     From="0" To="1" BeginTime="0:0:0.55" Duration="0:0:0.35" EasingFunction="{StaticResource EaseOut}"/>
+                    <DoubleAnimation Storyboard.TargetName="TxtSubSlide"
+                                     Storyboard.TargetProperty="Y"
+                                     From="10" To="0" BeginTime="0:0:0.55" Duration="0:0:0.35" EasingFunction="{StaticResource EaseOut}"/>
+                </Storyboard>
+            </BeginStoryboard>
+        </EventTrigger>
+
+        <!-- 雷达扩散环：两圈交错循环扩散 -->
+        <EventTrigger RoutedEvent="Loaded">
             <BeginStoryboard>
                 <Storyboard RepeatBehavior="Forever">
-                    <DoubleAnimation Storyboard.TargetName="RingRotate"
+                    <DoubleAnimation Storyboard.TargetName="Ring1Scale"
+                                     Storyboard.TargetProperty="ScaleX"
+                                     From="0.25" To="1.6" Duration="0:0:1.8" EasingFunction="{StaticResource EaseOut}"/>
+                    <DoubleAnimation Storyboard.TargetName="Ring1Scale"
+                                     Storyboard.TargetProperty="ScaleY"
+                                     From="0.25" To="1.6" Duration="0:0:1.8" EasingFunction="{StaticResource EaseOut}"/>
+                    <DoubleAnimation Storyboard.TargetName="Ring1"
+                                     Storyboard.TargetProperty="Opacity"
+                                     From="0.5" To="0" Duration="0:0:1.8" EasingFunction="{StaticResource EaseOut}"/>
+                    <DoubleAnimation Storyboard.TargetName="Ring2Scale"
+                                     Storyboard.TargetProperty="ScaleX"
+                                     From="0.25" To="1.6" BeginTime="0:0:0.9" Duration="0:0:1.8" EasingFunction="{StaticResource EaseOut}"/>
+                    <DoubleAnimation Storyboard.TargetName="Ring2Scale"
+                                     Storyboard.TargetProperty="ScaleY"
+                                     From="0.25" To="1.6" BeginTime="0:0:0.9" Duration="0:0:1.8" EasingFunction="{StaticResource EaseOut}"/>
+                    <DoubleAnimation Storyboard.TargetName="Ring2"
+                                     Storyboard.TargetProperty="Opacity"
+                                     From="0.5" To="0" BeginTime="0:0:0.9" Duration="0:0:1.8" EasingFunction="{StaticResource EaseOut}"/>
+                </Storyboard>
+            </BeginStoryboard>
+        </EventTrigger>
+
+        <!-- 罗盘弧线持续旋转 -->
+        <EventTrigger RoutedEvent="Loaded">
+            <BeginStoryboard>
+                <Storyboard RepeatBehavior="Forever">
+                    <DoubleAnimation Storyboard.TargetName="CompassRotate"
                                      Storyboard.TargetProperty="Angle"
-                                     From="0" To="360" Duration="0:0:1.1"/>
+                                     From="0" To="360" Duration="0:0:1.6"/>
+                </Storyboard>
+            </BeginStoryboard>
+        </EventTrigger>
+
+        <!-- 流光进度条 -->
+        <EventTrigger RoutedEvent="Loaded">
+            <BeginStoryboard>
+                <Storyboard RepeatBehavior="Forever">
+                    <DoubleAnimation Storyboard.TargetName="BarGlow"
+                                     Storyboard.TargetProperty="X"
+                                     From="-60" To="300" Duration="0:0:1.3" EasingFunction="{StaticResource SineInOut}"/>
                 </Storyboard>
             </BeginStoryboard>
         </EventTrigger>
     </Window.Triggers>
 
-    <Border x:Name="Card" RenderTransformOrigin="0.5,0.5" CornerRadius="20"
-            Background="#F7F9FC" BorderBrush="#E3E8EF" BorderThickness="1">
-        <Border.RenderTransform>
-            <ScaleTransform x:Name="CardScale" ScaleX="0.9" ScaleY="0.9"/>
-        </Border.RenderTransform>
+    <Grid>
+        <!-- 徽标区（罗盘：渐变方块 + 雷达环 + 旋转弧） -->
+        <Grid x:Name="Badge" Width="96" Height="96" Margin="0,34,0,0"
+              HorizontalAlignment="Center" VerticalAlignment="Top"
+              RenderTransformOrigin="0.5,0.5">
+            <Grid.RenderTransform>
+                <ScaleTransform x:Name="BadgeScale" ScaleX="0.7" ScaleY="0.7"/>
+            </Grid.RenderTransform>
 
-        <Grid Margin="0,28,0,22">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-            </Grid.RowDefinitions>
+            <!-- 雷达扩散环 -->
+            <Ellipse x:Name="Ring1" Width="96" Height="96"
+                     Stroke="#334A90D9" StrokeThickness="1.5" Opacity="0">
+                <Ellipse.RenderTransform>
+                    <ScaleTransform x:Name="Ring1Scale" CenterX="48" CenterY="48"/>
+                </Ellipse.RenderTransform>
+            </Ellipse>
+            <Ellipse x:Name="Ring2" Width="96" Height="96"
+                     Stroke="#264A90D9" StrokeThickness="1.5" Opacity="0">
+                <Ellipse.RenderTransform>
+                    <ScaleTransform x:Name="Ring2Scale" CenterX="48" CenterY="48"/>
+                </Ellipse.RenderTransform>
+            </Ellipse>
 
-            <!-- 罗盘徽标 + 旋转环 -->
-            <Grid Grid.Row="0" Width="76" Height="76" HorizontalAlignment="Center" Margin="0,0,0,16">
-                <Ellipse Width="76" Height="76" Fill="#EAF2FB"/>
-                <Ellipse Width="62" Height="62" Stroke="#4A90D9" StrokeThickness="4"
-                         StrokeDashArray="42 150" HorizontalAlignment="Center" VerticalAlignment="Center">
-                    <Ellipse.RenderTransform>
-                        <RotateTransform x:Name="RingRotate" CenterX="31" CenterY="31"/>
-                    </Ellipse.RenderTransform>
-                </Ellipse>
-                <TextBlock Text="🧭" FontSize="34" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-            </Grid>
+            <!-- 旋转弧（罗盘指针扫过） -->
+            <Ellipse Width="84" Height="84"
+                     Stroke="#4A90D9" StrokeThickness="2.5"
+                     StrokeDashArray="58 206"
+                     StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                     HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Ellipse.RenderTransform>
+                    <RotateTransform x:Name="CompassRotate" CenterX="42" CenterY="42"/>
+                </Ellipse.RenderTransform>
+            </Ellipse>
 
-            <!-- 标题 -->
-            <TextBlock Grid.Row="1" Text="{loc:Loc 司南工具箱|Sinan Toolbox}" FontSize="22" FontWeight="Bold"
-                       Foreground="#2C3E50" HorizontalAlignment="Center"/>
-            <TextBlock Grid.Row="2"
-                       Text="{loc:Loc 正在启动，请稍候…|Starting up, please wait…}"
-                       FontSize="13" Foreground="#8A96A3" HorizontalAlignment="Center" Margin="0,8,0,0"/>
-
-            <!-- 进度条（不确定态） -->
-            <Grid Grid.Row="3" Width="240" Height="4" Margin="0,18,0,0">
-                <Border Background="#E6EBF1" CornerRadius="2"/>
-                <Border x:Name="Bar" Width="80" Height="4" CornerRadius="2" Background="#4A90D9"
-                        HorizontalAlignment="Left">
-                    <Border.RenderTransform>
-                        <TranslateTransform x:Name="BarOffset" X="0"/>
-                    </Border.RenderTransform>
-                    <Border.Triggers>
-                        <EventTrigger RoutedEvent="Loaded">
-                            <BeginStoryboard>
-                                <Storyboard RepeatBehavior="Forever">
-                                    <DoubleAnimation Storyboard.TargetName="BarOffset"
-                                                     Storyboard.TargetProperty="X"
-                                                     From="0" To="160" Duration="0:0:1.4">
-                                        <DoubleAnimation.EasingFunction>
-                                            <SineEase EasingMode="EaseInOut"/>
-                                        </DoubleAnimation.EasingFunction>
-                                    </DoubleAnimation>
-                                </Storyboard>
-                            </BeginStoryboard>
-                        </EventTrigger>
-                    </Border.Triggers>
-                </Border>
-            </Grid>
+            <!-- 渐变徽标方块：司（无 emoji） -->
+            <Border Width="58" Height="58" CornerRadius="15"
+                    HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="#4A90D9" Offset="0"/>
+                        <GradientStop Color="#3B77B5" Offset="1"/>
+                    </LinearGradientBrush>
+                </Border.Background>
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="18" ShadowDepth="2" Direction="270" Opacity="0.25"/>
+                </Border.Effect>
+                <TextBlock Text="司" FontSize="26" FontWeight="Bold" Foreground="White"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
         </Grid>
-    </Border>
+
+        <!-- 标题 -->
+        <TextBlock x:Name="TxtTitle" Grid.Column="0"
+                   Text="{loc:Loc 司南工具箱|Sinan Toolbox}"
+                   FontSize="21" FontWeight="Bold" Foreground="#2C3E50"
+                   HorizontalAlignment="Center" Margin="0,146,0,0"
+                   Opacity="0">
+            <TextBlock.RenderTransform>
+                <TranslateTransform x:Name="TxtTitleSlide" Y="12"/>
+            </TextBlock.RenderTransform>
+        </TextBlock>
+
+        <!-- 副标题 -->
+        <TextBlock x:Name="TxtSub"
+                   Text="{loc:Loc 正在启动，请稍候…|Starting up, please wait…}"
+                   FontSize="12.5" Foreground="#8A96A3"
+                   HorizontalAlignment="Center" Margin="0,180,0,0"
+                   Opacity="0">
+            <TextBlock.RenderTransform>
+                <TranslateTransform x:Name="TxtSubSlide" Y="10"/>
+            </TextBlock.RenderTransform>
+        </TextBlock>
+
+        <!-- 流光进度条（不确定态） -->
+        <Grid Width="240" Height="5" Margin="0,218,0,0" HorizontalAlignment="Center" VerticalAlignment="Top"
+              ClipToBounds="True">
+            <Border Background="#E3E8EF" CornerRadius="2.5"/>
+            <Border CornerRadius="2.5" ClipToBounds="True">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                        <GradientStop Color="#7FB2E8" Offset="0"/>
+                        <GradientStop Color="#4A90D9" Offset="0.5"/>
+                        <GradientStop Color="#7FB2E8" Offset="1"/>
+                    </LinearGradientBrush>
+                </Border.Background>
+                <Border.RenderTransform>
+                    <TranslateTransform x:Name="BarGlow" X="-60"/>
+                </Border.RenderTransform>
+            </Border>
+        </Grid>
+    </Grid>
 </Window>

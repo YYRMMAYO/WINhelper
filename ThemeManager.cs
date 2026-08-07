@@ -31,6 +31,9 @@ namespace WINHELP
 
         /// <summary>是否跟随系统深浅色（P1-7）</summary>
         public bool FollowSystem { get; set; } = false;
+
+        /// <summary>关怀模式界面缩放倍率（0.85–1.4，默认 1.0）</summary>
+        public double UiScale { get; set; } = 1.0;
     }
 
     /// <summary>
@@ -69,6 +72,10 @@ namespace WINHELP
         // ===== 字体 =====
         /// <summary>当前全局界面字体名（中文常用美观字体），默认微软雅黑</summary>
         public static string FontFamilyName { get; private set; } = "Microsoft YaHei";
+
+        // ===== 关怀模式界面缩放 =====
+        /// <summary>界面缩放倍率（0.85–1.4，默认 1.0）。窗口根元素 LayoutTransform + 窗口尺寸等比放大。</summary>
+        public static double UiScale { get; private set; } = 1.0;
 
         // ===== 玻璃化新增属性 =====
         /// <summary>背景图不透明度（0-1，1=完全不透明）。用户可在主题设置中拖动滑块调节。</summary>
@@ -160,6 +167,9 @@ namespace WINHELP
         /// <summary>玻璃化参数变更时触发（透明度/强度/模式）。MainWindow 收到后切换 BackdropImage 可见性 + InvalidateVisual。</summary>
         public static event Action? GlassChanged;
 
+        /// <summary>关怀模式缩放变更时触发（MainWindow 收到后应用 LayoutTransform 并调整窗口尺寸）</summary>
+        public static event Action? UiScaleChanged;
+
         public static readonly ThemePreset[] Presets =
         {
             new("default",  "默认蓝",   "#4A90D9"),
@@ -243,6 +253,25 @@ namespace WINHELP
             GlassEffect = mode;
             ApplyGlass();
             RaiseThemeChanged();
+        }
+
+        /// <summary>
+        /// 设置关怀模式界面缩放倍率（0.85–1.4）。
+        /// 应用方式：窗口根元素 LayoutTransform = ScaleTransform(scale, scale) + 窗口尺寸同步放大，
+        /// 全量缩放（文字 / 间距 / 控件尺寸一起放大），适合老年用户 / 低视力 / 大屏幕远距离使用。
+        /// </summary>
+        public static void SetUiScale(double scale)
+        {
+            UiScale = Math.Clamp(scale, 0.85, 1.4);
+            var handlers = UiScaleChanged;
+            if (handlers != null)
+            {
+                foreach (var d in handlers.GetInvocationList())
+                {
+                    try { ((Action)d)(); } catch { /* 单个订阅者失败不影响其他 */ }
+                }
+            }
+            Save();
         }
 
         /// <summary>设置全局界面字体（中文常用美观字体），立即应用并持久化</summary>
@@ -492,14 +521,14 @@ namespace WINHELP
             if (isStarry)             cardAlpha = 0xD6;  // 84%（深色底需高 alpha）
             else if (isAcrylic && hasImg) cardAlpha = 0x50;  // ~31%（有图模糊）
             else if (!hasImg)        cardAlpha = 0xF2;  // ~95%（近实心白，简洁清晰）
-            else                     cardAlpha = (byte)(Math.Min(GlassStrength + 0.08, 0.92) * 255);
+            else                     cardAlpha = (byte)(Math.Clamp(GlassStrength - 0.10, 0.45, 0.62) * 255); // 有图更透，壁纸清晰可见
 
             // 面板 alpha（比卡片低一档，层次感）
             byte panelAlpha;
             if (isStarry)             panelAlpha = 0xC8;  // 78%
             else if (isAcrylic && hasImg) panelAlpha = 0x32;  // ~20%
             else if (!hasImg)        panelAlpha = 0xE4;  // ~89%
-            else                     panelAlpha = (byte)(Math.Min(GlassStrength + 0.13, 0.93) * 255);
+            else                     panelAlpha = (byte)(Math.Clamp(GlassStrength - 0.04, 0.52, 0.68) * 255); // 有图更透
 
             // 顶栏：与面板一致
             byte topbarAlpha = panelAlpha;
@@ -527,7 +556,7 @@ namespace WINHELP
             if (isStarry)             pillAlpha = 0x9E;  // 62%
             else if (isAcrylic && hasImg) pillAlpha = 0x26;  // ~15%
             else if (!hasImg)        pillAlpha = 0xCE;  // ~81%
-            else                     pillAlpha = (byte)(Math.Max(GlassStrength - 0.05, 0.35) * 255);
+            else                     pillAlpha = (byte)(Math.Clamp(GlassStrength - 0.16, 0.34, 0.50) * 255); // 有图更透
 
             // 搜索框：同 pill
             byte searchAlpha = pillAlpha;
@@ -718,6 +747,7 @@ namespace WINHELP
                     GlassMode = GlassEffect.ToString(),
                     PresetKey = ActivePresetKey,
                     FontFamilyName = FontFamilyName,
+                    UiScale = UiScale,
                 };
                 File.WriteAllText(ConfigPath, JsonSerializer.Serialize(config));
             }
@@ -755,6 +785,7 @@ namespace WINHELP
                 }
                 BackgroundOpacity = Math.Clamp(config.BackgroundOpacity, 0.0, 1.0);
                 GlassStrength     = Math.Clamp(config.GlassStrength, 0.4, 0.9);
+                UiScale           = Math.Clamp(config.UiScale, 0.85, 1.4);
                 if (Enum.TryParse<GlassMode>(config.GlassMode, out var mode))
                 {
                     GlassEffect = mode;

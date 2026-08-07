@@ -1,0 +1,120 @@
+<!-- 导航模块 key="driver"：对应 DriverPage.xaml.cs（v5.6.0 新增）。详见 MODULES.md -->
+<UserControl x:Class="WINHELP.DriverPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:WINHELP"
+             xmlns:loc="clr-namespace:WINHELP"
+             Background="Transparent">
+    <UserControl.Resources>
+        <Style x:Key="ActionButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Height" Value="36"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="16,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="8">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="2">
+        <StackPanel>
+            <!-- 标题 -->
+            <StackPanel Orientation="Horizontal" Margin="2,0,0,18">
+                <Border Width="44" Height="44" CornerRadius="12" Background="{DynamicResource GlassNavActiveBrush}" VerticalAlignment="Center">
+                    <TextBlock Text="驱" FontSize="17" FontWeight="SemiBold"
+                               Foreground="{DynamicResource AccentTextBrush}"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <StackPanel VerticalAlignment="Center" Margin="14,0,0,0">
+                    <TextBlock Text="{loc:Loc 驱动管理|Driver Management}" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource TextOnDarkBrush}"/>
+                    <TextBlock Text="{loc:Loc 检查驱动是否正常 · 查看关键设备版本 · 备份与更新|Check driver health,key device versions,backup &amp; update}"
+                               FontSize="12" Foreground="{DynamicResource TextOnDarkBrush}" Margin="0,3,0,0"/>
+                </StackPanel>
+            </StackPanel>
+
+            <!-- 驱动健康检测 -->
+            <Border Style="{StaticResource GlassCard}" CornerRadius="14" Padding="20" Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="{loc:Loc 驱动健康检测|Driver Health Check}" FontSize="15" FontWeight="Bold"
+                               Foreground="#2C3E50" Margin="0,0,0,4"/>
+                    <TextBlock FontSize="12" Foreground="#7F8C8D" Margin="0,0,0,12" TextWrapping="Wrap"
+                               Text="{loc:Loc 检测有问题的驱动设备（如声卡无声音、网卡不识别、显卡感叹号等）。这些问题大多是驱动未安装或损坏导致。|Detect devices with driver problems (e.g. no sound,unrecognized network card,yellow exclamation mark). These are usually caused by missing or broken drivers.}"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                        <Button x:Name="BtnCheck" Style="{StaticResource ActionButton}"
+                                Background="#4A90D9" Content="{loc:Loc 开始检测|Scan Now}" Click="BtnCheck_Click"/>
+                        <TextBlock x:Name="TxtCheckHint" FontSize="12" Foreground="#7F8C8D"
+                                   VerticalAlignment="Center" Margin="14,0,0,0"/>
+                    </StackPanel>
+                    <TextBox x:Name="TxtCheckOut" Style="{StaticResource CodePanel}" Height="150"
+                             FontSize="12.5"/>
+                </StackPanel>
+            </Border>
+
+            <!-- 关键设备驱动信息 -->
+            <Border Style="{StaticResource GlassCard}" CornerRadius="14" Padding="20" Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="{loc:Loc 关键设备驱动信息|Key Device Driver Info}" FontSize="15" FontWeight="Bold"
+                               Foreground="#2C3E50" Margin="0,0,0,4"/>
+                    <TextBlock FontSize="12" Foreground="#7F8C8D" Margin="0,0,0,12" TextWrapping="Wrap"
+                               Text="{loc:Loc 查看显卡 / 声卡 / 网卡的型号与驱动版本，方便比对官方新版驱动。|View the model and driver version of your graphics, audio and network cards to compare with official driver releases.}"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                        <Button x:Name="BtnInfo" Style="{StaticResource ActionButton}"
+                                Background="#27AE60" Content="{loc:Loc 读取驱动信息|Read Driver Info}" Click="BtnInfo_Click"/>
+                        <TextBlock x:Name="TxtInfoHint" FontSize="12" Foreground="#7F8C8D"
+                                   VerticalAlignment="Center" Margin="14,0,0,0"/>
+                    </StackPanel>
+                    <TextBox x:Name="TxtInfoOut" Style="{StaticResource CodePanel}" Height="170"
+                             FontSize="12.5"/>
+                </StackPanel>
+            </Border>
+
+            <!-- 驱动备份与更新 -->
+            <Border Style="{StaticResource GlassCard}" CornerRadius="14" Padding="20" Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="{loc:Loc 驱动备份与更新|Driver Backup &amp; Update}" FontSize="15" FontWeight="Bold"
+                               Foreground="#2C3E50" Margin="0,0,0,4"/>
+                    <TextBlock FontSize="12" Foreground="#7F8C8D" Margin="0,0,0,12" TextWrapping="Wrap"
+                               Text="{loc:Loc 重装系统前先备份驱动，出问题时就能快速恢复。系统急救模块提供一键备份全部驱动到桌面。|Back up drivers before reinstalling Windows so you can restore quickly. The System Rescue module offers one-click backup of all drivers to the desktop.}"/>
+                    <StackPanel Orientation="Horizontal">
+                        <Button x:Name="BtnBackup" Style="{StaticResource ActionButton}"
+                                Background="#E67E22" Content="{loc:Loc 去系统急救备份驱动|Backup in System Rescue}"
+                                Click="BtnBackup_Click"/>
+                        <Button x:Name="BtnGpu" Style="{StaticResource ActionButton}"
+                                Background="#34495E" Content="{loc:Loc 显卡驱动官网|GPU Driver Site}" Margin="10,0,0,0"
+                                Click="BtnGpu_Click"/>
+                        <Button x:Name="BtnCpu" Style="{StaticResource ActionButton}"
+                                Background="#34495E" Content="{loc:Loc 主板 / CPU 驱动官网|Motherboard Driver Site}" Margin="10,0,0,0"
+                                Click="BtnCpu_Click"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- 常见驱动问题 -->
+            <Border Style="{StaticResource GlassCard}" CornerRadius="14" Padding="20">
+                <StackPanel>
+                    <TextBlock Text="{loc:Loc 常见驱动问题|Common Driver Issues}" FontSize="15" FontWeight="Bold"
+                               Foreground="#2C3E50" Margin="0,0,0,10"/>
+                    <TextBlock FontSize="12.5" Foreground="#5F6B7A" TextWrapping="Wrap" Margin="0,0,0,8"
+                               Text="{loc:Loc ① 电脑没有声音 / 外放无声：右键「此电脑」→ 管理 → 设备管理器，查看「声音、视频和游戏控制器」是否有黄色感叹号；有则右键「更新驱动程序」→ 自动搜索，或到声卡/主板官网下载驱动。|① No sound: right-click This PC,open Manage then Device Manager,look for a yellow mark under Sound video and game controllers; if present right-click Update driver,search automatically,or download from the audio/mainboard site.}"/>
+                    <TextBlock FontSize="12.5" Foreground="#5F6B7A" TextWrapping="Wrap" Margin="0,0,0,8"
+                               Text="{loc:Loc ② 网卡不识别 / 连不上网：设备管理器中「网络适配器」有感叹号时，先试「更新驱动程序」；不行就下载主板官网的网卡驱动，拷贝安装（可先用手机热点联网下载）。|② Network card not recognized: if Network adapters shows a yellow mark,try Update driver first; otherwise download the mainboard NIC driver via phone hotspot and install it.}"/>
+                    <TextBlock FontSize="12.5" Foreground="#5F6B7A" TextWrapping="Wrap" Margin="0,0,0,8"
+                               Text="{loc:Loc ③ 屏幕分辨率不对 / 游戏卡顿：多半是显卡驱动缺失，先到设备管理器更新，仍不行再到显卡官网下载对应型号驱动。|③ Wrong resolution / laggy games: usually a missing GPU driver — update via Device Manager first,then download the matching driver from the GPU vendor site.}"/>
+                    <TextBlock FontSize="12.5" Foreground="#5F6B7A" TextWrapping="Wrap"
+                               Text="{loc:Loc ④ 黄色感叹号代码含义：28 未安装驱动；31/39 驱动加载失败；41 驱动损坏；43 硬件可能故障。建议先备份重要文件再处理。|④ Exclamation code meanings: 28 driver not installed; 31/39 driver failed to load; 41 driver corrupted; 43 possible hardware failure. Back up important files first.}"/>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

@@ -23,7 +23,7 @@ namespace WINHELP
             // 已在 UI 线程调用；用代码创建动画以避免资源 Storyboard 的命名域解析问题。
             var sb = new Storyboard();
             var fade = new DoubleAnimation(1, 0, new Duration(System.TimeSpan.FromSeconds(0.35)));
-            Storyboard.SetTarget(fade, Card);
+            Storyboard.SetTarget(fade, this);
             Storyboard.SetTargetProperty(fade, new PropertyPath(UIElement.OpacityProperty));
             sb.Children.Add(fade);
             sb.Completed += (_, _) => Close();

@@ -2,7 +2,19 @@
 
 > 用途：本文件是项目的**总索引**。当你在 VS 里"只看到部分代码、找不到某个模块"时，先查这里。
 > 维护约定：新增/合并模块后，请同步更新本文件与 `ModuleRegistry.cs`（模块元数据单一来源），`MainWindow.InitPages()` 会自动遍历注册。
-> 版本：随主程序 5.5.0。命名空间统一为 `WINHELP`；程序集名/EXE 名为「司南工具箱」（AppData 数据目录仍为 `WINHELP`）。
+> 版本：随主程序 5.6.0。命名空间统一为 `WINHELP`；程序集名/EXE 名为「司南工具箱」（AppData 数据目录仍为 `WINHELP`）。
+
+## v5.6.0 UI 全面重构与新手关怀（2026-08-07）
+
+- **导引栏移至右侧**：`MainWindow.xaml` 内容/导航两栏对调，`GlassSidebar` 描边改到左侧；导航项由纯文字升级为「首字徽标 + 标题」（与首页卡片同语言），激活时徽标切换为实底强调色，指示条朝向内容区。
+- **首页重设计**：欢迎条改为主题色渐变横幅（问候 + 日期块 + 统计 + 一键优化 + 求助家人），卡片圆角/阴影微调。
+- **启动动画全新重做（SplashWindow）**：弃用 emoji 罗盘，改为「渐变徽标 + 雷达扩散环 + 旋转弧 + 文案交错浮现 + 流光进度条」，全程硬件加速、无 emoji。
+- **新增「关怀模式」**：`AppearancePage` 新增界面缩放（85%–140%，快捷预设 100%/125%/140%），窗口根 LayoutTransform + 尺寸等比放大（上限夹到屏幕工作区，防小屏 140% 出界），面向老人/低视力/远距离；`ThemeManager.UiScale` 持久化。
+- **新增 `driver` 驱动管理模块**：驱动健康检测（Win32_PnPEntity 错误码≠0 → 白话原因 + 修复建议）、关键设备驱动信息（显卡/声卡/网卡版本与日期）、驱动备份入口（跳转系统急救 dism 备份）、按显卡/主板品牌自动匹配官方驱动下载页。
+- **自定义背景图片优化**：模糊/星空装饰层改为覆盖整窗（含标题栏）；Acrylic 模式根背景改浅灰底，消除“清晰壁纸 + 模糊壁纸 + 半透明玻璃”三重叠加的白色发虚；有图时玻璃面板 alpha 整体调低（卡片 ~55%、面板 ~61%），壁纸清晰透出，不再有“白色默认框”感。
+- **删除 `protool` 专业工具**（ProToolPage + ToolCatalog.cs）：纯下载链接列表，与 `tool` WIN 助手重叠，且面向专业用户与本软件新手定位不符。
+- **求助家人方案改为文档**：首页不占按钮；新增《求助与远程协助优化指南.md》沉淀远程协助工具选型、三步求助法与安全提示，供“电脑帮助”页落地。
+- 版本同步：5.6.0（csproj / iss / SiteFinderPage / MODULES.md / README）。
 
 ## v5.5.0 性能与实用性增强（2026-08-06 第三轮）
 
@@ -59,7 +71,7 @@
 - **首页重设计**：仅保留 19 张功能卡片 + 顶部轻量欢迎条（问候 + 上次优化 + 可清理统计 + 一键优化）；移除原「每日贴士卡」「英雄横幅」「系统状况状态条」等冗余装饰；卡片改为统一尺寸、实色白底、轻边框。
 - **新增模块**：`duplicate` 重复文件查找（按文件名 + 大小分组 → SHA-256 校验 → 全部移入回收站 + 双重确认，常规 `FileSystem.DeleteFile` 不可逆风险彻底规避）。
 - **删除模块**：`wizard` 故障向导（与 `issue` 问题解决功能重叠，删除其页与类）、`novice` 新手导览（内容并入 `help` 电脑帮助页）。`tutorial` AI 密钥教程保留为 Agent 内部跳转入口。
-- **侧栏 `系统工具` 组**（v5.3.0）：clean / startup / system / net / issue / rescue（6 项，最常用入口）；其余模块（重复文件、截图、便签、装机等）经首页卡片 / Ctrl+K 命令面板直达。
+- **侧栏 `系统工具` 组**（v5.6.0）：clean / startup / system / net / issue / rescue / driver（7 项，最常用入口）；其余模块（重复文件、截图、便签、装机等）经首页卡片 / Ctrl+K 命令面板直达。
 
 ## UI 规范（v5.2.0 → v5.3.0 更新）
 
@@ -102,6 +114,7 @@
 | `net` | NetworkDiagnosticsPage | `NetworkDiagnosticsPage.xaml` | `NetworkDiagnosticsPage.xaml.cs` | Page | 系统工具 | 网络连通性检测 + 网速测试 | `System.Net.*` |
 | `issue` | IssueSolverPage | `IssueSolverPage.xaml` | `IssueSolverPage.xaml.cs` | Page | 系统工具 | 问题解决：常见故障知识库（6 大类）+ 白名单命令一键修复（实时回显） | `IssueCatalog`（问题条目）、`CommandRunner`（白名单执行） |
 | `system` | SystemStatusPage | `SystemStatusPage.xaml` | `SystemStatusPage.xaml.cs` | Page | 系统工具 | 设备检测 + 完整性检测 + 优化建议 | `HardwareInfo`、`HealthScoreService` |
+| `driver` | DriverPage | `DriverPage.xaml` | `DriverPage.xaml.cs` | Page | 系统工具 | 驱动管理：健康检测（错误码≠0 → 白话建议）+ 关键设备版本 + 备份入口 + 官网直达（v5.6.0 新增） | `System.Management` WMI |
 | `shred` | WindowShredder | `WindowShredder.xaml` | `WindowShredder.xaml.cs` | Page | 效率工具 | 文件安全擦除（不可恢复） | `System.Security.Cryptography` |
 | `snapshot` | WindowSnapshot | `WindowSnapshot.xaml` | `WindowSnapshot.xaml.cs` | Page | 效率工具 | 区域截图 + 标注编辑 | GDI+ `CopyFromScreen` |
 | `uninstall` | WindowUninstaller | `WindowUninstaller.xaml` | `WindowUninstaller.xaml.cs` | Page | 效率工具 | 卸载残留清理 | 注册表 |
@@ -128,7 +141,7 @@
 |---|---|---|---|---|
 | `CompanionWindow` | `CompanionWindow.xaml` | `CompanionWindow.xaml.cs` | 托盘菜单 / `CompanionPage` | 陪伴运行小窗：图形框 + 北京时间 + 返回 + 设置 |
 | `SearchWindow` | `SearchWindow.xaml` | `SearchWindow.xaml.cs` | `MainWindow`（Ctrl+K） | 全局命令面板：跨模块 + 动作搜索直达（CommandItem 列表由 MainWindow 构建） |
-| `SplashWindow` | `SplashWindow.xaml` | `SplashWindow.xaml.cs` | `App` 启动流程 | 启动动画（淡入 + 罗盘旋转 + 进度条），主窗口就绪后 `FadeOutAndClose` |
+| `SplashWindow` | `SplashWindow.xaml` | `SplashWindow.xaml.cs` | `App` 启动流程 | 启动动画（v5.6.0：雷达环 + 旋转弧 + 文案交错 + 流光进度，无 emoji），主窗口就绪后 `FadeOutAndClose` |
 | `CompanionSettingsWindow` | `CompanionSettingsWindow.xaml` | `CompanionSettingsWindow.xaml.cs` | `CompanionWindow` | 小窗设置：自定义图片 + 北京时间开关 |
 
 ---

@@ -82,11 +82,11 @@
         <Setter Property="CornerRadius" Value="12"/>
     </Style>
 
-    <!-- 侧边栏：左侧导航（不带阴影、右侧描边分隔） -->
+    <!-- 侧边栏：右侧导航（不带阴影、左侧描边分隔） -->
     <Style x:Key="GlassSidebar" TargetType="Border">
         <Setter Property="Background" Value="{DynamicResource GlassSidebarBrush}"/>
         <Setter Property="BorderBrush" Value="{StaticResource GlassDividerDark}"/>
-        <Setter Property="BorderThickness" Value="0,0,1,0"/>
+        <Setter Property="BorderThickness" Value="1,0,0,0"/>
     </Style>
 
     <!-- 顶栏：标题栏（带底部细描边） -->
